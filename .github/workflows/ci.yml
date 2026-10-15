@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  repo-guard-and-eval-validation:
+    name: Repository Guards & Menu/Scenario Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Security Guard - Check for tracked private/ files
+        run: |
+          TRACKED_PRIVATE=$(git ls-files private/)
+          if [ -n "$TRACKED_PRIVATE" ]; then
+            echo "ERROR: Confidential files detected in git tracking under private/:"
+            echo "$TRACKED_PRIVATE"
+            exit 1
+          fi
+          echo "Guard passed: No private/ files are tracked."
+
+      - name: Security Guard - Ensure no .env secret file tracked
+        run: |
+          TRACKED_ENV=$(git ls-files .env .env.local .env.production)
+          if [ -n "$TRACKED_ENV" ]; then
+            echo "ERROR: .env secret file detected in git tracking!"
+            exit 1
+          fi
+          echo "Guard passed: No secret .env files tracked."
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate Menu JSON integrity
+        run: |
+          python eval/menu/validate_menu.py
+
+      - name: Validate Scenarios against Menu
+        run: |
+          python eval/scripts/validate_scenarios.py

@@ -1,0 +1,15 @@
+- name: spike
+  color: "1d76db"
+  description: "Investigasi teknis atau eksperimen time-boxed"
+
+- name: adr
+  color: "5319e7"
+  description: "Keputusan arsitektur sistem (Architectural Decision Record)"
+
+- name: eval
+  color: "0e8a16"
+  description: "Evaluasi akurasi, dataset, dan pengujian benchmark"
+
+- name: bug
+  color: "d93f0b"
+  description: "Cacat fungsi atau regresi metrik sistem"

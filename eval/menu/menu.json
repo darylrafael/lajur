@@ -1,0 +1,1515 @@
+{
+  "version": "1.0",
+  "currency": "IDR",
+  "operating_hours": {
+    "breakfast": {
+      "start": "05:00",
+      "end": "11:00"
+    },
+    "regular": {
+      "start": "11:00",
+      "end": "05:00"
+    }
+  },
+  "modifiers": [
+    {
+      "id": "mod_size",
+      "name_id": "Ukuran",
+      "name_en": "Size",
+      "applies_to": [
+        "kentang_goreng",
+        "minuman"
+      ],
+      "required": false,
+      "max": 1,
+      "options": [
+        {
+          "id": "size_regular",
+          "name_id": "Regular",
+          "name_en": "Regular",
+          "price_delta": 0
+        },
+        {
+          "id": "size_medium",
+          "name_id": "Medium",
+          "name_en": "Medium",
+          "price_delta": 4000
+        },
+        {
+          "id": "size_large",
+          "name_id": "Besar / Large",
+          "name_en": "Large",
+          "price_delta": 8000
+        }
+      ]
+    },
+    {
+      "id": "mod_ice",
+      "name_id": "Tingkat Es",
+      "name_en": "Ice Level",
+      "applies_to": [
+        "es_teh_manis",
+        "es_teh_original",
+        "soda_kola",
+        "soda_lemon",
+        "soda_oranye",
+        "kopi_susu_aren",
+        "es_kopi_susu",
+        "jus_jeruk"
+      ],
+      "required": false,
+      "max": 1,
+      "options": [
+        {
+          "id": "ice_normal",
+          "name_id": "Es Normal",
+          "name_en": "Normal Ice",
+          "price_delta": 0
+        },
+        {
+          "id": "ice_less",
+          "name_id": "Sedikit Es",
+          "name_en": "Less Ice",
+          "price_delta": 0
+        },
+        {
+          "id": "ice_none",
+          "name_id": "Tanpa Es",
+          "name_en": "No Ice",
+          "price_delta": 0
+        }
+      ]
+    },
+    {
+      "id": "mod_sugar",
+      "name_id": "Tingkat Gula",
+      "name_en": "Sugar Level",
+      "applies_to": [
+        "es_teh_manis",
+        "teh_panas",
+        "kopi_hitam_panas",
+        "kopi_susu_aren",
+        "es_kopi_susu"
+      ],
+      "required": false,
+      "max": 1,
+      "options": [
+        {
+          "id": "sugar_normal",
+          "name_id": "Gula Normal",
+          "name_en": "Normal Sugar",
+          "price_delta": 0
+        },
+        {
+          "id": "sugar_less",
+          "name_id": "Sedikit Gula",
+          "name_en": "Less Sugar",
+          "price_delta": 0
+        },
+        {
+          "id": "sugar_none",
+          "name_id": "Tanpa Gula",
+          "name_en": "No Sugar",
+          "price_delta": 0
+        }
+      ]
+    },
+    {
+      "id": "mod_burger_custom",
+      "name_id": "Kustomisasi Burger",
+      "name_en": "Burger Customization",
+      "applies_to": [
+        "burger_sapi_tunggal",
+        "burger_sapi_keju",
+        "burger_sapi_keju_ganda",
+        "burger_sapi_spesial",
+        "burger_ayam_crispy",
+        "burger_ayam_pedas",
+        "burger_ikan_crispy"
+      ],
+      "required": false,
+      "max": 3,
+      "options": [
+        {
+          "id": "extra_cheese",
+          "name_id": "Tambah Keju",
+          "name_en": "Extra Cheese",
+          "price_delta": 5000
+        },
+        {
+          "id": "no_pickles",
+          "name_id": "Tanpa Acar",
+          "name_en": "No Pickles",
+          "price_delta": 0
+        },
+        {
+          "id": "no_onions",
+          "name_id": "Tanpa Bawang",
+          "name_en": "No Onions",
+          "price_delta": 0
+        },
+        {
+          "id": "no_sauce",
+          "name_id": "Tanpa Saus",
+          "name_en": "No Sauce",
+          "price_delta": 0
+        }
+      ]
+    },
+    {
+      "id": "mod_chicken_flavor",
+      "name_id": "Rasa Ayam",
+      "name_en": "Chicken Flavor",
+      "applies_to": [
+        "ayam_goreng_crispy",
+        "ayam_goreng_pedas"
+      ],
+      "required": true,
+      "max": 1,
+      "options": [
+        {
+          "id": "flavor_original",
+          "name_id": "Original / Gurih",
+          "name_en": "Original Crisp",
+          "price_delta": 0
+        },
+        {
+          "id": "flavor_spicy",
+          "name_id": "Pedas / Spicy",
+          "name_en": "Spicy Hot",
+          "price_delta": 0
+        }
+      ]
+    },
+    {
+      "id": "mod_sauce_dip",
+      "name_id": "Saus Cocolan",
+      "name_en": "Dipping Sauce",
+      "applies_to": [
+        "nugget_ayam_6",
+        "nugget_ayam_9",
+        "kentang_goreng"
+      ],
+      "required": false,
+      "max": 2,
+      "options": [
+        {
+          "id": "dip_bbq",
+          "name_id": "Saus BBQ",
+          "name_en": "BBQ Sauce",
+          "price_delta": 0
+        },
+        {
+          "id": "dip_sweet_sour",
+          "name_id": "Saus Asam Manis",
+          "name_en": "Sweet and Sour",
+          "price_delta": 0
+        },
+        {
+          "id": "dip_cheese",
+          "name_id": "Saus Keju Cair",
+          "name_en": "Cheddar Cheese Dip",
+          "price_delta": 3000
+        }
+      ]
+    },
+    {
+      "id": "mod_egg_style",
+      "name_id": "Gaya Telur",
+      "name_en": "Egg Style",
+      "applies_to": [
+        "muffin_telur_keju",
+        "muffin_daging_telur"
+      ],
+      "required": false,
+      "max": 1,
+      "options": [
+        {
+          "id": "egg_sunny",
+          "name_id": "Mata Sapi",
+          "name_en": "Sunny Side Up",
+          "price_delta": 0
+        },
+        {
+          "id": "egg_scrambled",
+          "name_id": "Orak-Arik",
+          "name_en": "Scrambled",
+          "price_delta": 0
+        }
+      ]
+    },
+    {
+      "id": "mod_porridge_topping",
+      "name_id": "Topping Bubur",
+      "name_en": "Porridge Topping",
+      "applies_to": [
+        "bubur_ayam",
+        "bubur_ayam_spesial"
+      ],
+      "required": false,
+      "max": 2,
+      "options": [
+        {
+          "id": "no_cakwe",
+          "name_id": "Tanpa Cakwe",
+          "name_en": "No Chinese Cruller",
+          "price_delta": 0
+        },
+        {
+          "id": "no_seledri",
+          "name_id": "Tanpa Daun Bawang / Seledri",
+          "name_en": "No Celery",
+          "price_delta": 0
+        },
+        {
+          "id": "extra_kerupuk",
+          "name_id": "Tambah Kerupuk",
+          "name_en": "Extra Crackers",
+          "price_delta": 2000
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "burger_sapi_tunggal",
+      "category": "burger",
+      "name_id": "Burger Sapi Tunggal",
+      "name_en": "Single Beef Burger",
+      "aliases": [
+        "burger sapi",
+        "beef burger",
+        "single burger",
+        "hamburger"
+      ],
+      "price": 22000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_sapi_keju",
+      "category": "burger",
+      "name_id": "Burger Sapi Keju",
+      "name_en": "Cheeseburger",
+      "aliases": [
+        "burger keju",
+        "cheeseburger",
+        "cheese burger"
+      ],
+      "price": 28000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_sapi_keju_ganda",
+      "category": "burger",
+      "name_id": "Burger Sapi Keju Ganda",
+      "name_en": "Double Cheeseburger",
+      "aliases": [
+        "double cheese",
+        "double cheeseburger",
+        "burger keju ganda",
+        "double cheese burger"
+      ],
+      "price": 39000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_sapi_spesial",
+      "category": "burger",
+      "name_id": "Burger Sapi Spesial",
+      "name_en": "Special Beef Burger",
+      "aliases": [
+        "burger spesial",
+        "special burger",
+        "burger komplit"
+      ],
+      "price": 45000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_ayam_crispy",
+      "category": "burger",
+      "name_id": "Burger Ayam Renyah",
+      "name_en": "Crispy Chicken Burger",
+      "aliases": [
+        "chicken burger",
+        "burger ayam",
+        "crispy chicken burger"
+      ],
+      "price": 26000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_ayam_pedas",
+      "category": "burger",
+      "name_id": "Burger Ayam Pedas",
+      "name_en": "Spicy Chicken Burger",
+      "aliases": [
+        "spicy chicken burger",
+        "burger ayam pedas",
+        "mcspicy kw",
+        "burger pedas"
+      ],
+      "price": 32000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "burger_ikan_crispy",
+      "category": "burger",
+      "name_id": "Burger Ikan Krispi",
+      "name_en": "Crispy Fish Burger",
+      "aliases": [
+        "fish burger",
+        "burger ikan",
+        "filet fish"
+      ],
+      "price": 31000,
+      "sizes": [],
+      "modifiers": [
+        "mod_burger_custom"
+      ],
+      "available_hours": "regular",
+      "in_stock": false
+    },
+    {
+      "id": "ayam_goreng_crispy",
+      "category": "ayam",
+      "name_id": "Ayam Goreng Renyah",
+      "name_en": "Crispy Fried Chicken",
+      "aliases": [
+        "ayam crispy",
+        "fried chicken",
+        "ayam goreng",
+        "ayam krispi"
+      ],
+      "price": 21000,
+      "sizes": [],
+      "modifiers": [
+        "mod_chicken_flavor"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "ayam_goreng_pedas",
+      "category": "ayam",
+      "name_id": "Ayam Goreng Pedas",
+      "name_en": "Spicy Fried Chicken",
+      "aliases": [
+        "ayam pedas",
+        "spicy chicken",
+        "ayam spicy"
+      ],
+      "price": 22000,
+      "sizes": [],
+      "modifiers": [
+        "mod_chicken_flavor"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "sayap_ayam_pedas",
+      "category": "ayam",
+      "name_id": "Sayap Ayam Pedas Manis",
+      "name_en": "Spicy Sweet Chicken Wings",
+      "aliases": [
+        "chicken wings",
+        "sayap ayam",
+        "wings pedas"
+      ],
+      "price": 27000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "nugget_ayam_6",
+      "category": "ayam",
+      "name_id": "Nugget Ayam 6 Pcs",
+      "name_en": "6pcs Chicken Nuggets",
+      "aliases": [
+        "nugget 6 pcs",
+        "chicken nuggets 6",
+        "naget 6",
+        "nuggets isi 6"
+      ],
+      "price": 28000,
+      "sizes": [],
+      "modifiers": [
+        "mod_sauce_dip"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "nugget_ayam_9",
+      "category": "ayam",
+      "name_id": "Nugget Ayam 9 Pcs",
+      "name_en": "9pcs Chicken Nuggets",
+      "aliases": [
+        "nugget 9 pcs",
+        "chicken nuggets 9",
+        "naget 9",
+        "nuggets isi 9"
+      ],
+      "price": 38000,
+      "sizes": [],
+      "modifiers": [
+        "mod_sauce_dip"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "nasi_putih",
+      "category": "nasi",
+      "name_id": "Nasi Putih Hangat",
+      "name_en": "Steamed White Rice",
+      "aliases": [
+        "nasi",
+        "nasi putih",
+        "rice",
+        "steamed rice"
+      ],
+      "price": 8000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "nasi_uduk",
+      "category": "nasi",
+      "name_id": "Nasi Uduk Gurih",
+      "name_en": "Fragrant Coconut Rice",
+      "aliases": [
+        "nasi uduk",
+        "uduk rice",
+        "coconut rice"
+      ],
+      "price": 10000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "nasi_ayam_crispy",
+      "category": "nasi",
+      "name_id": "Nasi Ayam Renyah",
+      "name_en": "Crispy Chicken with Rice",
+      "aliases": [
+        "nasi ayam",
+        "rice chicken",
+        "nasi ayam crispy"
+      ],
+      "price": 27000,
+      "sizes": [],
+      "modifiers": [
+        "mod_chicken_flavor"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "nasi_ayam_pedas",
+      "category": "nasi",
+      "name_id": "Nasi Ayam Pedas",
+      "name_en": "Spicy Chicken with Rice",
+      "aliases": [
+        "nasi ayam pedas",
+        "spicy chicken rice"
+      ],
+      "price": 28000,
+      "sizes": [],
+      "modifiers": [
+        "mod_chicken_flavor"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "muffin_telur_keju",
+      "category": "sarapan",
+      "name_id": "Muffin Telur dan Keju",
+      "name_en": "Egg & Cheese Muffin",
+      "aliases": [
+        "egg muffin",
+        "muffin telur",
+        "muffin keju"
+      ],
+      "price": 24000,
+      "sizes": [],
+      "modifiers": [
+        "mod_egg_style"
+      ],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "muffin_daging_telur",
+      "category": "sarapan",
+      "name_id": "Muffin Daging Sapi dan Telur",
+      "name_en": "Sausage & Egg Muffin",
+      "aliases": [
+        "sausage egg muffin",
+        "muffin daging telur",
+        "muffin sosis"
+      ],
+      "price": 32000,
+      "sizes": [],
+      "modifiers": [
+        "mod_egg_style"
+      ],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "bubur_ayam",
+      "category": "sarapan",
+      "name_id": "Bubur Ayam Gurih",
+      "name_en": "Chicken Porridge",
+      "aliases": [
+        "bubur ayam",
+        "chicken porridge",
+        "bubur"
+      ],
+      "price": 18000,
+      "sizes": [],
+      "modifiers": [
+        "mod_porridge_topping"
+      ],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "bubur_ayam_spesial",
+      "category": "sarapan",
+      "name_id": "Bubur Ayam Telur Spesial",
+      "name_en": "Special Chicken Porridge with Egg",
+      "aliases": [
+        "bubur spesial",
+        "bubur ayam telur",
+        "special porridge"
+      ],
+      "price": 24000,
+      "sizes": [],
+      "modifiers": [
+        "mod_porridge_topping"
+      ],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "pancake_madu",
+      "category": "sarapan",
+      "name_id": "Pancake Mentega dan Madu",
+      "name_en": "Hotcakes with Honey & Butter",
+      "aliases": [
+        "pancake",
+        "hotcakes",
+        "pancake madu"
+      ],
+      "price": 22000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "hash_brown",
+      "category": "sarapan",
+      "name_id": "Kentang Hash Brown",
+      "name_en": "Crispy Hash Brown",
+      "aliases": [
+        "hash brown",
+        "hashbrown",
+        "kentang segitiga",
+        "hashbrowns"
+      ],
+      "price": 12000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "breakfast",
+      "in_stock": true
+    },
+    {
+      "id": "kentang_goreng",
+      "category": "side",
+      "name_id": "Kentang Goreng",
+      "name_en": "French Fries",
+      "aliases": [
+        "kentang",
+        "french fries",
+        "fries",
+        "french fry",
+        "kentang goreng"
+      ],
+      "price": 16000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 5000
+        },
+        {
+          "size": "large",
+          "price_delta": 9000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_sauce_dip"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "kentang_goreng_keju",
+      "category": "side",
+      "name_id": "Kentang Goreng Saus Keju",
+      "name_en": "Cheese Fries",
+      "aliases": [
+        "cheese fries",
+        "kentang keju"
+      ],
+      "price": 23000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "jagung_manis",
+      "category": "side",
+      "name_id": "Jagung Manis Cup",
+      "name_en": "Sweet Corn Cup",
+      "aliases": [
+        "jagung manis",
+        "cup corn",
+        "sweet corn",
+        "jagung"
+      ],
+      "price": 12000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "sup_ayam",
+      "category": "side",
+      "name_id": "Sup Ayam Hangat",
+      "name_en": "Chicken Soup",
+      "aliases": [
+        "sup ayam",
+        "soup",
+        "chicken soup",
+        "sop ayam"
+      ],
+      "price": 13000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "salad_segar",
+      "category": "side",
+      "name_id": "Salad Sayur Segar",
+      "name_en": "Fresh Garden Salad",
+      "aliases": [
+        "salad",
+        "garden salad",
+        "sayur"
+      ],
+      "price": 18000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "roti_panggang",
+      "category": "side",
+      "name_id": "Roti Panggang Selai",
+      "name_en": "Toasted Bun with Jam",
+      "aliases": [
+        "roti panggang",
+        "toast",
+        "toasted bun"
+      ],
+      "price": 9000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "es_teh_manis",
+      "category": "minuman",
+      "name_id": "Es Teh Manis",
+      "name_en": "Sweet Iced Tea",
+      "aliases": [
+        "es teh",
+        "iced tea",
+        "es teh manis",
+        "sweet tea",
+        "es tea"
+      ],
+      "price": 9000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 3000
+        },
+        {
+          "size": "large",
+          "price_delta": 5000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_ice",
+        "mod_sugar"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "es_teh_original",
+      "category": "minuman",
+      "name_id": "Es Teh Tawar",
+      "name_en": "Unsweetened Iced Tea",
+      "aliases": [
+        "es teh tawar",
+        "plain iced tea",
+        "teh tawar dingin"
+      ],
+      "price": 8000,
+      "sizes": [],
+      "modifiers": [
+        "mod_ice"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "teh_panas",
+      "category": "minuman",
+      "name_id": "Teh Panas",
+      "name_en": "Hot Tea",
+      "aliases": [
+        "teh panas",
+        "hot tea",
+        "teh hangat"
+      ],
+      "price": 8000,
+      "sizes": [],
+      "modifiers": [
+        "mod_sugar"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "soda_kola",
+      "category": "minuman",
+      "name_id": "Minuman Soda Kola",
+      "name_en": "Cola Soda",
+      "aliases": [
+        "coke",
+        "coca cola",
+        "kola",
+        "cola",
+        "soda"
+      ],
+      "price": 12000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 4000
+        },
+        {
+          "size": "large",
+          "price_delta": 6000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_ice"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "soda_lemon",
+      "category": "minuman",
+      "name_id": "Minuman Soda Lemon",
+      "name_en": "Lemon Lime Soda",
+      "aliases": [
+        "sprite",
+        "lemon lime",
+        "soda lemon",
+        "lemon soda"
+      ],
+      "price": 12000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 4000
+        },
+        {
+          "size": "large",
+          "price_delta": 6000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_ice"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "soda_oranye",
+      "category": "minuman",
+      "name_id": "Minuman Soda Jeruk",
+      "name_en": "Orange Soda",
+      "aliases": [
+        "fanta",
+        "orange soda",
+        "soda jeruk"
+      ],
+      "price": 12000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 4000
+        },
+        {
+          "size": "large",
+          "price_delta": 6000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_ice"
+      ],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "kopi_hitam_panas",
+      "category": "minuman",
+      "name_id": "Kopi Hitam Panas",
+      "name_en": "Hot Black Coffee",
+      "aliases": [
+        "kopi hitam",
+        "black coffee",
+        "kopi panas",
+        "hot americano"
+      ],
+      "price": 14000,
+      "sizes": [],
+      "modifiers": [
+        "mod_sugar"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "kopi_susu_aren",
+      "category": "minuman",
+      "name_id": "Es Kopi Susu Gula Aren",
+      "name_en": "Iced Palm Sugar Latte",
+      "aliases": [
+        "kopi gula aren",
+        "palm sugar latte",
+        "kopi susu aren",
+        "iced latte",
+        "kopsus"
+      ],
+      "price": 19000,
+      "sizes": [
+        {
+          "size": "regular",
+          "price_delta": 0
+        },
+        {
+          "size": "medium",
+          "price_delta": 4000
+        }
+      ],
+      "modifiers": [
+        "mod_size",
+        "mod_ice",
+        "mod_sugar"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "es_kopi_susu",
+      "category": "minuman",
+      "name_id": "Es Kopi Susu Original",
+      "name_en": "Iced Milk Coffee",
+      "aliases": [
+        "es kopi susu",
+        "iced coffee",
+        "coffee latte"
+      ],
+      "price": 17000,
+      "sizes": [],
+      "modifiers": [
+        "mod_ice",
+        "mod_sugar"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "air_mineral",
+      "category": "minuman",
+      "name_id": "Air Mineral Botol 600ml",
+      "name_en": "Bottled Mineral Water",
+      "aliases": [
+        "air mineral",
+        "aqua",
+        "mineral water",
+        "air putih"
+      ],
+      "price": 8000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "jus_jeruk",
+      "category": "minuman",
+      "name_id": "Jus Jeruk Segar",
+      "name_en": "Fresh Orange Juice",
+      "aliases": [
+        "jus jeruk",
+        "orange juice",
+        "orange juice segar"
+      ],
+      "price": 15000,
+      "sizes": [],
+      "modifiers": [
+        "mod_ice"
+      ],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "susu_cokelat",
+      "category": "minuman",
+      "name_id": "Susu Cokelat Dingin",
+      "name_en": "Iced Chocolate Milk",
+      "aliases": [
+        "susu cokelat",
+        "chocolate milk",
+        "milo kw",
+        "susu coklat"
+      ],
+      "price": 14000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "all_day",
+      "in_stock": true
+    },
+    {
+      "id": "es_krim_vanila",
+      "category": "dessert",
+      "name_id": "Es Krim Cone Vanila",
+      "name_en": "Vanilla Soft Serve Cone",
+      "aliases": [
+        "es krim cone",
+        "ice cream cone",
+        "es krim vanila",
+        "soft serve"
+      ],
+      "price": 9000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "es_krim_cokelat",
+      "category": "dessert",
+      "name_id": "Es Krim Sundae Cokelat",
+      "name_en": "Chocolate Sundae",
+      "aliases": [
+        "chocolate sundae",
+        "sundae cokelat",
+        "es krim coklat"
+      ],
+      "price": 14000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": false
+    },
+    {
+      "id": "es_krim_stroberi",
+      "category": "dessert",
+      "name_id": "Es Krim Sundae Stroberi",
+      "name_en": "Strawberry Sundae",
+      "aliases": [
+        "strawberry sundae",
+        "sundae stroberi",
+        "es krim stroberi"
+      ],
+      "price": 14000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "pai_apel",
+      "category": "dessert",
+      "name_id": "Pai Apel Hangat",
+      "name_en": "Warm Apple Pie",
+      "aliases": [
+        "apple pie",
+        "pai apel",
+        "pie apel"
+      ],
+      "price": 15000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "pai_cokelat",
+      "category": "dessert",
+      "name_id": "Pai Cokelat Hangat",
+      "name_en": "Warm Chocolate Pie",
+      "aliases": [
+        "choco pie",
+        "chocolate pie",
+        "pai cokelat"
+      ],
+      "price": 16000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    },
+    {
+      "id": "kue_cokelat_lumer",
+      "category": "dessert",
+      "name_id": "Kue Cokelat Lumer",
+      "name_en": "Molten Lava Chocolate Cake",
+      "aliases": [
+        "lava cake",
+        "kue cokelat",
+        "molten cake"
+      ],
+      "price": 19000,
+      "sizes": [],
+      "modifiers": [],
+      "available_hours": "regular",
+      "in_stock": true
+    }
+  ],
+  "combos": [
+    {
+      "id": "paket_hemat_burger_tunggal",
+      "name_id": "Paket Hemat Burger Sapi",
+      "name_en": "Single Beef Burger Combo",
+      "aliases": [
+        "paket burger tunggal",
+        "paket hemat 1",
+        "combo burger tunggal",
+        "single burger combo"
+      ],
+      "base_price": 39000,
+      "available_hours": "regular",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main",
+          "name_id": "Pilihan Utama",
+          "name_en": "Main Item",
+          "required": true,
+          "choice_items": [
+            "burger_sapi_tunggal",
+            "burger_sapi_keju"
+          ]
+        },
+        {
+          "slot_id": "side",
+          "name_id": "Pilihan Pendamping",
+          "name_en": "Side Item",
+          "required": true,
+          "choice_items": [
+            "kentang_goreng",
+            "nasi_putih",
+            "jagung_manis"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Minuman",
+          "name_en": "Drink Choice",
+          "required": true,
+          "choice_items": [
+            "es_teh_manis",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "upsize_combo",
+          "prompt_id": "Mau di-upsize kentang dan minumannya ke ukuran besar?",
+          "prompt_en": "Would you like to upsize your fries and drink to large?",
+          "target_item": "kentang_goreng",
+          "price_delta": 6000
+        }
+      ]
+    },
+    {
+      "id": "paket_hemat_burger_ganda",
+      "name_id": "Paket Hemat Burger Keju Ganda",
+      "name_en": "Double Cheeseburger Combo",
+      "aliases": [
+        "paket burger ganda",
+        "double cheese combo",
+        "paket hemat 2",
+        "combo double cheeseburger"
+      ],
+      "base_price": 53000,
+      "available_hours": "regular",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main",
+          "name_id": "Pilihan Utama",
+          "name_en": "Main Item",
+          "required": true,
+          "choice_items": [
+            "burger_sapi_keju_ganda",
+            "burger_sapi_spesial"
+          ]
+        },
+        {
+          "slot_id": "side",
+          "name_id": "Pilihan Pendamping",
+          "name_en": "Side Item",
+          "required": true,
+          "choice_items": [
+            "kentang_goreng",
+            "nasi_putih"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Minuman",
+          "name_en": "Drink Choice",
+          "required": true,
+          "choice_items": [
+            "soda_kola",
+            "soda_lemon",
+            "soda_oranye",
+            "es_teh_manis"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "upsell_dessert",
+          "prompt_id": "Sekalian tambah es krim sundae stroberi untuk hidangan penutup?",
+          "prompt_en": "Add a strawberry sundae for dessert?",
+          "target_item": "es_krim_stroberi",
+          "price_delta": 11000
+        }
+      ]
+    },
+    {
+      "id": "paket_hemat_ayam_1",
+      "name_id": "Paket Hemat Ayam Renyah 1 Pc",
+      "name_en": "1pc Chicken Combo",
+      "aliases": [
+        "paket ayam 1",
+        "paket hemat ayam",
+        "1 pc chicken meal",
+        "combo ayam satu"
+      ],
+      "base_price": 34000,
+      "available_hours": "regular",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main",
+          "name_id": "Pilihan Ayam",
+          "name_en": "Chicken Piece",
+          "required": true,
+          "choice_items": [
+            "ayam_goreng_crispy",
+            "ayam_goreng_pedas"
+          ]
+        },
+        {
+          "slot_id": "side",
+          "name_id": "Pilihan Nasi / Kentang",
+          "name_en": "Side Choice",
+          "required": true,
+          "choice_items": [
+            "nasi_putih",
+            "nasi_uduk",
+            "kentang_goreng"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Minuman",
+          "name_en": "Drink Choice",
+          "required": true,
+          "choice_items": [
+            "es_teh_manis",
+            "es_teh_original",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "add_chicken_piece",
+          "prompt_id": "Mau tambah satu potong ayam crispy lagi?",
+          "prompt_en": "Add one more piece of crispy chicken?",
+          "target_item": "ayam_goreng_crispy",
+          "price_delta": 18000
+        }
+      ]
+    },
+    {
+      "id": "paket_hemat_ayam_2",
+      "name_id": "Paket Hemat Ayam Renyah 2 Pcs",
+      "name_en": "2pcs Chicken Combo",
+      "aliases": [
+        "paket ayam 2",
+        "paket hemat ayam 2",
+        "2 pcs chicken meal",
+        "combo ayam dua"
+      ],
+      "base_price": 49000,
+      "available_hours": "regular",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main_1",
+          "name_id": "Ayam Potong Pertama",
+          "name_en": "First Chicken Piece",
+          "required": true,
+          "choice_items": [
+            "ayam_goreng_crispy",
+            "ayam_goreng_pedas"
+          ]
+        },
+        {
+          "slot_id": "main_2",
+          "name_id": "Ayam Potong Kedua",
+          "name_en": "Second Chicken Piece",
+          "required": true,
+          "choice_items": [
+            "ayam_goreng_crispy",
+            "ayam_goreng_pedas"
+          ]
+        },
+        {
+          "slot_id": "side",
+          "name_id": "Pilihan Nasi / Kentang",
+          "name_en": "Side Choice",
+          "required": true,
+          "choice_items": [
+            "nasi_putih",
+            "nasi_uduk",
+            "kentang_goreng"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Minuman",
+          "name_en": "Drink Choice",
+          "required": true,
+          "choice_items": [
+            "es_teh_manis",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "add_soup",
+          "prompt_id": "Ingin sekalian sup ayam hangatnya?",
+          "prompt_en": "Would you like warm chicken soup with that?",
+          "target_item": "sup_ayam",
+          "price_delta": 10000
+        }
+      ]
+    },
+    {
+      "id": "paket_sarapan_muffin",
+      "name_id": "Paket Sarapan Muffin & Kopi",
+      "name_en": "Breakfast Muffin & Coffee Combo",
+      "aliases": [
+        "paket sarapan muffin",
+        "breakfast muffin combo",
+        "paket muffin kopi"
+      ],
+      "base_price": 38000,
+      "available_hours": "breakfast",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main",
+          "name_id": "Pilihan Muffin",
+          "name_en": "Muffin Choice",
+          "required": true,
+          "choice_items": [
+            "muffin_telur_keju",
+            "muffin_daging_telur"
+          ]
+        },
+        {
+          "slot_id": "side",
+          "name_id": "Pilihan Pendamping",
+          "name_en": "Side Choice",
+          "required": true,
+          "choice_items": [
+            "hash_brown",
+            "jagung_manis"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Minuman Sarapan",
+          "name_en": "Breakfast Drink",
+          "required": true,
+          "choice_items": [
+            "kopi_hitam_panas",
+            "teh_panas",
+            "jus_jeruk"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "upgrade_coffee",
+          "prompt_id": "Mau upgrade kopinya ke es kopi susu gula aren?",
+          "prompt_en": "Upgrade coffee to iced palm sugar latte?",
+          "target_item": "kopi_susu_aren",
+          "price_delta": 5000
+        }
+      ]
+    },
+    {
+      "id": "paket_sarapan_bubur",
+      "name_id": "Paket Sarapan Bubur Ayam",
+      "name_en": "Breakfast Porridge Combo",
+      "aliases": [
+        "paket sarapan bubur",
+        "combo bubur ayam",
+        "paket bubur teh"
+      ],
+      "base_price": 25000,
+      "available_hours": "breakfast",
+      "in_stock": true,
+      "slots": [
+        {
+          "slot_id": "main",
+          "name_id": "Pilihan Bubur",
+          "name_en": "Porridge Choice",
+          "required": true,
+          "choice_items": [
+            "bubur_ayam",
+            "bubur_ayam_spesial"
+          ]
+        },
+        {
+          "slot_id": "drink",
+          "name_id": "Pilihan Teh / Air",
+          "name_en": "Drink Choice",
+          "required": true,
+          "choice_items": [
+            "teh_panas",
+            "es_teh_manis",
+            "air_mineral"
+          ]
+        }
+      ],
+      "upsell_rules": [
+        {
+          "rule_id": "add_hashbrown",
+          "prompt_id": "Sekalian tambah kentang hash brown renyah?",
+          "prompt_en": "Add a crispy hash brown?",
+          "target_item": "hash_brown",
+          "price_delta": 10000
+        }
+      ]
+    }
+  ]
+}

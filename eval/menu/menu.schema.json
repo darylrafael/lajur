@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LajurMenuSchema",
+  "description": "JSON Schema for Lajur Drive-thru Menu Definition (§8)",
+  "type": "object",
+  "required": ["version", "operating_hours", "items", "modifiers", "combos"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "operating_hours": {
+      "type": "object",
+      "required": ["breakfast", "regular"],
+      "properties": {
+        "breakfast": {
+          "type": "object",
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "regular": {
+          "type": "object",
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "name_id",
+          "name_en",
+          "aliases",
+          "price",
+          "sizes",
+          "modifiers",
+          "available_hours",
+          "in_stock"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "category": {
+            "type": "string",
+            "enum": ["burger", "ayam", "nasi", "sarapan", "side", "minuman", "dessert", "combo"]
+          },
+          "name_id": { "type": "string" },
+          "name_en": { "type": "string" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "price": { "type": "number", "minimum": 0 },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["size", "price_delta"],
+              "properties": {
+                "size": { "type": "string", "enum": ["regular", "medium", "large"] },
+                "price_delta": { "type": "number" }
+              }
+            }
+          },
+          "modifiers": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "available_hours": {
+            "type": "string",
+            "enum": ["all_day", "breakfast", "regular"]
+          },
+          "in_stock": { "type": "boolean" }
+        }
+      }
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name_id", "name_en", "applies_to", "options", "required", "max"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "name_id": { "type": "string" },
+          "name_en": { "type": "string" },
+          "applies_to": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name_id", "name_en", "price_delta"],
+              "properties": {
+                "id": { "type": "string" },
+                "name_id": { "type": "string" },
+                "name_en": { "type": "string" },
+                "price_delta": { "type": "number" }
+              }
+            }
+          },
+          "required": { "type": "boolean" },
+          "max": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "combos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name_id",
+          "name_en",
+          "aliases",
+          "base_price",
+          "available_hours",
+          "in_stock",
+          "slots",
+          "upsell_rules"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "name_id": { "type": "string" },
+          "name_en": { "type": "string" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "base_price": { "type": "number", "minimum": 0 },
+          "available_hours": {
+            "type": "string",
+            "enum": ["all_day", "breakfast", "regular"]
+          },
+          "in_stock": { "type": "boolean" },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["slot_id", "name_id", "name_en", "required", "choice_items"],
+              "properties": {
+                "slot_id": { "type": "string" },
+                "name_id": { "type": "string" },
+                "name_en": { "type": "string" },
+                "required": { "type": "boolean" },
+                "choice_items": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
+          "upsell_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["rule_id", "prompt_id", "prompt_en", "target_item", "price_delta"],
+              "properties": {
+                "rule_id": { "type": "string" },
+                "prompt_id": { "type": "string" },
+                "prompt_en": { "type": "string" },
+                "target_item": { "type": "string" },
+                "price_delta": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
