@@ -1,0 +1,23 @@
+[project]
+name = "lajur"
+version = "0.1.0"
+description = "A public drive-thru voice ordering demo"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["packages/cart", "services/agent"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+extraPaths = ["packages/cart/src", "services/agent/src"]

@@ -1,6 +1,6 @@
 # Arsitektur Sistem — Lajur
 
-**Status:** v1.0 · **Terkait:** ADR-0001 s/d ADR-0008
+**Status:** v1.1 · **Terkait:** ADR-0001 s/d ADR-0009
 
 ---
 
@@ -19,7 +19,7 @@ Desain ini sengaja menghindari model audio-to-audio end-to-end proprietary untuk
 
 ```text
 Browser (Next.js, i18n)
-  mic + preset noise (Web Audio API) ──WebRTC──► LiveKit Cloud (bisa self-host)
+  mic + preset noise (Web Audio API) ──WebRTC──► LiveKit Cloud (atau local dev server)
   menu board / layar konfirmasi / transkrip ◄── Data Channel ──┐
                                                                │
 Agent Worker (Python, livekit-agents) ◄────── dispatch ────────┘
@@ -59,3 +59,37 @@ Eval Harness (Offline / CI):
 4. **Semua Vendor di Balik Adapter**: Kode inti sistem tidak pernah mengimpor library SDK vendor secara langsung. Semua vendor diakses via antarmuka standar (`STTProvider`, `LLMProvider`, `TTSProvider`).
 5. **LLM Tanpa Akses Database Langsung**: LLM beroperasi secara stateless berbasis instruksi prompt dan function calling terisolasi.
 6. **Zero Audio Persistence**: Audio stream diproses di memori dan langsung dibuang. Tidak ada penyimpanan file suara ke disk lokal maupun cloud bucket.
+
+---
+
+## 5. Implementasi Walking Skeleton (Minggu 1)
+
+Topologi implementasi awal pada Minggu 1 berfokus pada pembuktian jalur komunikasi WebRTC tanpa memicu biaya API vendor (STT/LLM/TTS):
+
+```text
+Browser Client (Next.js 14)
+   │
+   ├── HTTP POST /api/token ──► Issues LiveKit JWT token (server-side secret)
+   │
+   ├── WebRTC Audio Track (Mic) ──► LiveKit Server ──► AudioStream ──► Agent Worker
+   │                                                                     │ (Echo loop)
+   │   WebRTC Audio Track (Speaker) ◄── LiveKit Server ◄── AudioSource ◄─┘
+   │
+   └── WebRTC Data Channel ("lajur-control")
+          Ping { type: "ping", timestamp } ──► Agent Worker
+          Pong { type: "pong", client_time, server_time } ◄── Agent Worker
+          └──► Client computes Round-Trip Latency (RTT ms) live
+```
+
+1. **`apps/web` (Next.js App Router):**
+   - Menggunakan `@livekit/components-react` untuk koneksi room WebRTC.
+   - Endpoint `/api/token` mengenerate access token berdurasi singkat secara acak per room, dengan placeholder siap pasang untuk Cloudflare Turnstile dan rate-limiting IP.
+   - Mengukur round-trip time (RTT) secara live via data channel `lajur-control` setiap detik.
+2. **`services/agent` (Python Worker):**
+   - Berjalan dengan runtime `livekit-agents` (1.8.x) Python 3.12.
+   - Mengonsumsi track audio mikrofon pelanggan via `rtc.AudioStream`, lalu memancarkannya kembali ke room via `rtc.AudioSource` (echo test murni tanpa vendor STT/TTS).
+   - Menanggapi heartbeat ping-pong untuk pengujian latency WebRTC.
+3. **`infra/docker-compose.yml`:**
+   - Menyediakan instance LiveKit Server lokal mandiri (port 7880) untuk pengembangan offline di Windows / WSL tanpa bergantung kuota LiveKit Cloud.
+4. **Keputusan Hosting:**
+   - Didokumentasikan dalam ADR-0009 (`docs/decisions/0009-hosting-frontend-and-worker.md`).

@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Validate Menu JSON integrity
         run: |
@@ -45,3 +45,70 @@ jobs:
       - name: Validate Scenarios against Menu
         run: |
           python eval/scripts/validate_scenarios.py
+
+  cart-and-python-workspace:
+    name: Python Lint, Typecheck & Cart Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --all-packages
+
+      - name: Ruff Lint Check
+        run: |
+          uv run ruff check .
+
+      - name: Pyright Type Check
+        run: |
+          uv run pyright packages/cart
+
+      - name: Pytest Unit Tests
+        run: |
+          uv run pytest packages/cart/tests -v
+
+  web-application:
+    name: Web App Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Node dependencies
+        working-directory: apps/web
+        run: |
+          npm ci
+
+      - name: TypeScript Typecheck
+        working-directory: apps/web
+        run: |
+          npm run typecheck
+
+      - name: Next.js Production Build
+        working-directory: apps/web
+        env:
+          LIVEKIT_URL: "wss://placeholder.livekit.cloud"
+          LIVEKIT_API_KEY: "devkey"
+          LIVEKIT_API_SECRET: "secretsecretsecretsecretsecretsecret32"
+          NEXT_PUBLIC_LIVEKIT_URL: "wss://placeholder.livekit.cloud"
+        run: |
+          npm run build

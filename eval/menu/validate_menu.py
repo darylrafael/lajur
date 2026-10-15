@@ -1,5 +1,5 @@
-"""
-Menu Validator for Lajur Drive-thru Voice Ordering System
+"""Menu Validator for Lajur Drive-thru Voice Ordering System.
+
 Validates menu.json against menu.schema.json and checks domain integrity rules:
 1. Unique IDs across items, modifiers, combos
 2. Valid references (modifiers in items exist in modifier list, choice items in combo slots exist)
@@ -11,6 +11,7 @@ import json
 import re
 import sys
 from pathlib import Path
+
 
 def validate_menu(menu_path: Path, schema_path: Path) -> bool:
     print(f"Validating menu: {menu_path}")
@@ -26,6 +27,9 @@ def validate_menu(menu_path: Path, schema_path: Path) -> bool:
 
     with open(schema_path, "r", encoding="utf-8") as f:
         schema = json.load(f)
+        if not schema.get("title"):
+            print("ERROR: schema missing title")
+            return False
 
     errors = []
 
@@ -149,6 +153,7 @@ def validate_menu(menu_path: Path, schema_path: Path) -> bool:
     print(f"Categories: {category_counts}")
     print(f"Out of stock: {out_of_stock_count}, Breakfast-only: {breakfast_count}")
     return True
+
 
 if __name__ == "__main__":
     base_dir = Path(__file__).resolve().parent
