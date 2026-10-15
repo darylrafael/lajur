@@ -2,7 +2,7 @@
 
 > A public, transparently measured drive-thru voice ordering demo built for Indonesian-English code-switched speech.
 
-[![CI](https://github.com/darylrafael/portofolio-web/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/darylrafael/lajur/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Data License: CDLA-Permissive-2.0](https://img.shields.io/badge/Data_License-CDLA--Permissive--2.0-green.svg)](eval/LICENSE-DATA.md)
 
