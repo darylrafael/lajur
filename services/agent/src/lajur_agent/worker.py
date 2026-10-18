@@ -70,7 +70,7 @@ async def entrypoint(ctx: JobContext) -> None:
             raw_text = data_packet.data.decode("utf-8")
             msg = json.loads(raw_text)
             if msg.get("type") == "ping":
-                # Immediately respond with pong preserving client_time
+                # Immediately respond with pong preserving client_time (unreliable for UDP speed)
                 pong_data = json.dumps({
                     "type": "pong",
                     "client_time": msg.get("client_time"),
@@ -79,23 +79,42 @@ async def entrypoint(ctx: JobContext) -> None:
                     room.local_participant.publish_data(
                         pong_data,
                         topic="lajur-control",
-                        reliable=True,
+                        reliable=False,
                     )
                 )
         except Exception as e:
             logger.debug("Error processing data packet: %s", e)
 
     # 4. Audio echo loop
+    active_stream_tasks: dict[str, asyncio.Task[None]] = {}
+
     async def echo_audio_stream(track: rtc.Track) -> None:
         logger.info("Starting audio frame echoing for track %s", track.sid)
-        audio_stream = rtc.AudioStream(track)
+        # 50ms frames drastically reduce FFI lock contention on Windows (20 fps instead of 100 fps)
+        audio_stream = rtc.AudioStream(
+            track,
+            sample_rate=48000,
+            num_channels=1,
+            frame_size_ms=50,
+        )
         try:
-            async for frame in audio_stream:
-                await audio_source.capture_frame(frame)
+            async for event in audio_stream:
+                await audio_source.capture_frame(event.frame)
+                # Yield control to Python asyncio event loop so worker health pings are not blocked
+                await asyncio.sleep(0)
         except asyncio.CancelledError:
             pass
         except Exception as e:
             logger.error("Audio echo stream error: %s", e)
+        finally:
+            await audio_stream.aclose()
+            active_stream_tasks.pop(track.sid, None)
+
+    def handle_track(track: rtc.Track) -> None:
+        if track.kind == rtc.TrackKind.KIND_AUDIO and track.sid not in active_stream_tasks:
+            logger.info("Subscribing to audio track: %s", track.sid)
+            task = asyncio.create_task(echo_audio_stream(track))
+            active_stream_tasks[track.sid] = task
 
     @room.on("track_subscribed")
     def on_track_subscribed(
@@ -103,9 +122,13 @@ async def entrypoint(ctx: JobContext) -> None:
         publication: rtc.TrackPublication,
         participant: rtc.RemoteParticipant,
     ) -> None:
-        if track.kind == rtc.TrackKind.KIND_AUDIO:
-            logger.info("Subscribed to remote audio track from participant: %s", participant.identity)
-            asyncio.create_task(echo_audio_stream(track))
+        handle_track(track)
+
+    # Check if remote participants already have published audio tracks
+    for participant in room.remote_participants.values():
+        for publication in participant.track_publications.values():
+            if publication.track:
+                handle_track(publication.track)
 
     logger.info("Agent is listening for audio and data channel messages...")
 

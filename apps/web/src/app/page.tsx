@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
+  StartAudio,
   useConnectionState,
   useDataChannel,
   useLocalParticipant,
@@ -116,6 +117,7 @@ export default function HomePage() {
           >
             <SessionController roomName={roomName} onEndSession={endSession} />
             <RoomAudioRenderer />
+            <StartAudio label="Klik untuk mengizinkan audio speaker" className="w-full py-2 bg-sky-950/60 border border-sky-800 text-sky-300 text-xs rounded-xl hover:bg-sky-900 transition" />
           </LiveKitRoom>
         )}
       </div>
@@ -163,7 +165,7 @@ function SessionController({
         type: "ping",
         client_time: performance.now(),
       });
-      send(new TextEncoder().encode(payload), { reliable: true });
+      send(new TextEncoder().encode(payload), { reliable: false });
     }
   }, [connectionState, send]);
 
