@@ -5,6 +5,7 @@ Script to generate eval/menu/menu.json for Lajur project.
 import json
 from pathlib import Path
 
+
 def generate_menu():
     menu = {
         "version": "1.0",

@@ -11,6 +11,7 @@ import json
 import sys
 from pathlib import Path
 
+
 def validate_scenarios(scenarios_path: Path, menu_path: Path) -> bool:
     print(f"Validating scenarios: {scenarios_path}")
     if not scenarios_path.exists():
@@ -43,13 +44,14 @@ def validate_scenarios(scenarios_path: Path, menu_path: Path) -> bool:
 
     errors = []
 
-    if len(scenarios) != 100:
-        errors.append(f"Expected exactly 100 scenarios, found {len(scenarios)}")
+    if len(scenarios) < 100:
+        errors.append(f"Expected at least 100 scenarios, found {len(scenarios)}")
 
     seen_ids = set()
     tag_counts = {}
     lang_counts = {}
     noise_counts = {}
+    source_counts = {}
 
     for line_no, scen in scenarios:
         sid = scen.get("id")
@@ -58,6 +60,12 @@ def validate_scenarios(scenarios_path: Path, menu_path: Path) -> bool:
         elif sid in seen_ids:
             errors.append(f"Line {line_no}: Duplicate scenario id: {sid}")
         seen_ids.add(sid)
+
+        # Check source
+        source = scen.get("source", "generated")
+        if source not in ["generated", "handwritten"]:
+            errors.append(f"Scenario {sid}: Invalid source '{source}'")
+        source_counts[source] = source_counts.get(source, 0) + 1
 
         # Check split
         split = scen.get("split")
@@ -185,6 +193,21 @@ def validate_scenarios(scenarios_path: Path, menu_path: Path) -> bool:
         if count == 0:
             errors.append(f"Coverage failure: tag '{et}' has 0 scenarios")
 
+    # Dataset v0.1 specific minimum coverage thresholds
+    if tag_counts.get("handoff", 0) < 8:
+        errors.append(f"Coverage threshold: 'handoff' scenarios ({tag_counts.get('handoff', 0)}) < 8")
+    if noise_counts.get("helmet", 0) < 10:
+        errors.append(f"Coverage threshold: 'helmet' noise scenarios ({noise_counts.get('helmet', 0)}) < 10")
+    if tag_counts.get("prank", 0) < 8:
+        errors.append(f"Coverage threshold: 'prank' scenarios ({tag_counts.get('prank', 0)}) < 8")
+
+    mixed_ratio = lang_counts.get("mixed", 0) / len(scenarios) if scenarios else 0
+    if mixed_ratio < 0.40:
+        errors.append(f"Coverage threshold: mixed ID-EN ratio ({mixed_ratio:.1%}) < 40.0%")
+
+    if source_counts.get("handwritten", 0) < 30:
+        errors.append(f"Coverage threshold: handwritten scenarios ({source_counts.get('handwritten', 0)}) < 30")
+
     if errors:
         print(f"FAILED with {len(errors)} errors:")
         for err in errors[:25]:
@@ -193,8 +216,9 @@ def validate_scenarios(scenarios_path: Path, menu_path: Path) -> bool:
             print(f"  ... and {len(errors) - 25} more errors.")
         return False
 
-    print("SUCCESS: All 100 scenarios are valid and mathematically consistent with menu.json!")
-    print(f"Language mix: {lang_counts}")
+    print(f"SUCCESS: All {len(scenarios)} scenarios are valid and mathematically consistent with menu.json!")
+    print(f"Sources: {source_counts}")
+    print(f"Language mix: {lang_counts} (mixed: {mixed_ratio:.1%})")
     print(f"Noise profiles: {noise_counts}")
     print(f"Tag distribution: {dict(sorted(tag_counts.items(), key=lambda x: x[1], reverse=True))}")
     return True
