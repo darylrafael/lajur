@@ -1,4 +1,4 @@
-"""Adapters package providing provider abstractions and test fakes for STT, TTS, and LLM."""
+"""Adapters package providing provider abstractions, live clients, and test fakes for STT, TTS, and LLM."""
 
 from lajur_agent.adapters.base import (
     IntentResult,
@@ -8,11 +8,15 @@ from lajur_agent.adapters.base import (
     TTSAdapter,
     TTSAudioChunk,
 )
+from lajur_agent.adapters.deepgram import DeepgramSTTAdapter
+from lajur_agent.adapters.edge_tts import EdgeTTSAdapter
 from lajur_agent.adapters.fakes import (
     FakeLLMIntentAdapter,
     FakeSTTAdapter,
     FakeTTSAdapter,
 )
+from lajur_agent.adapters.gemini import GeminiLLMAdapter
+from lajur_agent.adapters.groq import GroqSTTAdapter
 
 __all__ = [
     "TranscriptionEvent",
@@ -24,4 +28,8 @@ __all__ = [
     "FakeSTTAdapter",
     "FakeTTSAdapter",
     "FakeLLMIntentAdapter",
+    "DeepgramSTTAdapter",
+    "GroqSTTAdapter",
+    "GeminiLLMAdapter",
+    "EdgeTTSAdapter",
 ]
