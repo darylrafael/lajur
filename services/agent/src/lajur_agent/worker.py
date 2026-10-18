@@ -64,13 +64,20 @@ async def entrypoint(ctx: JobContext) -> None:
     asyncio.create_task(send_welcome())
 
     # 3. Data channel listener (handles ping -> pong for RTT calculation)
+    last_pong_time = 0.0
+
     @room.on("data_received")
     def on_data_received(data_packet: rtc.DataPacket) -> None:
+        nonlocal last_pong_time
         try:
             raw_text = data_packet.data.decode("utf-8")
             msg = json.loads(raw_text)
             if msg.get("type") == "ping":
-                # Immediately respond with pong preserving client_time (unreliable for UDP speed)
+                now = asyncio.get_event_loop().time()
+                # Rate limit: respond at most once per 1.5s to prevent event loop lock contention
+                if now - last_pong_time < 1.5:
+                    return
+                last_pong_time = now
                 pong_data = json.dumps({
                     "type": "pong",
                     "client_time": msg.get("client_time"),

@@ -159,25 +159,40 @@ function SessionController({
     }
   });
 
-  const sendPing = useCallback(() => {
-    if (connectionState === ConnectionState.Connected && send) {
-      const payload = JSON.stringify({
-        type: "ping",
-        client_time: performance.now(),
-      });
-      send(new TextEncoder().encode(payload), { reliable: false });
-    }
-  }, [connectionState, send]);
-
+  const sendRef = useRef(send);
   useEffect(() => {
-    if (connectionState === ConnectionState.Connected) {
-      sendPing();
-      pingIntervalRef.current = setInterval(sendPing, 2000);
+    sendRef.current = send;
+  }, [send]);
+
+  // Clean interval: sends a ping once every 3 seconds while connected
+  useEffect(() => {
+    if (connectionState !== ConnectionState.Connected) {
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      return;
     }
-    return () => {
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+
+    const triggerPing = () => {
+      if (sendRef.current) {
+        const payload = JSON.stringify({
+          type: "ping",
+          client_time: performance.now(),
+        });
+        sendRef.current(new TextEncoder().encode(payload), { reliable: false });
+      }
     };
-  }, [connectionState, sendPing]);
+
+    // Initial ping after connection settles
+    const initialTimer = setTimeout(triggerPing, 1000);
+    const intervalTimer = setInterval(triggerPing, 3000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [connectionState]);
 
   const toggleMic = async () => {
     if (localParticipant) {
