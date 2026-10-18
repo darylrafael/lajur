@@ -34,3 +34,4 @@
 1. **Mitigasi R13 & R18:** Dataset evaluasi diperluas ke v0.1 dengan 135 skenario (35 skenario handwritten alami, 11 skenario noise helm, 54 skenario mixed ID-EN 40%).
 2. **Mitigasi R16:** `packages/cart` (`MenuService`) telah dibangun murni deterministik. Seluruh harga dihitung dari `menu.json` dengan integer rupiah, dan LLM tidak memiliki akses mutasi langsung ke harga.
 3. **Mitigasi R17:** Tombol *"Mulai Sesi"* di `apps/web` menginisialisasi mikrofon dan audio context setelah user interaction (klik tombol), mematuhi kebijakan autoplay iOS Safari.
+4. **Checkpoint Hosting Minggu 9 (ADR-0009):** Sebelum peluncuran publik Minggu 9 (T-7 Hari), re-evaluasi paket hosting frontend (hubungi Vercel Support untuk klarifikasi status non-komersial portofolio dengan hipotesis startup, atau upgrade ke Vercel Pro $20/bln, atau migrasikan frontend ke Cloudflare / self-hosted).

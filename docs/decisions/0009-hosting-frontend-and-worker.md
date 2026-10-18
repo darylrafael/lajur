@@ -1,7 +1,9 @@
 # ADR-0009: Opsi Hosting Frontend dan Agent Worker
 
 ## Status
-Proposed, waiting for user selection [HUMAN]
+Accepted [HUMAN DECISION: 2026-10-18]
+- **Frontend (`apps/web`):** Vercel
+- **Worker (`services/agent`):** Proses lokal/kontainer terhubung ke LiveKit Cloud (transisi ke VPS Singapura/Fly.io/Railway pada Minggu 4/9)
 
 ## Konteks
 Sistem Lajur membutuhkan dua lingkungan hosting terpisah:
@@ -12,40 +14,71 @@ Target latensi sistem adalah P50 < 800ms dan P95 < 1.300ms dari koneksi internet
 
 ---
 
-## 1. Opsi Hosting Frontend Simulator (`apps/web`)
+## 1. Analisis Ketentuan Vercel Hobby & Penggunaan Komersial
 
-### Opsi A (Rekomendasi Utama): Vercel Preview
-- **Karakteristik:** Zero-config untuk Next.js App Router; server route `/api/token` berjalan native di Node.js Serverless Function.
-- **Biaya:** $0 (Hobby Plan).
-- **Batasan & Trade-off:**
-  - Vercel Hobby melarang penggunaan komersial. Untuk fase portofolio non-komersial saat ini (Minggu 1–9) sepenuhnya legal dan aman.
-  - Jika di Gerbang G3 diputuskan berlanjut ke entitas startup komersial, frontend wajib dipindahkan ke Cloudflare Pages atau Vercel Pro ($20/bulan).
+### Kutipan Resmi Verbatim (Vercel Fair Use Guidelines)
+- **URL Sumber:** [https://vercel.com/docs/limits/fair-use-guidelines](https://vercel.com/docs/limits/fair-use-guidelines)
+- **Terakhir Diperbarui:** 2026-09-14 (Diverifikasi langsung: 2026-10-18)
+- **Definisi Penggunaan Komersial (Verbatim):**
+  > *"Hobby teams are restricted to non-commercial personal use only. All commercial usage of the platform requires either a Pro or Enterprise plan.*
+  > 
+  > *Commercial usage is defined as any Deployment that is used for the purpose of financial gain of anyone involved in any part of the production of the project, including a paid employee or consultant writing the code. Examples of this include, but are not limited to, the following:*
+  > 
+  > *- Any method of requesting or processing payment from visitors of the site*
+  > *- Advertising the sale of a product or service*
+  > *- Receiving payment to create, update, or host the site*
+  > *- Affiliate linking is the primary purpose of the site*
+  > *- The inclusion of advertisements, including but not limited to online advertising platforms like Google AdSense*
+  > 
+  > *💡 Note: Asking for Donations does not fall under commercial usage.*
+  > 
+  > *If you are unsure whether or not your site would be defined as commercial usage, please contact the Vercel Support team."*
 
-### Opsi B: Cloudflare Pages + OpenNext
-- **Karakteristik:** Gratis untuk komersial, unlimited requests.
-- **Batasan & Trade-off:**
-  - Memerlukan adapter `@cloudflare/next-on-pages` dan flag `nodejs_compat` karena `livekit-server-sdk` memerlukan modul kriptografi Node.js. Konfigurasi build lebih kompleks dibandingkan Vercel.
-
----
-
-## 2. Opsi Hosting Agent Worker (`services/agent`)
-
-Agent worker adalah aplikasi berbasis kontainer Python (`Dockerfile`) yang harus berjalan kontinu (*background daemon*), bukan serverless function.
-
-| Parameter | Opsi 1: Fly.io (Region Singapura `sin`) | Opsi 2: Railway (Region Singapura) | Opsi 3: VPS Singapura (Hetzner / DO) |
-|---|---|---|---|
-| **Lokasi Region** | **Singapura (`sin`)** — ~25–35ms ping dari Jakarta | **Singapura (`asia-southeast1`)** | **Singapura** |
-| **Estimasi Biaya** | **~$2,50 – $3,50 / bulan** (`shared-cpu-1x`, 512MB RAM) | **~$3,00 – $5,00 / bulan** ($5 base Hobby plan, ditagih per vCPU/RAM detik) | **~$4,50 – $6,00 / bulan** (Fixed flat rate) |
-| **Metode Deploy** | `fly launch` / `fly deploy` berbasis Dockerfile | Git push webhook otomatis berbasis Dockerfile | SSH manual / Docker Compose di VPS Linux |
-| **Kelebihan** | Latensi terendah ke Indonesia; routing WebRTC/UDP sangat baik | Dashboard UI sangat intuitif; manajemen env var mudah | Biaya flat tetap; bisa sekaligus menjalankan self-hosted LiveKit Server jika kuota cloud habis |
-| **Kelemahan** | CLI first; perlu kartu kredit untuk verifikasi | Kuota sleep jika free tier habis | Perlu perawatan OS Linux mandiri (security update) |
+### Penilaian Status Hukum untuk Lajur: Ambigu
+Status kepatuhan Lajur pada tier Vercel Hobby bersifat **ambigu**:
+- Di satu sisi, aplikasi saat ini tidak menerima pembayaran, tidak menayangkan iklan, dirilis dengan kode sumber terbuka (Apache-2.0 / CDLA), dan ditujukan sebagai portofolio teknis rekayasa sistem suara drive-thru.
+- Di sisi lain, proyek ini secara eksplisit mencakup hipotesis validasi startup (`docs/PROJECT_PLAN.md` §16), mencakup rencana wawancara pelanggan *The Mom Test* (Minggu 6), dan memiliki gerbang komersialisasi G3 (Minggu 10) untuk menguji kesediaan bayar restoran.
+- Karena klausul Vercel menyebutkan *"used for the purpose of financial gain of anyone involved in any part of the production of the project"*, batas antara portofolio eksploratif dan fase pra-pendapatan startup adalah area abu-abu. Sesuai panduan resmi Vercel, kondisi ambigu ini mengharuskan konfirmasi dengan tim Support Vercel sebelum peluncuran publik skala penuh.
 
 ---
 
-## Keputusan Sementara (Sebelum Dipilih [HUMAN])
-1. **Frontend:** Menggunakan Vercel untuk deployment preview URL yang cepat dan andal pada fase portofolio.
-2. **Worker:** Selama menunggu keputusan [HUMAN], agent worker dijalankan langsung dari **laptop pengembang lokal (Windows/Docker)** yang terhubung via WebSocket ke LiveKit Cloud. Konfigurasi ini didokumentasikan sebagai sementara (*temporary*).
+## 2. Keputusan yang Diambil
 
-## Konsekuensi
-- Pengembang lokal tidak mengeluarkan biaya hosting worker di awal sebelum arsitektur diuji pada perangkat nyata.
-- Evaluasi perangkat nyata (iPhone seluler) dapat langsung menguji WebRTC secara nyata karena LiveKit Cloud bertindak sebagai SFU relay publik.
+1. **Frontend Simulator (`apps/web`):**
+   - Menggunakan **Vercel** untuk preview deployment dan pengujian antarmuka selama fase pengembangan awal (Minggu 1 s.d. Minggu 8).
+   - Rute `/api/token` berjalan sebagai **Node.js Serverless Function** bawaan Vercel (bukan Edge Runtime), menjamin kompatibilitas penuh dengan modul `crypto` Node.js dan `livekit-server-sdk`.
+   - **Dated Checkpoint (Wajib):** Sebelum peluncuran publik Minggu 9 (T-7 Hari, 2026-12), pengembang wajib mere-evaluasi paket hosting frontend:
+     - Mengontak Vercel Support untuk klarifikasi/dispensasi status proyek riset/portofolio, atau
+     - Upgrade ke akun berbayar Vercel Pro ($20/bulan), atau
+     - Memigrasikan frontend ke Cloudflare Workers/Pages atau server container mandiri.
+
+2. **Agent Worker (`services/agent`):**
+   - Pada Minggu 1 (Walking Skeleton), agent worker dijalankan langsung dari **mesin lokal pengembang (Windows/Docker)** yang terhubung via WebSocket ke LiveKit Cloud.
+   - LiveKit Cloud bertindak sebagai WebRTC Selective Forwarding Unit (SFU) global publik, sehingga pengujian audio WebRTC melalui smartphone seluler tetap berjalan end-to-end tanpa memerlukan IP publik di laptop pengembang.
+   - Rencana migrasi worker ke lingkungan server kontinu (Fly.io Region Singapura `sin` atau Railway) dijadwalkan pada milestone pipeline suara mandiri (Minggu 4).
+
+---
+
+## 3. Spesifikasi Teknis Deployment Vercel (`apps/web`)
+
+| Parameter | Pengaturan di Vercel Dashboard |
+|---|---|
+| **Root Directory** | `apps/web` |
+| **Framework Preset** | `Next.js` |
+| **Build Command** | `next build` (default) |
+| **Output Directory** | `.next` (default) |
+| **Node.js Version** | `20.x` |
+| **Environment Variables (Wajib)** | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` |
+| **Deployment Protection (PENTING)** | **Disabled** / **Public** pada Preview Deployments (agar browser HP seluler dapat mengakses tanpa login Vercel) |
+
+---
+
+## 4. Konsekuensi
+
+### Positif
+- **Zero Build Friction:** Next.js 14 App Router berjalan native tanpa perlu adapter OpenNext tambahan di fase awal.
+- **Rute Token Andal:** Modul kriptografi Node.js pada `livekit-server-sdk` berjalan stabil di Node.js runtime.
+- **Preview Cepat:** Setiap push git menghasilkan URL preview terisolasi yang dapat langsung diuji dari browser ponsel fisik.
+
+### Negatif & Risiko
+- Terdapat keharusan audit kepatuhan dan kemungkinan biaya ($20/bulan) atau kerja migrasi tambahan pada checkpoint Minggu 9 sebelum rilis publik.
