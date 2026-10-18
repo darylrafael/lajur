@@ -1,21 +1,21 @@
 """Offline unit tests for the spike benchmark harness, BudgetGuard, and fake adapters."""
 
-import asyncio
 import io
 import sys
 from pathlib import Path
 
 import pytest
+from lajur_agent.adapters.fakes import (
+    FakeLLMIntentAdapter,
+    FakeSTTAdapter,
+    FakeTTSAdapter,
+)
+
 from eval.scripts.spikes.runner import (
     BudgetExceededError,
     BudgetGuard,
     print_dry_run_estimate,
     run_stt_utterance,
-)
-from lajur_agent.adapters.fakes import (
-    FakeLLMIntentAdapter,
-    FakeSTTAdapter,
-    FakeTTSAdapter,
 )
 
 

@@ -17,7 +17,6 @@ RANDOM_SEED = 42
 
 def derive_intents_for_scenario(scenario: dict[str, Any]) -> list[dict[str, Any]]:
     intents: list[dict[str, Any]] = []
-    scen_id = scenario["id"]
     tags = set(scenario.get("tags", []))
     expected_cart = scenario.get("expected_cart", {})
     cart_items = expected_cart.get("items", [])

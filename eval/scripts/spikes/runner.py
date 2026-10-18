@@ -13,25 +13,24 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
-import json
 import os
 import sys
 import time
 from collections.abc import AsyncIterator
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
-# Ensure project root is in sys.path when script is invoked directly
+# Ensure project root is in sys.path when script is executed directly
 root_dir = Path(__file__).resolve().parents[3]
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from eval.metrics.ker import calculate_ker
-from eval.metrics.wer import calculate_wer
-from lajur_agent.adapters.base import STTAdapter
-from lajur_agent.adapters.fakes import FakeSTTAdapter
+from lajur_agent.adapters.base import STTAdapter  # noqa: E402
+from lajur_agent.adapters.fakes import FakeSTTAdapter  # noqa: E402
+
+from eval.metrics.ker import calculate_ker  # noqa: E402
+from eval.metrics.wer import calculate_wer  # noqa: E402
 
 # Verified vendor unit costs per vendor-facts-2026-10.md
 VENDOR_PRICES: dict[str, dict[str, float]] = {
