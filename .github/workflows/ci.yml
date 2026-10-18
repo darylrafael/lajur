@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, "feat/**" ]
   pull_request:
     branches: [ main ]
 
@@ -47,7 +47,7 @@ jobs:
           python eval/scripts/validate_scenarios.py
 
   cart-and-python-workspace:
-    name: Python Lint, Typecheck & Cart Unit Tests
+    name: Python Lint, Typecheck & Unit Tests (Cart & Agent)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -65,19 +65,19 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --all-packages
+          uv sync --all-packages --all-extras
 
       - name: Ruff Lint Check
         run: |
           uv run ruff check .
 
-      - name: Pyright Type Check
+      - name: Pyright Type Check (Cart & Agent)
         run: |
-          uv run pyright packages/cart
+          uv run pyright packages/cart services/agent
 
-      - name: Pytest Unit Tests
+      - name: Pytest Unit Tests (Cart & Agent)
         run: |
-          uv run pytest packages/cart/tests -v
+          uv run pytest -v
 
   web-application:
     name: Web App Typecheck & Build
