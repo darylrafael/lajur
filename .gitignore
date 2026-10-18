@@ -58,3 +58,12 @@ Thumbs.db
 *.flac
 *.m4a
 !eval/noise/samples/*.txt
+eval/audio/real/*
+!eval/audio/real/.gitkeep
+!eval/audio/real/manifest.csv
+eval/audio/synthetic/*
+!eval/audio/synthetic/.gitkeep
+!eval/audio/synthetic/manifest.csv
+eval/results/spikes/*
+!eval/results/spikes/.gitkeep
+!eval/results/spikes/cost-ledger.csv

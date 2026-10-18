@@ -1,0 +1,121 @@
+utterance_id,scenario_id,condition,reference_transcript,filename
+real_001_quiet,scen_001,quiet,"Saya mau pesan burger sapi tunggal satu.",real_001_quiet.wav
+real_001_noise,scen_001,noise,"Saya mau pesan burger sapi tunggal satu.",real_001_noise.wav
+real_001_helmet,scen_001,helmet,"Saya mau pesan burger sapi tunggal satu.",real_001_helmet.wav
+real_002_quiet,scen_002,quiet,"Mau burger sapi keju satu ya.",real_002_quiet.wav
+real_002_noise,scen_002,noise,"Mau burger sapi keju satu ya.",real_002_noise.wav
+real_002_helmet,scen_002,helmet,"Mau burger sapi keju satu ya.",real_002_helmet.wav
+real_003_quiet,scen_004,quiet,"Pesan burger sapi spesial satu.",real_003_quiet.wav
+real_003_noise,scen_004,noise,"Pesan burger sapi spesial satu.",real_003_noise.wav
+real_003_helmet,scen_004,helmet,"Pesan burger sapi spesial satu.",real_003_helmet.wav
+real_004_quiet,scen_006,quiet,"Ayam goreng crispy satu mas.",real_004_quiet.wav
+real_004_noise,scen_006,noise,"Ayam goreng crispy satu mas.",real_004_noise.wav
+real_004_helmet,scen_006,helmet,"Ayam goreng crispy satu mas.",real_004_helmet.wav
+real_005_quiet,scen_008,quiet,"Nasi uduk satu bungkus.",real_005_quiet.wav
+real_005_noise,scen_008,noise,"Nasi uduk satu bungkus.",real_005_noise.wav
+real_005_helmet,scen_008,helmet,"Nasi uduk satu bungkus.",real_005_helmet.wav
+real_006_quiet,scen_009,quiet,"Kentang goreng satu ya.",real_006_quiet.wav
+real_006_noise,scen_009,noise,"Kentang goreng satu ya.",real_006_noise.wav
+real_006_helmet,scen_009,helmet,"Kentang goreng satu ya.",real_006_helmet.wav
+real_007_quiet,scen_011,quiet,"Es teh manis satu.",real_007_quiet.wav
+real_007_noise,scen_011,noise,"Es teh manis satu.",real_007_noise.wav
+real_007_helmet,scen_011,helmet,"Es teh manis satu.",real_007_helmet.wav
+real_008_quiet,scen_012,quiet,"Minta air mineral botol satu.",real_008_quiet.wav
+real_008_noise,scen_012,noise,"Minta air mineral botol satu.",real_008_noise.wav
+real_008_helmet,scen_012,helmet,"Minta air mineral botol satu.",real_008_helmet.wav
+real_009_quiet,scen_013,quiet,"Kopi susu gula aren satu.",real_009_quiet.wav
+real_009_noise,scen_013,noise,"Kopi susu gula aren satu.",real_009_noise.wav
+real_009_helmet,scen_013,helmet,"Kopi susu gula aren satu.",real_009_helmet.wav
+real_010_quiet,scen_015,quiet,"Es krim cone vanila satu.",real_010_quiet.wav
+real_010_noise,scen_015,noise,"Es krim cone vanila satu.",real_010_noise.wav
+real_010_helmet,scen_015,helmet,"Es krim cone vanila satu.",real_010_helmet.wav
+real_011_quiet,scen_003,quiet,"Can I get one Double Cheeseburger, please.",real_011_quiet.wav
+real_011_noise,scen_003,noise,"Can I get one Double Cheeseburger, please.",real_011_noise.wav
+real_011_helmet,scen_003,helmet,"Can I get one Double Cheeseburger, please.",real_011_helmet.wav
+real_012_quiet,scen_005,quiet,"Mau crispy chicken burger satu.",real_012_quiet.wav
+real_012_noise,scen_005,noise,"Mau crispy chicken burger satu.",real_012_noise.wav
+real_012_helmet,scen_005,helmet,"Mau crispy chicken burger satu.",real_012_helmet.wav
+real_013_quiet,scen_007,quiet,"Spicy chicken wings satu porsi.",real_013_quiet.wav
+real_013_noise,scen_007,noise,"Spicy chicken wings satu porsi.",real_013_noise.wav
+real_013_helmet,scen_007,helmet,"Spicy chicken wings satu porsi.",real_013_helmet.wav
+real_014_quiet,scen_010,quiet,"I want one sweet corn cup.",real_014_quiet.wav
+real_014_noise,scen_010,noise,"I want one sweet corn cup.",real_014_noise.wav
+real_014_helmet,scen_010,helmet,"I want one sweet corn cup.",real_014_helmet.wav
+real_015_quiet,scen_014,quiet,"Apple pie satu hangat ya.",real_015_quiet.wav
+real_015_noise,scen_014,noise,"Apple pie satu hangat ya.",real_015_noise.wav
+real_015_helmet,scen_014,helmet,"Apple pie satu hangat ya.",real_015_helmet.wav
+real_016_quiet,scen_017,quiet,"Give me three single beef burgers please.",real_016_quiet.wav
+real_016_noise,scen_017,noise,"Give me three single beef burgers please.",real_016_noise.wav
+real_016_helmet,scen_017,helmet,"Give me three single beef burgers please.",real_016_helmet.wav
+real_017_quiet,scen_023,quiet,"Two bottles of mineral water and two colas.",real_017_quiet.wav
+real_017_noise,scen_023,noise,"Two bottles of mineral water and two colas.",real_017_noise.wav
+real_017_helmet,scen_023,helmet,"Two bottles of mineral water and two colas.",real_017_helmet.wav
+real_018_quiet,scen_026,quiet,"Kentang goreng satu yang ukuran large ya.",real_018_quiet.wav
+real_018_noise,scen_026,noise,"Kentang goreng satu yang ukuran large ya.",real_018_noise.wav
+real_018_helmet,scen_026,helmet,"Kentang goreng satu yang ukuran large ya.",real_018_helmet.wav
+real_019_quiet,scen_027,quiet,"Kentang goreng medium satu.",real_019_quiet.wav
+real_019_noise,scen_027,noise,"Kentang goreng medium satu.",real_019_noise.wav
+real_019_helmet,scen_027,helmet,"Kentang goreng medium satu.",real_019_helmet.wav
+real_020_quiet,scen_028,quiet,"Es teh manis satu yang large.",real_020_quiet.wav
+real_020_noise,scen_028,noise,"Es teh manis satu yang large.",real_020_noise.wav
+real_020_helmet,scen_028,helmet,"Es teh manis satu yang large.",real_020_helmet.wav
+real_021_quiet,scen_030,quiet,"Large cola soda, please.",real_021_quiet.wav
+real_021_noise,scen_030,noise,"Large cola soda, please.",real_021_noise.wav
+real_021_helmet,scen_030,helmet,"Large cola soda, please.",real_021_helmet.wav
+real_022_quiet,scen_031,quiet,"Burger sapi keju satu, tambah extra cheese ya.",real_022_quiet.wav
+real_022_noise,scen_031,noise,"Burger sapi keju satu, tambah extra cheese ya.",real_022_noise.wav
+real_022_helmet,scen_031,helmet,"Burger sapi keju satu, tambah extra cheese ya.",real_022_helmet.wav
+real_023_quiet,scen_033,quiet,"Double cheeseburger no onions, please.",real_023_quiet.wav
+real_023_noise,scen_033,noise,"Double cheeseburger no onions, please.",real_023_noise.wav
+real_023_helmet,scen_033,helmet,"Double cheeseburger no onions, please.",real_023_helmet.wav
+real_024_quiet,scen_035,quiet,"Es kopi susu gula aren yang medium, less sugar ya.",real_024_quiet.wav
+real_024_noise,scen_035,noise,"Es kopi susu gula aren yang medium, less sugar ya.",real_024_noise.wav
+real_024_helmet,scen_035,helmet,"Es kopi susu gula aren yang medium, less sugar ya.",real_024_helmet.wav
+real_025_quiet,scen_037,quiet,"Nugget ayam 6 pcs pakai dipping sauce cheddar cheese dip.",real_025_quiet.wav
+real_025_noise,scen_037,noise,"Nugget ayam 6 pcs pakai dipping sauce cheddar cheese dip.",real_025_noise.wav
+real_025_helmet,scen_037,helmet,"Nugget ayam 6 pcs pakai dipping sauce cheddar cheese dip.",real_025_helmet.wav
+real_026_quiet,scen_071,quiet,"Mbak mau kentang goreng satu sama es teh manis. Eh bentar mas, kentangnya tidak jadi deh, ganti nasi putih aja.",real_026_quiet.wav
+real_026_noise,scen_071,noise,"Mbak mau kentang goreng satu sama es teh manis. Eh bentar mas, kentangnya tidak jadi deh, ganti nasi putih aja.",real_026_noise.wav
+real_026_helmet,scen_071,helmet,"Mbak mau kentang goreng satu sama es teh manis. Eh bentar mas, kentangnya tidak jadi deh, ganti nasi putih aja.",real_026_helmet.wav
+real_027_quiet,scen_072,quiet,"Pesan burger sapi keju dua. Eh batalin satu deh, jadi cuma satu burger sapi keju.",real_027_quiet.wav
+real_027_noise,scen_072,noise,"Pesan burger sapi keju dua. Eh batalin satu deh, jadi cuma satu burger sapi keju.",real_027_noise.wav
+real_027_helmet,scen_072,helmet,"Pesan burger sapi keju dua. Eh batalin satu deh, jadi cuma satu burger sapi keju.",real_027_helmet.wav
+real_028_quiet,scen_073,quiet,"Mau es teh manis satu. Eh gak jadi manis, maunya es teh tawar.",real_028_quiet.wav
+real_028_noise,scen_073,noise,"Mau es teh manis satu. Eh gak jadi manis, maunya es teh tawar.",real_028_noise.wav
+real_028_helmet,scen_073,helmet,"Mau es teh manis satu. Eh gak jadi manis, maunya es teh tawar.",real_028_helmet.wav
+real_029_quiet,scen_074,quiet,"Can I get two cheeseburgers please? Wait, scratch that, make it one double cheeseburger instead.",real_029_quiet.wav
+real_029_noise,scen_074,noise,"Can I get two cheeseburgers please? Wait, scratch that, make it one double cheeseburger instead.",real_029_noise.wav
+real_029_helmet,scen_074,helmet,"Can I get two cheeseburgers please? Wait, scratch that, make it one double cheeseburger instead.",real_029_helmet.wav
+real_030_quiet,scen_075,quiet,"Ayam goreng crispy satu sama nasi uduk satu. Eh ayamnya ganti ayam pedas ya, nasinya tetap nasi uduk.",real_030_quiet.wav
+real_030_noise,scen_075,noise,"Ayam goreng crispy satu sama nasi uduk satu. Eh ayamnya ganti ayam pedas ya, nasinya tetap nasi uduk.",real_030_noise.wav
+real_030_helmet,scen_075,helmet,"Ayam goreng crispy satu sama nasi uduk satu. Eh ayamnya ganti ayam pedas ya, nasinya tetap nasi uduk.",real_030_helmet.wav
+real_031_quiet,scen_016,quiet,"Mau dua burger sapi keju ya.",real_031_quiet.wav
+real_031_noise,scen_016,noise,"Mau dua burger sapi keju ya.",real_031_noise.wav
+real_031_helmet,scen_016,helmet,"Mau dua burger sapi keju ya.",real_031_helmet.wav
+real_032_quiet,scen_017,quiet,"Give me three single beef burgers please.",real_032_quiet.wav
+real_032_noise,scen_017,noise,"Give me three single beef burgers please.",real_032_noise.wav
+real_032_helmet,scen_017,helmet,"Give me three single beef burgers please.",real_032_helmet.wav
+real_033_quiet,scen_018,quiet,"Pesan ayam goreng crispy dua potong.",real_033_quiet.wav
+real_033_noise,scen_018,noise,"Pesan ayam goreng crispy dua potong.",real_033_noise.wav
+real_033_helmet,scen_018,helmet,"Pesan ayam goreng crispy dua potong.",real_033_helmet.wav
+real_034_quiet,scen_019,quiet,"Beli nugget ayam yang isi 6 dua kotak.",real_034_quiet.wav
+real_034_noise,scen_019,noise,"Beli nugget ayam yang isi 6 dua kotak.",real_034_noise.wav
+real_034_helmet,scen_019,helmet,"Beli nugget ayam yang isi 6 dua kotak.",real_034_helmet.wav
+real_035_quiet,scen_020,quiet,"Nasi putihnya tiga porsi.",real_035_quiet.wav
+real_035_noise,scen_020,noise,"Nasi putihnya tiga porsi.",real_035_noise.wav
+real_035_helmet,scen_020,helmet,"Nasi putihnya tiga porsi.",real_035_helmet.wav
+real_036_quiet,scen_081,quiet,"Emmm... apa ya sebentar... mau... burger sapi keju satu deh.",real_036_quiet.wav
+real_036_noise,scen_081,noise,"Emmm... apa ya sebentar... mau... burger sapi keju satu deh.",real_036_noise.wav
+real_036_helmet,scen_081,helmet,"Emmm... apa ya sebentar... mau... burger sapi keju satu deh.",real_036_helmet.wav
+real_037_quiet,scen_082,quiet,"Wait a minute... umm... let me think... okay, one french fries large.",real_037_quiet.wav
+real_037_noise,scen_082,noise,"Wait a minute... umm... let me think... okay, one french fries large.",real_037_noise.wav
+real_037_helmet,scen_082,helmet,"Wait a minute... umm... let me think... okay, one french fries large.",real_037_helmet.wav
+real_038_quiet,scen_083,quiet,"Aduh mau makan apa ya... anu mas... ayam goreng crispy satu sama... es teh manis.",real_038_quiet.wav
+real_038_noise,scen_083,noise,"Aduh mau makan apa ya... anu mas... ayam goreng crispy satu sama... es teh manis.",real_038_noise.wav
+real_038_helmet,scen_083,helmet,"Aduh mau makan apa ya... anu mas... ayam goreng crispy satu sama... es teh manis.",real_038_helmet.wav
+real_039_quiet,scen_084,quiet,"Hmm sebentar... kopinya... kopi susu gula aren satu ya.",real_039_quiet.wav
+real_039_noise,scen_084,noise,"Hmm sebentar... kopinya... kopi susu gula aren satu ya.",real_039_noise.wav
+real_039_helmet,scen_084,helmet,"Hmm sebentar... kopinya... kopi susu gula aren satu ya.",real_039_helmet.wav
+real_040_quiet,scen_085,quiet,"Uhhh... give me... two chicken wings please.",real_040_quiet.wav
+real_040_noise,scen_085,noise,"Uhhh... give me... two chicken wings please.",real_040_noise.wav
+real_040_helmet,scen_085,helmet,"Uhhh... give me... two chicken wings please.",real_040_helmet.wav

@@ -30,9 +30,9 @@ pythonVersion = "3.12"
 typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
-extraPaths = ["packages/cart/src", "services/agent/src"]
+extraPaths = ["packages/cart/src", "services/agent/src", "."]
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-testpaths = ["packages/cart/tests", "services/agent/tests"]
-pythonpath = ["packages/cart/src", "services/agent/src"]
+testpaths = ["packages/cart/tests", "services/agent/tests", "eval/tests"]
+pythonpath = ["packages/cart/src", "services/agent/src", "."]
