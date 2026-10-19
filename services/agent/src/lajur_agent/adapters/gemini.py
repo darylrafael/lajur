@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import time
@@ -47,13 +48,20 @@ Format Respons Wajib (JSON):
 """.strip()
 
 
+FALLBACK_MODELS = [
+    "gemini-flash-lite-latest",
+    "gemini-3.1-flash-lite",
+    "gemini-3-flash-preview",
+]
+
+
 class GeminiLLMAdapter(LLMIntentAdapter):
     """LLM adapter connecting to Google AI Studio Gemini models with structured JSON output."""
 
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-flash-lite-latest",
         system_instruction: str = DEFAULT_SYSTEM_INSTRUCTION,
         temperature: float = 0.1,
     ) -> None:
@@ -63,9 +71,6 @@ class GeminiLLMAdapter(LLMIntentAdapter):
         self._model = model
         self._system_instruction = system_instruction
         self._temperature = temperature
-        self._endpoint = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:generateContent"
-        )
 
     @property
     def name(self) -> str:
@@ -107,22 +112,42 @@ class GeminiLLMAdapter(LLMIntentAdapter):
         }
 
         start_time = time.perf_counter()
+        data = None
+        elapsed_ms = 0.0
+
+        candidate_models = [self._model] + [m for m in FALLBACK_MODELS if m != self._model]
+
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self._endpoint}?key={self._api_key}",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=15),
-            ) as resp:
-                elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            for active_model in candidate_models:
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{active_model}:generateContent?key={self._api_key}"
+                try:
+                    async with session.post(
+                        endpoint,
+                        json=payload,
+                        headers={"Content-Type": "application/json"},
+                        timeout=aiohttp.ClientTimeout(total=20),
+                    ) as resp:
+                        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
-                if resp.status != 200:
-                    err_body = await resp.text()
-                    raise RuntimeError(
-                        f"Gemini API request failed with HTTP {resp.status}: {err_body[:300]}"
-                    )
+                        if resp.status == 429:
+                            # Model quota exhausted, try next fallback model
+                            await asyncio.sleep(1.0)
+                            continue
 
-                data = await resp.json()
+                        if resp.status != 200:
+                            err_body = await resp.text()
+                            raise RuntimeError(
+                                f"Gemini API request failed ({active_model}) with HTTP {resp.status}: {err_body[:300]}"
+                            )
+
+                        data = await resp.json()
+                        self._model = active_model
+                        break
+                except asyncio.TimeoutError:
+                    continue
+
+        if data is None:
+            raise RuntimeError("Gemini API request failed across all candidate models.")
 
         # Extract usage metrics
         usage = data.get("usageMetadata", {})
