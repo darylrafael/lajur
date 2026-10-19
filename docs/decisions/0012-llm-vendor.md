@@ -6,22 +6,31 @@ Proposed
 ## Konteks
 Sistem voice ordering Lajur membutuhkan Large Language Model (LLM) berkecepatan tinggi yang mampu memetakan ucapan pelanggan ke format intent JSON terstruktur, menangani koreksi pesanan (*undo / ganti item*) secara tepat, menolak injeksi prompt, dan merespons dalam latensi rendah tanpa melanggar kebijakan privasi data pengguna (ADR-0005).
 
-Pada Spike Minggu 2, dilakukan pengujian terhadap varian Google Gemini:
-1. **Google Gemini 2.5 Flash:** Mengalami kegagalan HTTP 429 (`RESOURCE_EXHAUSTED`) pada seluruh 20 panggilan pengujian karena batas ketat tier gratis (20 permintaan per hari).
-2. **Google Gemini Flash-Lite (`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`):** Berhasil memproses 20 skenario sintetis dengan akurasi intent 100.0%, kepatuhan skema JSON 100.0%, penolakan injeksi harga 100.0%, dan rata-rata latensi REST 1,072.9 ms.
+Pada pengukuran ulang G1b (30 skenario representatif), dilakukan pengujian streaming Time to First Token (TTFT) dan Time to First Complete Sentence pada dua kandidat card-free:
+1. **Google Gemini Flash-Lite (Free Tier):**
+   - Model ID Eksak yang Melayani: `models/gemini-3.5-flash-lite` (via alias `gemini-flash-lite-latest`).
+   - Time to First Token (TTFT): P50 = **840.1 ms** (Mean = 876.3 ms, P95 = 1,071.1 ms).
+   - Time to First Sentence: P50 = **841.4 ms**.
+   - Total Response Time: P50 = **952.9 ms**.
+2. **Groq-Hosted LLM (`openai/gpt-oss-20b`):**
+   - Model ID Eksak yang Melayani: `openai/gpt-oss-20b`.
+   - Time to First Token (TTFT): P50 = **748.3 ms** (Mean = 750.1 ms, P95 = 879.0 ms).
+   - Time to First Sentence: P50 = **748.3 ms**.
+   - Total Response Time: P50 = **750.5 ms**.
+   - Ketentuan Data Groq: Tidak melatih model pada data API pelanggan (bebas risiko privasi dasar).
 
 ## Usulan Keputusan
-Diusulkan **Google Gemini Flash-Lite** sebagai vendor LLM primer untuk dialog dan ekstraksi intent, dengan **persyaratan mutlak arsitektur**:
-1. **Wajib Tier Berbayar (Pay-As-You-Go):** Untuk demo publik maupun rilis produk, Gemini **DILARANG MENGGUNAKAN FREE TIER**. Sesuai Terms of Service Google AI Studio, Free Tier menggunakan prompt dan output untuk melatih model AI Google serta dapat ditinjau oleh reviewer manusia—hal ini melanggar secara fatal kebijakan privasi biometrik/percakapan pada **ADR-0005 (Zero Audio/Transcript Persistence)**. Penggunaan tier berbayar menjamin data percakapan pelanggan tidak disimpan atau digunakan untuk pelatihan.
-2. **Implementasi Streaming:** Wajib menerapkan streaming SSE (`stream_generate_content`) pada implementasi agen untuk memangkas dan mengukur Time to First Token (TTFT), yang belum terukur pada Spike Minggu 2.
+Diusulkan dua kandidat berstatus **Proposed**:
+1. **Groq-Hosted LLM (`openai/gpt-oss-20b`):** Kandidat kuat untuk mode card-free yang aman dari risiko pelatihan data pelanggan (Groq terms exclude training on API inputs) dengan TTFT 748 ms.
+2. **Google Gemini Flash-Lite:** Berkinerja baik untuk inferensi intent pada teks skrip/sintetis (TTFT 840 ms). Namun, karena pengembang menetapkan batasan mutlak tanpa kartu kredit (tidak mengaktifkan Pay-as-You-Go), **Gemini Free Tier hanya diizinkan untuk data sintetis/skrip internal**. Data pengunjung riil dilarang dikirim ke Gemini Free Tier karena klausul pelatihan data Google melanggar ADR-0005.
 
 ## Alternatif yang Dipertimbangkan
-- **OpenAI GPT-4o-mini:** Alternatif baseline terpercaya ($0.15 / $0.60 per 1M token) dengan jaminan kepatuhan privasi API komersial.
+- **OpenAI GPT-4o-mini:** Memerlukan kartu kredit / saldo berbayar (`excluded: card required`).
+- **Gemini 2.5 Flash:** Mengalami batas kuota ketat 20 RPD (HTTP 429) pada proyek non-billing.
 
 ## Konsekuensi
 - **Positif:**
-  - Biaya operasional Gemini Flash-Lite sangat murah ($0.10 input / $0.40 output per 1M token).
-  - Penalaran temporal pada koreksi kalimat (*speech correction*) dan ketahanan injeksi prompt terbukti baik pada 20 skenario uji.
+  - Keduanya beroperasi 100% tanpa kewajiban kartu kredit (*card-free*) untuk tahap evaluasi.
+  - Streaming First Sentence memungkinkan pemotongan kalimat pertama (~750–840 ms) untuk langsung dialirkan ke TTS sebelum JSON lengkap selesai.
 - **Negatif / Mitigasi:**
-  - Membutuhkan penautan kartu kredit / Google Cloud Billing aktif untuk mengaktifkan pay-as-you-go dan menonaktifkan data training Google.
-  - Perlu memonitor kuota TPM/RPM dan menyiapkan failover adapter ke OpenAI GPT-4o-mini jika terjadi downtime.
+  - Untuk demo publik dengan pengunjung nyata, hanya model yang ketentuannya secara tegas mengecualikan pelatihan data (seperti Groq API) yang boleh menerima transkrip pengguna.

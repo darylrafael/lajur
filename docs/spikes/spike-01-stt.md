@@ -41,12 +41,25 @@
 
 ## 3. Results Summary Table
 
+### 3.1 Initial Exploratory Benchmark (n=20 Synthetic Scenarios, REST Baselines)
+
 | Evaluated Vendor | Clean WER (%) | Clean KER (%) | Noisy WER (%) | Noisy KER (%) | Mean REST Latency (ms) | Live Pipeline Latency Penalty | Cost Spent |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Groq Whisper Turbo** | **13.03%** | **11.66%** | **13.68%** | **13.33%** | **484.1 ms** | +300–500 ms (VAD silence threshold delay) | **$0.00** (Free Tier) |
 | **Deepgram (Nova-2 only, bukan kandidat plan)** | 17.02% | 15.17% | 21.68% | 20.16% | 2,741.1 ms | REST baseline tanpa streaming | $0.00 (Kredit trial) |
 
-*Catatan:* Angka di atas merupakan hasil pengujian pada sampel awal $n=20$ skenario sintetis.
+### 3.2 Representative G1b Benchmark (n=30 Synthetic Scenarios + Single Real File)
+
+Sesuai `docs/gates/G1b-protocol.md`, pengujian G1b mengevaluasi streaming WebSocket resmi Deepgram Nova-3 dengan `keyterm` boosting dan Groq Whisper Turbo dengan VAD delay default `livekit-agents` (500 ms):
+
+| Evaluated Vendor | Mode / Protokol | P50 Latency (ms) | P95 Latency (ms) | Mean Latency (ms) | Bootstrap 95% CI (Mean) | Clean KER Mean (%) | Clean KER 95% CI | Clean WER (%) |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Deepgram Nova-3** | WebSocket Stream (`keyterm`) | **1,820.0 ms** | 2,585.3 ms | 1,765.3 ms | `[1,568.9 ms, 1,977.1 ms]` | **3.89%** | `[0.00%, 8.33%]` | 6.56% |
+| **Groq Whisper Turbo** | REST + 500ms Silero VAD | **990.2 ms** | 1,269.3 ms | 1,020.1 ms | `[969.2 ms, 1,080.3 ms]` | **11.11%** | `[4.99%, 18.33%]` | 10.09% |
+| **File Nyata Manusia (`mic_session_03.wav`)** | Uji latensi $n=1$ | Nova-3: **63.1 ms** | — | Groq (+VAD): **2,256.5 ms** | — | *Not measured* | — | — |
+
+*Catatan Signifikansi:* Selang kepercayaan KER 95% Nova-3 (`[0.0%, 8.33%]`) dan Groq (`[4.99%, 18.33%]`) saling bertumpang-tindih pada rentang 5.0%–8.3%, sehingga perbedaan akurasi berada dalam batas derau variansi statistik (*within noise*). Keduanya memenuhi syarat KER $\le 15.0\%$ pada audio sintetis.
+
 
 ---
 

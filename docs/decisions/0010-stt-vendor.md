@@ -6,24 +6,25 @@ Proposed
 ## Konteks
 Sistem voice ordering Lajur membutuhkan mesin Speech-to-Text (STT) yang mampu mentranskripsikan percakapan bahasa Indonesia bercampur istilah menu bahasa Inggris (*code-switching*) di lingkungan restoran drive-thru dengan akurasi tinggi (Keyterm Error Rate $\le 15\%$) dan latensi rendah.
 
-Pada Spike Minggu 2, dilakukan pengujian terhadap dua kandidat awal:
-1. **Groq Whisper Turbo (`whisper-large-v3-turbo`):** Mentranskripsikan audio file batch 20 skenario sintetis dengan Clean KER 11.66%, Noisy KER 13.33%, dan latensi inferensi rata-rata 484.1 ms.
-2. **Deepgram Nova-2 (`model=nova-2`, `language=id`, REST baseline):** Menghasilkan Clean KER 15.17%, Noisy KER 20.16%, dan latensi 2,741.1 ms via REST non-streaming.
+Pada Spike Minggu 2 (dan pengukuran ulang G1b pada 30 skenario representatif), dilakukan pengujian terhadap dua kandidat utama:
+1. **Deepgram Nova-3 Streaming (WebSocket + `keyterm` boosting):**
+   - Clean KER Mean: **3.89%** (Bootstrap 95% CI: `[0.00%, 8.33%]`).
+   - P50 Streaming Latency: **1,820.0 ms** (Mean: 1,765.3 ms).
+   - Parameter query yang didukung adalah `keyterm` (parameter `keywords` tidak didukung / error 400).
+2. **Groq Whisper Turbo (`whisper-large-v3-turbo`):**
+   - Clean KER Mean: **11.11%** (Bootstrap 95% CI: `[4.99%, 18.33%]`).
+   - Raw Inference Latency P50: **490.2 ms**.
+   - Effective Pipeline Latency (+500 ms default LiveKit Silero VAD delay): P50 **990.2 ms** (Mean: 1,020.1 ms).
 
 ## Usulan Keputusan
-Diusulkan **Groq Whisper Turbo** sebagai kandidat STT primer untuk mode pemrosesan per giliran (turn-based file transcription), dengan catatan:
-1. Implementasi pipeline langsung memerlukan penambahan delay deteksi hening VAD (+300–500 ms) sebelum audio file dipotong dan dikirim ke Groq.
-2. Pengujian perbandingan definitif terhadap Deepgram belum selesai karena yang diuji adalah model Nova-2 lama tanpa keyterm boosting, bukan Nova-3 dengan `language=id` / `language=multi` dan keyterm boosting seperti yang dispesifikasikan dalam rencana proyek.
+Status pemilihan vendor STT tetap berstatus **Proposed** (belum definitif):
+- **Deepgram Nova-3 Streaming** unggul dalam akurasi pengenalan istilah menu (*code-switching*) dengan KER 3.89% dan beroperasi native streaming via WebSocket. Namun, latensi streaming P50 terukur 1.820 ms, yang masih tinggi jika harus berbagi anggaran latensi turn total 1.200 ms dengan LLM dan TTS.
+- **Groq Whisper Turbo** unggul dalam total latensi pipeline efektif (990 ms inklusif jeda VAD 500 ms) dan KER 11.11%. Namun, Groq beroperasi berbasis file/REST, sehingga memerlukan pemotongan buffer audio dan jeda hening VAD sebelum dikirim.
 
 ## Alternatif yang Dipertimbangkan
-- **Deepgram Nova-3 (Streaming WebSocket dengan Keyterm Boosting):** Kandidat kuat yang direncanakan di `PROJECT_PLAN.md` §7.1. Belum diuji secara menyeluruh di Spike Minggu 2.
-- **Soniox / Gladia:** Alternatif streaming dengan dukungan native code-switching bahasa Indonesia, dicadangkan untuk pengujian lanjutan.
+- **Soniox:** Dikeluarkan dari pertimbangan (*excluded: card required*) karena mewajibkan kartu kredit untuk aktivasi API.
+- **Gladia:** Menyediakan kredit uji coba €50 tanpa kartu, dicadangkan untuk pengujian komparatif lanjutan jika diperlukan.
 
-## Konsekuensi
-- **Positif:**
-  - Groq Whisper Turbo menunjukkan ketahanan yang baik pada data sintetis berderau Gaussian (KER 13.33%).
-  - Kecepatan inferensi file Groq sangat cepat (~484 ms).
-- **Negatif / Mitigasi:**
-  - Arsitektur berbasis file membutuhkan VAD silence threshold buffer (~400 ms), sehingga menaikkan latensi turn riil.
-  - Free Tier Groq dibatasi pada 20 RPM dan 2,000 RPD tanpa SLA ketersediaan komersial.
-  - Status keputusan tetap **Proposed** hingga benchmark 100 skenario dan perbandingan streaming Nova-3 dieksekusi.
+## Konsekuensi & Hal yang Belum Dapat Diputuskan
+- **Akurasi Suara Manusia Nyata:** Masih berstatus *provisional* karena pengujian representatif baru dilakukan pada audio sintetis ($n=30$); pengujian audio manusia nyata baru $n=1$ (hanya latensi, akurasi belum diukur).
+- **Keputusan Arsitektur:** Menunggu keputusan Daryl mengenai apakah sistem akan memprioritaskan latensi pipeline (Groq Whisper Turbo + optimasi VAD) atau memprioritaskan native streaming WebSocket (Deepgram Nova-3).

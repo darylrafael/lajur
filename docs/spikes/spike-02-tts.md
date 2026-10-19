@@ -59,6 +59,16 @@ Korpus pengujian terdiri dari **18 respons kasir drive-thru realistis** yang diu
   2. *Buffer Frame Audio Awal*: Menunggu header sinkronisasi frame MP3 pertama.
 - Latensi TTFB 1.4s – 2.6s ini menjadi penyumbang terbesar kegagalan batas latensi turn Gate G1 ($\le 1.2$s) jika digabungkan dengan STT dan LLM.
 
+### 4.3 Analisis Sensitivitas Anggaran TTS (G1b Re-measurement)
+Pada fase G1b, dilakukan penghitungan alokasi anggaran TTS yang dibutuhkan untuk mencapai ambang batas latensi turn $\le 1,200\text{ ms}$, berdasarkan STT dan LLM yang terukur secara empiris pada 30 skenario:
+
+| Kombinasi Pipeline (STT + LLM) | Akumulasi STT + LLM P50 (ms) | Target Turn Latency (§3.2) | Sisa Alokasi Maksimal untuk TTS TTFB | Status Kelayakan |
+|---|:---:|:---:|:---:|:---:|
+| **Nova-3 Stream (1,820 ms) + Gemini First Sent (841 ms)** | 2,661.4 ms | $\le 1,200\text{ ms}$ | **-1,461.4 ms** | **FAIL (Defisit)** |
+| **Groq + 500ms VAD (990 ms) + Gemini First Sent (841 ms)**| 1,831.6 ms | $\le 1,200\text{ ms}$ | **-631.6 ms** | **FAIL (Defisit)** |
+
+*Kesimpulan:* Bahkan jika TTS memiliki latensi 0 ms (instan tanpa delay), kombinasi STT dan LLM saja telah melampaui batas 1.200 ms. Alokasi tersisa untuk TTS bernilai negatif.
+
 ---
 
 ## 5. What the Data Cannot Tell Us

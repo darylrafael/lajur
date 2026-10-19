@@ -90,4 +90,33 @@ Kebutuhan utama dokumen `docs/decisions/0005-zero-audio-persistence.md` (ADR-000
 Ketentuan layanan Google Gemini Free Tier secara eksplisit menyatakan bahwa seluruh prompt dan respons disimpan dan dapat digunakan oleh Google untuk melatih model AI mereka. Ini merupakan pelanggaran langsung terhadap klausul privasi ADR-0005.
 
 **Ketetapan Arsitektur:**
-Untuk rilis demo publik maupun lingkungan produksi, **Google Gemini WAJIB dijalankan pada Tier Berbayar (Pay-As-You-Go)** dengan billing aktif, sehingga klausul perlindungan data komersial (data eksklusif pelanggan tanpa training) berlaku penuh.
+Untuk rilis demo publik maupun lingkungan produksi, **Google Gemini WAJIB dijalankan pada Tier Berbayar (Pay-As-You-Go)** dengan billing aktif, sehingga klausul perlindungan data komersial (data eksklusif pelanggan tanpa training) berlaku penuh. Namun untuk pengujian internal (Spike G1b), Gemini Free Tier hanya diizinkan dengan teks sintetis/skrip tanpa data pengunjung riil.
+
+---
+
+## 5. Audit Persyaratan Kartu Pembayaran (Card-Free Hard Constraint & Exclusions)
+
+Sesuai batasan mutlak proyek (*Hard Constraint*): pengembang tidak akan menggunakan layanan apa pun yang mewajibkan kartu pembayaran/kredit (*payment card*). Setiap vendor diverifikasi status pendaftaran resminya per 2026-10-19:
+
+| Vendor / Provider | Kategori Layanan | Kartu Wajib Saat Daftar? | Sumber URL Verifikasi Resmi | Tanggal Cek | Status Kelayakan di Proyek |
+|---|---|:---:|---|:---:|---|
+| **Groq Cloud (Free Developer Tier)** | STT & LLM | **TIDAK** | [console.groq.com](https://console.groq.com/) | 2026-10-19 | **ELIGIBLE** (Card-free: yes) |
+| **Google Gemini (AI Studio Free Tier)**| LLM Intent | **TIDAK** | [aistudio.google.com](https://aistudio.google.com/) | 2026-10-19 | **ELIGIBLE (Synthetic/Script Only)** (Card-free: yes; data training terms apply) |
+| **Deepgram (Trial Credit $200)** | STT Streaming | **TIDAK** | [console.deepgram.com/signup](https://console.deepgram.com/signup) | 2026-10-19 | **ELIGIBLE (Trial Credit)** (Card-free: yes, no card for initial $200 credit) |
+| **Gladia (Free Trial €50)** | STT Streaming | **TIDAK** | [gladia.io/pricing](https://www.gladia.io/pricing) | 2026-10-19 | **ELIGIBLE (Trial Credit)** (Card-free: yes, €50 credit upon email verification) |
+| **Soniox** | STT Streaming | **YA** | [soniox.com/pricing](https://soniox.com/pricing) | 2026-10-19 | **EXCLUDED: card required** (Free trial $200 dihapus; wajib kartu kredit) |
+| **Cartesia (Sonic API)** | TTS Streaming | **YA** | [cartesia.ai/pricing](https://cartesia.ai/pricing) | 2026-10-19 | **EXCLUDED: card required** (Akses API berbayar mewajibkan kartu) |
+| **Azure Cognitive Services Speech** | TTS Streaming | **YA** (Kecuali Azure for Students) | [azure.microsoft.com/free](https://azure.microsoft.com/free/) | 2026-10-19 | **EXCLUDED: card required** (Standard Azure butuh kartu; kunci Azure for Students belum ada di `.env`) |
+
+---
+
+## 6. Rekonsiliasi Model yang Sebenarnya Melayani (Exact Resolved Model IDs)
+
+| Komponen | Model yang Diminta di Kode | Model Id Eksak yang Melayani (*Resolved ID*) | Harga per Unit Resmi | Catatan Penyesuaian Harga |
+|---|---|---|---|---|
+| **STT Groq** | `whisper-large-v3-turbo` | `whisper-large-v3-turbo` | $0.04 / jam ($0.00067/menit) | Sesuai dengan harga yang direncanakan. |
+| **STT Deepgram** | `nova-2` (dry-run awal) | `nova-2` | $0.0043 / menit (batch) | Berbeda dari spesifikasi rencana yang mematok Nova-3 ($0.0077/menit). |
+| **LLM Gemini** | `gemini-flash-lite-latest` | `models/gemini-3.1-flash-lite` | Free Tier ($0.00) / Paid: $0.10 in, $0.40 out / 1M token | Berbeda dari `gemini-2.5-flash-lite` yang dipatok di plan awal. Model 3.1 Flash-Lite yang melayani. |
+| **LLM Groq (Kandidat Baru)** | `llama-3.3-70b-versatile` | `llama-3.3-70b-versatile` | $0.59 in / $0.79 out per 1M token (Free: 30 RPM, 14,400 RPD) | Alternatif LLM cepat tanpa kartu kredit dan tanpa training data pelanggan. |
+| **LLM Groq (Kandidat Ringan)**| `llama-3.1-8b-instant` | `llama-3.1-8b-instant` | $0.05 in / $0.08 out per 1M token (Free: 30 RPM, 14,400 RPD) | Kandidat TTFT ultra-cepat sub-150ms. |
+

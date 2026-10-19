@@ -33,12 +33,25 @@
 
 ---
 
-## 3. Results Summary Table
+### 3.1 Initial Exploratory Benchmark (n=20 Scenarios, REST Batch Calls)
 
 | Evaluated Model | Schema Compliance (%) | Intent Accuracy on 20 Scenarios (%) | Anti-Injection Pass (%) | Mean REST Latency (ms) | HTTP 429 Errors Hit | Serving Model ID |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Google Gemini Flash-Lite** | **100.0%** | **100.0%** (20/20 tepat) | **100.0%** (1/1 lolos) | **1,072.9 ms** | **0** | `gemini-3.1-flash-lite` |
 | **Google Gemini 2.5 Flash** | 100.0% | 100.0% | 100.0% | 2,611.2 ms | **20 (Quota Exhausted)** | `gemini-2.5-flash` |
+
+### 3.2 Representative G1b Streaming Benchmark (n=30 Scenarios)
+
+Pada fase G1b, dilakukan pengukuran empiris terhadap streaming Time to First Token (TTFT) dan Time to First Complete Sentence pada 30 skenario representatif:
+
+| Evaluated Streaming LLM | Resolved Model ID | TTFT P50 (ms) | TTFT P95 (ms) | TTFT Mean (ms) | 1st Sentence P50 (ms) | Total Time P50 (ms) | Serving Model / Tier |
+|---|---|:---:|:---:|:---:|:---:|:---:|---|
+| **Google Gemini Flash-Lite** | `gemini-3.5-flash-lite` | **840.1 ms** | 1,071.1 ms | 876.3 ms | **841.4 ms** | 952.9 ms | Google AI Studio Free Tier |
+| **Groq LLM (GPT-OSS-20B)** | `openai/gpt-oss-20b` | **748.3 ms** | 879.0 ms | 750.1 ms | **748.3 ms** | 750.5 ms | Groq Cloud Free Dev Tier |
+
+*Temuan Streaming LLM:*  
+Time to First Complete Sentence (untuk chunking TTS) berkisar antara **748 ms (Groq LLM)** hingga **841 ms (Gemini Flash-Lite)**. Token pertama tiba dalam waktu sub-detik (~750–840 ms), memangkas waktu tunggu kalimat pertama dibandingkan menunggu seluruh respons batch (950–1.070 ms).
+
 
 ---
 

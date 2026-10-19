@@ -116,3 +116,108 @@ Seluruh keputusan vendor berstatus **"Proposed"** (bukan definitif) dan dicatat 
 - **TIDAK ADA MERGE KE `main`.**
 - **TIDAK MEMULAI MINGGU 3.**
 - Menunggu keputusan dan arahan dari pengembang terkait tindakan fallback §3.2 dan penyelesaian checklist status manusia.
+
+---
+
+## 8. Bagian G1b: Hasil Pengukuran Ulang Representatif (Representative Re-measurement)
+
+Sesuai protokol pra-registrasi [`docs/gates/G1b-protocol.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1b-protocol.md), telah dilakukan pengukuran ulang representatif pada 30 skenario baku dari `eval/datasets/v0/scenarios.jsonl` mencakup 10 kondisi operasional (simple, code-switching, quantity, modifiers, combos, corrections, undo, hesitation, out-of-stock, handoff, prompt injection).
+
+### 8.1 Data Empiris Terukur per Komponen
+
+#### A. Speech-to-Text (STT)
+1. **Deepgram Nova-3 Streaming (WebSocket + Keyterm Boosting):**
+   - **Parameter:** `model=nova-3`, `language=id`, `smart_format=true`, `keyterm` (30 istilah menu utama).
+   - *Temuan Query Parameter:* Pengujian memvalidasi bahwa parameter `keywords` ditolak pada Nova-3 (HTTP 400); Nova-3 secara resmi menggunakan parameter `keyterm`.
+   - **Streaming Latency (Akhir audio terkirim $\to$ transkrip final diterima):**
+     - P50: **1,820.0 ms**
+     - P95: **2,585.3 ms**
+     - Mean: **1,765.3 ms** (Bootstrap 95% CI: `[1,568.9 ms, 1,977.1 ms]`)
+   - **Akurasi pada 30 Skenario Sintetis Bersih:**
+     - Clean KER Mean: **3.89%** (Bootstrap 95% CI: `[0.00%, 8.33%]`)
+     - Clean WER Mean: **6.56%**
+2. **Groq Whisper Turbo (`whisper-large-v3-turbo`):**
+   - **Raw Inference Latency (REST):**
+     - P50: **490.2 ms** (P95: 769.3 ms, Mean: 520.1 ms)
+   - **Silero VAD Endpointing Delay:**
+     - Diambil langsung dari nilai default resmi `livekit-agents` v1.8.8 (`_ENDPOINTING_DEFAULTS["min_delay"]`): **500.0 ms**.
+   - **Effective Pipeline Latency (Inference + VAD Delay):**
+     - P50: **990.2 ms**
+     - P95: **1,269.3 ms**
+     - Mean: **1,020.1 ms** (Bootstrap 95% CI: `[969.2 ms, 1,080.3 ms]`)
+   - **Akurasi pada 30 Skenario Sintetis Bersih:**
+     - Clean KER Mean: **11.11%** (Bootstrap 95% CI: `[4.99%, 18.33%]`)
+     - Clean WER Mean: **10.09%**
+3. **Perbandingan Statistik Akurasi (Nova-3 vs Groq):**
+   - Selang kepercayaan KER Nova-3 (`[0.00%, 8.33%]`) bertumpang-tindih (*overlapping*) dengan batas bawah selang kepercayaan Groq (`[4.99%, 18.33%]`) pada rentang 5.0%–8.3%.
+   - Sesuai protokol, perbedaan akurasi ini dilaporkan **berada dalam batas derau variansi statistik (*within noise*)** pada ukuran sampel $n=30$.
+4. **Pengujian File Suara Manusia Asli tunggal (`eval/audio/real/mic_session_03.wav`):**
+   - Deepgram Nova-3 Streaming Latency: **63.1 ms**
+   - Groq Whisper Effective Pipeline Latency (+500ms VAD): **2,256.5 ms**
+   - Akurasi: **Not measured** (karena transkrip referensi ground-truth dari user belum tersedia). Bukti suara nyata adalah $n=1$ (hanya latensi).
+
+#### B. Large Language Model (LLM Streaming)
+1. **Google Gemini Flash-Lite Free Tier:**
+   - **Model ID Eksak yang Melayani (*Resolved Model*):** `models/gemini-3.5-flash-lite` (via alias `gemini-flash-lite-latest`).
+   - Time to First Token (TTFT): P50 = **840.1 ms** (P95 = 1,071.1 ms, Mean = 876.3 ms)
+   - Time to First Sentence: P50 = **841.4 ms** (P95 = 1,071.1 ms)
+   - Total Response Time: P50 = **952.9 ms**
+2. **Groq-Hosted LLM (`openai/gpt-oss-20b`):**
+   - **Model ID Eksak yang Melayani:** `openai/gpt-oss-20b`.
+   - Time to First Token (TTFT): P50 = **748.3 ms** (P95 = 879.0 ms, Mean = 750.1 ms)
+   - Time to First Sentence: P50 = **748.3 ms** (P95 = 879.0 ms)
+   - Total Response Time: P50 = **750.5 ms**
+
+#### C. Text-to-Speech (TTS) — Status & Analisis Sensitivitas
+- **Status Pengukuran:** **NOT MEASURED**.
+- **Alasan:** Batasan mutlak proyek (*Card-free Hard Constraint*) melarang layanan berbayar yang mewajibkan kartu kredit. Tidak ada kunci API resmi card-free yang tersedia di `.env` (Azure Speech resmi butuh kartu kecuali Azure for Students; Edge-TTS dilarang digunakan untuk mengukur latensi produk).
+- **Tabel Analisis Sensitivitas Alokasi Anggaran TTS (Ambang Batas Turn: $\le 1,200\text{ ms}$):**
+
+| Pasangan Komponen | Latensi STT P50 (ms) | Latensi LLM P50 (ms) | Akumulasi STT + LLM (ms) | Sisa Alokasi Maksimal untuk TTS TTFB agar Lolos $\le 1.2$s | Status Kelayakan Latensi |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Nova-3 Stream + Gemini (Sequential)** | 1,820.0 ms | 952.9 ms (Total) | 2,772.9 ms | **-1,572.9 ms** (Defisit) | **FAIL** |
+| **Nova-3 Stream + Gemini (Chunked)** | 1,820.0 ms | 841.4 ms (1st Sent) | 2,661.4 ms | **-1,461.4 ms** (Defisit) | **FAIL** |
+| **Nova-3 Stream + Gemini (Ideal Plan)** | 1,820.0 ms | 840.1 ms (TTFT) | 2,660.1 ms | **-1,460.1 ms** (Defisit) | **FAIL** |
+| **Groq (+500ms VAD) + Gemini (Sequential)**| 990.2 ms | 952.9 ms (Total) | 1,943.1 ms | **-743.1 ms** (Defisit) | **FAIL** |
+| **Groq (+500ms VAD) + Gemini (Chunked)**| 990.2 ms | 841.4 ms (1st Sent) | 1,831.6 ms | **-631.6 ms** (Defisit) | **FAIL** |
+| **Groq (+500ms VAD) + Gemini (Ideal Plan)**| 990.2 ms | 840.1 ms (TTFT) | 1,830.2 ms | **-630.2 ms** (Defisit) | **FAIL** |
+
+*Temuan Kritis Sensitivitas:*  
+Bahkan dengan asumsi hipotetis TTS instan (TTFB = 0 ms), kombinasi STT dan LLM saja sudah menghabiskan **1.831 ms hingga 2.773 ms**, melampaui ambang batas 1.200 ms dengan defisit antara 631 ms hingga 1.573 ms.  
+Jika digabungkan dengan latensi prototipe Edge-TTS (TTFB terukur 1.406 ms pada Tier 1):
+- Groq Whisper (+500ms VAD) + Gemini Chunked (841 ms) + TTS TTFB (1.406 ms) = **3.237 ms (~3.24 detik)**.
+- Deepgram Nova-3 (1.820 ms) + Gemini Chunked (841 ms) + TTS TTFB (1.406 ms) = **4.067 ms (~4.07 detik)**.
+
+---
+
+### 8.2 Status Evaluasi Resmi Gerbang G1b
+
+| No | Kriteria Gerbang G1b | Ambang Batas (§3.2) | Hasil Terukur G1b | Status Evaluasi | Alasan Evaluasi |
+|:---:|---|:---:|:---:|:---:|---|
+| 1 | **Akurasi STT ID–EN Bersih (KER)** | $\le 15.0\%$ | Nova-3: **3.89%**<br>Groq: **11.11%** | **PROVISIONAL** | Kedua kandidat memenuhi KER $\le 15\%$ pada 30 skenario sintetis. Namun data suara manusia nyata masih $n=1$ (hanya latensi, akurasi belum diukur). Status tetap Provisional sesuai protokol hingga dataset suara nyata representatif tersedia. |
+| 2 | **Latensi Turn Estimasi** | $\le 1,200\text{ ms}$ | STT+LLM saja: **1,831 ms – 2,773 ms**<br>Dengan TTS: **3.2s – 4.1s** | **FAIL** | Seluruh varian formula (sequential, chunked streaming, ideal) gagal memenuhi ambang batas 1.2 detik. Alokasi tersisa untuk TTS bernilai negatif. |
+| **TOTAL** | **STATUS GERBANG G1b** | **PASS ALL** | **1 Provisional, 1 Fail** | **FAIL / NOT PASS** | **Kriteria latensi tidak terpenuhi.** Keputusan gerbang tetap berada di tangan Daryl. |
+
+---
+
+### 8.3 Opsi Tindakan Fallback §3.2 & Pilihan Teknis Berbasis Data G1b (Tidak Diterapkan Otomatis)
+
+1. **Opsi Fallback Verbatim dari `PROJECT_PLAN.md` §3.2:**
+   - *Pivot ke normalisasi LLM pasca-STT atau turunkan klaim ("mostly Indonesian + English item names") dan perluas menu dengan alias.*
+   - *Jika tetap gagal: pindah ke bahasa Inggris saja + ID parsial, dan ubah narasi portofolio.*
+2. **Opsi Penyesuaian Latensi yang Didukung Bukti Data G1b:**
+   - **Opsi A (Penyesuaian SLO Latensi Proyek):** Mengubah SLO latensi demo publik dari P50 < 800ms / 1.2s menjadi **P50 < 2.5s – 3.0s**. Data membuktikan bahwa *cascade pipeline* (STT streaming $\to$ LLM streaming $\to$ TTS streaming) melalui jaringan internet publik dari Indonesia ke server cloud AS/Eropa secara fisik tidak memungkinkan mencapai < 1.2 detik tanpa GPU terdistribusi lokal (*co-located edge server*).
+   - **Opsi B (Optimasi Jeda VAD / Endpointing):** Mengurangi ambang batas hening (*silence threshold*) VAD pada LiveKit Agents dari 500 ms menjadi 250–300 ms jika kondisi akustik mikrofon memungkinkan.
+   - **Opsi C (Peralihan ke Audio-to-Audio Realtime Multimodal API):** Beralih dari *cascade pipeline* ke API multimodal realtime (misal Gemini Multimodal Live API). Namun opsi ini memiliki trade-off: menghilangkan validasi deterministik keranjang sebelum AI berbicara (ditolak di ADR-0001).
+   - **Opsi D (Eksplorasi TTS Streaming Berlisensi Resmi Tanpa Kartu):** Mencari dan memvalidasi penyedia TTS streaming resmi yang menyediakan akses gratis tanpa kewajiban kartu kredit.
+
+*Seluruh opsi di atas dilaporkan sebagai bahan pertimbangan arsitektur dan TIDAK DITERAPKAN secara otomatis.*
+
+---
+
+### 8.4 What the Data Cannot Tell Us (G1b)
+
+1. **Akurasi Suara Manusia Nyata ($n=1$, Unmeasured):** Data akurasi (KER 3.89% dan 11.11%) hanya berlaku untuk audio sintetis yang diucapkan jernih oleh Edge-TTS. Kita belum memiliki data akurasi empiris untuk suara manusia asli pengemudi drive-thru (dialek daerah, desah napas, gumaman ragu, dan interupsi penumpang).
+2. **Latensi Jaringan Riil Klien Browser:** Pengukuran dilakukan dari terminal lokal Windows melalui panggilan API terisolasi. Latensi round-trip WebRTC browser pelanggan ke worker agent di cloud belum terukur.
+3. **Latensi TTS Resmi Berlisensi:** Karena tidak ada kunci TTS card-free, latensi audio pertama (TTFB) dari provider resmi seperti Azure Speech S0, Cartesia Sonic, atau ElevenLabs Flash belum dapat diukur secara langsung.
+
