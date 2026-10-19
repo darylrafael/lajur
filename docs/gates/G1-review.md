@@ -220,10 +220,10 @@ Ambang batas latensi turn proyek adalah **$\le 1.200\text{ ms}$**. Seluruh nilai
 | 1 | **Deepgram Nova-3 (Stream)** | Built-in endpointing (~300ms) | Gemini Flash-Lite (Warm TTFT) | $524.4\text{ ms} + 839.9\text{ ms} = \mathbf{1,364.3\text{ ms}}$ | **-164.3 ms** (Defisit) | **FAIL** | Audio di-stream real-time; LLM koneksi warm; TTS instan (0 ms). |
 | 2 | **Deepgram Nova-3 (Stream)** | Built-in endpointing (~300ms) | Gemini Flash-Lite (1st Sentence) | $524.4\text{ ms} + 841.4\text{ ms} = \mathbf{1,365.8\text{ ms}}$ | **-165.8 ms** (Defisit) | **FAIL** | Chunk kalimat pertama langsung dilempar ke TTS; TTS instan (0 ms). |
 | 3 | **Groq Whisper Turbo (Batch)**| LiveKit Default (`min_delay` 500ms)| Gemini Flash-Lite (Warm TTFT) | $(490.2 + 500.0)\text{ ms} + 839.9\text{ ms} = \mathbf{1,830.1\text{ ms}}$ | **-630.1 ms** (Defisit) | **FAIL** | Inferensi file batch + 500 ms jeda hening VAD aman. |
-| 4 | **Deepgram Nova-3 (Tuned)** | Aggressive endpointing (250ms) | LLM Ultra-Fast (Llama-3.1-8b est. 250ms)| $450.0\text{ ms} + 250.0\text{ ms} = \mathbf{700.0\text{ ms}}$ | **+500.0 ms** (Tersisa) | **PROJECTION ONLY** | Asumsi VAD agresif (risiko potong jeda), LLM lokal/edge sub-250ms, dan TTS streaming resmi berlisensi $\le 500$ ms. |
+| 4 | **Deepgram Nova-3 + Qwen-27B (Measured)** | Built-in endpointing (~300ms) | Groq Qwen-27b Non-Reasoning (Warm TTFT) | $524.4\text{ ms} + 258.5\text{ ms} = \mathbf{782.9\text{ ms}}$ | **+417.1 ms** (Tersisa) | **PROJECTION (TTS unmeasured)** | STT dan LLM diukur empiris warm P50. Sisa alokasi untuk TTS TTFB: 417 ms (asumsi TTS berlisensi, belum terukur/tidak ada TTS card-free). |
 
 *Kesimpulan Proyeksi Empiris:*  
-Pada tumpukan teknologi *cascade* saat ini dengan komponen resmi card-free (Nova-3 streaming + Gemini Flash-Lite warm), fase pra-TTS saja membutuhkan **~1.364 ms**, melampaui plafon 1.200 ms dengan selisih 164 ms tanpa menyisakan ruang untuk latensi sintesis suara TTS.
+Pada tumpukan teknologi *cascade* saat ini dengan komponen resmi card-free (Nova-3 streaming + Gemini Flash-Lite warm), fase pra-TTS saja membutuhkan **~1.364 ms**, melampaui plafon 1.200 ms dengan selisih 164 ms tanpa menyisakan ruang untuk latensi sintesis suara TTS. Penggunaan model non-reasoning cepat (Qwen 27B) menekan latensi pra-TTS ke **782.9 ms**, menyisakan ruang 417 ms untuk TTS, namun belum tersedia provider TTS streaming resmi yang bebas kartu kredit.
 
 ---
 
@@ -232,7 +232,7 @@ Pada tumpukan teknologi *cascade* saat ini dengan komponen resmi card-free (Nova
 | No | Kriteria Gerbang G1 (§3.2) | Target | Hasil Terukur Audit | Status | Alasan Evaluasi |
 |:---:|---|:---:|:---:|:---:|---|
 | 1 | **Akurasi STT ID–EN Bersih (KER)** | $\le 15.0\%$ | Nova-3: **3.89%**<br>Groq: **11.11%** | **PROVISIONAL** | Memenuhi KER $\le 15\%$ pada 30 skenario sintetis. Selang kepercayaan berpasangan menyentuh 0.00% (belum eksklusif). Data suara manusia nyata belum memiliki ground-truth teks untuk diukur. |
-| 2 | **Latensi Turn Estimasi** | $\le 1,200\text{ ms}$ | Pre-TTS Warm P50: **1,364 ms – 1,830 ms** | **FAIL** | Kombinasi STT + LLM warm melampaui batas 1.200 ms sebelum audio TTS mulai disintesis. |
+| 2 | **Latensi Turn Estimasi** | $\le 1,200\text{ ms}$ | Pre-TTS Warm P50: **782.9 ms – 1,830 ms** | **FAIL** | Kombinasi standar (Nova-3 + Gemini) melampaui 1.200 ms sebelum TTS. Kombinasi tercepat (Nova-3 + Qwen) menyisakan 417 ms, tetapi belum ada TTS streaming card-free resmi. |
 | **TOTAL** | **STATUS GERBANG G1** | **PASS ALL** | **1 Provisional, 1 Fail** | **FAIL / NOT PASS** | **Ambang batas latensi 1.2 detik tidak terpenuhi.** Rekomendasi tindakan dituang pada ADR-0013. |
 
 ---
@@ -240,10 +240,67 @@ Pada tumpukan teknologi *cascade* saat ini dengan komponen resmi card-free (Nova
 ### 8.4 Tindakan Fallback §3.2 & Pilihan Arsitektur
 
 Sesuai `PROJECT_PLAN.md` §3.2 dan audit empiris, pilihan keputusan resmi dicatat pada dokumen arsitektur [ADR-0013: G1 Outcome and Next Steps](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0013-g1-outcome-and-next-steps.md) dengan 3 opsi:
-1. **Opsi A (Pertahankan Target 1.2s):** Rekayasa teknis agresif (WebSocket streaming penuh, VAD agresif 250–300 ms, LLM mini lokal/edge < 250 ms, TTS streaming resmi sub-300 ms).
-2. **Opsi B (Penyesuaian Target Latensi Berbasis UX Drive-Thru):** Menyesuaikan SLO latensi turn menjadi P50 < 1.8s–2.2s dengan justifikasi UX interkom drive-thru (umpan balik visual keranjang instan < 500 ms di layar simulator sembari audio respons kasir berbicara natural).
+1. **Opsi A (Pertahankan Target 1.2s):** Rekayasa teknis agresif (WebSocket streaming penuh, VAD wajar 300 ms, LLM non-reasoning sub-300 ms, pencarian TTS streaming resmi sub-400 ms).
+2. **Opsi B (Penyesuaian Target Latensi Berbasis UX Drive-Thru):** Menyesuaikan SLO latensi turn dengan justifikasi UX interkom drive-thru (umpan balik visual keranjang instan di layar simulator sembari audio respons kasir berbicara natural, angka target resmi ditetapkan oleh pemilik proyek).
 3. **Opsi C (Re-scoping Bahasa sesuai §3.2 Verbatim):** Pivot ke normalisasi LLM pasca-STT atau turunkan klaim ("mostly Indonesian + English item names") dengan perluasan alias menu, atau beralih ke bahasa Inggris penuh + ID parsial.
 
 *Catatan: Alternatif API multimodal realtime audio-to-audio (misal Gemini Live API) dikesampingkan karena menghilangkan validasi keranjang deterministik sebelum berbicara (bertentangan dengan guardrail ADR-0001) dan belum diverifikasi batasan kartu kreditnya.*
+
+---
+
+## 9. Bagian G1c: Hasil Pengukuran Tuas Arsitektur (Measuring the Levers)
+
+Sesuai protokol pra-registrasi [`docs/gates/G1c-protocol.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1c-protocol.md), telah dijalankan eksperimen E1–E5 untuk mengukur dampak empiris dari tuas-tuas rekayasa teknis:
+
+### 9.1 Eksperimen E1: LLM Reasoning Overhead & Small Model (30 Skenario, Interleaved)
+Pengujian dijalankan secara bersilang (*interleaved*) untuk mengontrol variansi beban server.
+
+| Model & Konfigurasi | Exact Resolved Model ID | Warm TTFT P50 (ms) | Warm TTFT P95 (ms) | Mean TTFT (ms) [95% CI] | 1st Sentence P50 (ms) | Total Latency P50 (ms) | Intent Accuracy (%) |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Google Gemini Flash-Lite (Default)** | `models/gemini-3.5-flash-lite` | **794.2 ms** | 1,381.2 ms | 875.9 ms `[783.6, 987.0]` | 798.5 ms | 973.2 ms | 50.0%* |
+| **Groq GPT-OSS-20b (Default Reasoning)** | `openai/gpt-oss-20b` | **818.6 ms** | 1,236.8 ms | 856.4 ms `[757.4, 973.8]` | 818.6 ms | 820.0 ms | 50.0%* |
+| **Groq GPT-OSS-20b (`reasoning_effort="low"`)**| `openai/gpt-oss-20b` | **602.6 ms** | 1,567.7 ms | 745.3 ms `[629.0, 882.9]` | 602.6 ms | 603.5 ms | 50.0%* |
+| **Groq Qwen-27b Non-Reasoning** | `qwen/qwen3.8-27b` | **258.5 ms** | 512.1 ms | 315.0 ms `[275.4, 365.1]` | 258.5 ms | 263.3 ms | 50.0%* |
+
+*\*Catatan Kritis:*
+1. **Dampak Reasoning Tokens:** Pada `openai/gpt-oss-20b`, mode default menghasilkan 90–220 token pemikiran (*reasoning tokens*) sebelum konten JSON dimulai. Menyetel `reasoning_effort="low"` memangkas token pemikiran menjadi 4–23 token, mempercepat TTFT sebesar **216.0 ms** (dari 818.6 ms menjadi 602.6 ms).
+2. **Kecepatan Model Non-Reasoning:** Model `qwen/qwen3.8-27b` pada Groq Free Tier menghasilkan TTFT ultra-cepat **258.5 ms** dengan dukungan JSON mode penuh dan kualitas bahasa Indonesia yang baik.
+3. **Caveat Gold Label:** Skor akurasi intent dievaluasi terhadap gold label yang dibuat secara otomatis oleh agen awal v0; baru 20 dari 135 skenario yang telah divalidasi langsung oleh manusia.
+
+---
+
+### 9.2 Eksperimen E2: Trade-off Endpointing Deepgram Nova-3 vs False Cutoff
+Diuji pada 10 kalimat percakapan bertingkat dengan variasi jeda hening buatan di tengah kalimat (300 ms, 500 ms, 800 ms — total 30 audio uji), di-stream real-time $1.0\times$ ke Deepgram Nova-3.
+
+| Parameter Endpointing | Total Uji | False Cutoff Total (%) | False Cutoff @ 300ms Jeda | False Cutoff @ 500ms Jeda | False Cutoff @ 800ms Jeda | Latensi Turnaround Pasca-Ucapan (P50) |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `endpointing=150ms` | 30 | **13.3%** | 10.0% | 10.0% | 20.0% | Prematur (-265.7 ms) |
+| `endpointing=300ms` | 30 | **6.7%** | 0.0% | 0.0% | 20.0% | Sekitar akhir suara (-139.9 ms) |
+| `endpointing=500ms` | 30 | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **63.0 ms** (P95: 197.6 ms) |
+
+*Definisi False Cutoff:* Event transkrip final dipancarkan saat jeda hening di tengah kalimat berlangsung, sebelum kata-kata terakhir selesai diucapkan.  
+*Temuan Utama:* Parameter `endpointing=150ms` sangat rentan memotong ucapan pelanggan ragu-ragu (13.3% terpotong). Sebaliknya, `endpointing=500ms` memberikan keamanan mutlak (**0% false cutoff**) bahkan pada jeda hening hingga 800 ms, dengan latensi deteksi akhir ucapan hanya **63.0 ms** pada koneksi streaming aktif.
+
+---
+
+### 9.3 Eksperimen E3: Survei & Pengukuran TTS Card-Free Resmi
+1. **Hasil Survei Vendor:**
+   - **ElevenLabs Free Tier:** Bebas kartu (card-free: ya), 10.000 karakter/bulan, lisensi non-komersial wajib atribusi. Kunci API tidak ada di `.env`. Status: **Excluded**.
+   - **Gemini API TTS (`models/gemini-2.5-flash-preview-tts`):** Bebas kartu (card-free: ya). Bahasa Indonesia didukung (L16 PCM 24kHz). Namun tidak mendukung token streaming (audio dikirim buffer utuh). TTFB terukur: P50 = **3.036,4 ms** (P95: 3.596,5 ms). Ketentuan data: Google melatih model dari data free-tier (bertentangan dengan ADR-0005).
+   - **Azure Speech, Cartesia, Soniox:** Mewajibkan kartu kredit. Status: **Excluded: card required**.
+2. **Kesimpulan E3:** **Tidak ditemukan API TTS streaming resmi berlisensi yang bebas kartu kredit dan memenuhi syarat latensi serta privasi ADR-0005.** Tabel analisis sensitivitas dipertahankan.
+
+---
+
+### 9.4 Eksperimen E4: Survei Hosting Publik Worker (Card-Free)
+Riset kelayakan infrastruktur publik untuk menjalankan LiveKit Agent Worker Python:
+1. **Render (Free Web Service / Hobby Workspace):** Card-free: **Ya** ([render.com/docs/free](https://render.com/docs/free), 2026-10-19). Region: Oregon, Frankfurt, Singapore. 512 MB RAM, 0.1 vCPU, 750 jam/bulan gratis. Perilaku sleep: spin-down setelah 15 menit idle, cold start ~50s saat ada hit HTTP. Worker dapat dijalankan di dalam container Web Service dengan endpoint health check.
+2. **Zeabur (Free Plan):** Card-free: **Ya** ([zeabur.com/pricing](https://zeabur.com/pricing), 2026-10-19). Auto-sleep saat idle, bangun saat ada traffic.
+3. **Excluded:**
+   - **Koyeb:** Mewajibkan kartu kredit ($29 pre-auth hold).
+   - **Fly.io:** Mewajibkan kartu kredit setelah 2 jam trial.
+   - **Hugging Face Spaces (Docker):** Mewajibkan langganan berbayar PRO ($9/bulan) untuk dynamic Docker container per kebijakan 2026.
+   - **PythonAnywhere:** Memblokir outbound WebSocket/WebRTC (allowlist ketat).
+
 
 
