@@ -105,7 +105,7 @@ async def run_turn(audio_path: Path) -> None:
     t0 = time.perf_counter()
     dg_text = await deepgram.transcribe_file(audio_path)
     dg_ms = (time.perf_counter() - t0) * 1000.0
-    print(f"  • Deepgram Nova-2    : \"{dg_text}\" ({dg_ms:.0f} ms)")
+    print(f"  • Deepgram (Nova-2 only): \"{dg_text}\" ({dg_ms:.0f} ms)")
 
     user_transcript = groq_text or dg_text
     if not user_transcript.strip():
@@ -125,7 +125,7 @@ async def run_turn(audio_path: Path) -> None:
 
     # 4. Synthesize and Play Voice Reply
     print("\n" + "-" * 70)
-    print("3. MEMUTAR SUARA KASIR (TTS GADIS NEURAL):")
+    print("3. MEMUTAR SUARA KASIR (TTS GADIS NEURAL - PROTOTYPE ONLY):")
     print("-" * 70)
     t0 = time.perf_counter()
     mp3_bytes = await tts.synthesize_text(llm_res.bot_reply)
@@ -139,18 +139,24 @@ async def run_turn(audio_path: Path) -> None:
     print("  • Suara kasir selesai diputar.")
 
     total_pipeline_ms = groq_ms + llm_ms + tts_ms
-    print(f"\n[TOTAL TURN-AROUND LATENCY]: {total_pipeline_ms:.0f} ms (~{total_pipeline_ms / 1000.0:.2f} detik)")
+    print(f"\n[ESTIMASI PIPELINE SEKUANSIAL]: {total_pipeline_ms:.0f} ms (~{total_pipeline_ms / 1000.0:.2f} detik)")
 
 
 def main() -> None:
     print("=" * 70)
-    print("  LAJUR -- UJI COBA SUARA MIC LANGSUNG (Groq + Deepgram + Gemini + Edge-TTS)")
+    print("  LAJUR -- UJI COBA SUARA MIC LANGSUNG (Spike Prototipe)")
     print("=" * 70)
     print("Mikrofon Default: Terdeteksi siap merekam.")
     print("Speaker Default : Terdeteksi siap memutar suara kasir.")
-    print("Biaya Operasional: $0.00 (100% Gratis).")
+    print("Status Pengujian: Sesi Mikrofon Langsung Pengembang (n=3).")
 
-    temp_wav = Path("eval/audio/real/user_mic_test.wav")
+    session_idx = 1
+    # Check existing files to find next index
+    real_audio_dir = Path("eval/audio/real")
+    while (real_audio_dir / f"mic_session_{session_idx:02d}.wav").exists():
+        session_idx += 1
+
+    temp_wav = real_audio_dir / "user_mic_test.wav"
 
     while True:
         audio_pcm = record_audio_interactive(sample_rate=16000)
@@ -162,8 +168,13 @@ def main() -> None:
         if max_amp < 150:
             print(f"\n[PERINGATAN] Volume suara sangat kecil (Amplitudo maks: {max_amp}). Pastikan mic tidak termute.")
 
+        session_wav = real_audio_dir / f"mic_session_{session_idx:02d}.wav"
+        save_pcm_to_wav(audio_pcm, session_wav, sample_rate=16000)
         save_pcm_to_wav(audio_pcm, temp_wav, sample_rate=16000)
-        asyncio.run(run_turn(temp_wav))
+        print(f"  [Simpan] Rekaman disimpan ke {session_wav} (gitignored).")
+
+        asyncio.run(run_turn(session_wav))
+        session_idx += 1
 
         print("\n" + "=" * 70)
         try:

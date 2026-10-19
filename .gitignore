@@ -61,6 +61,7 @@ Thumbs.db
 eval/audio/real/*
 !eval/audio/real/.gitkeep
 !eval/audio/real/manifest.csv
+!eval/audio/real/mic_sessions_reference.csv
 eval/audio/synthetic/*
 !eval/audio/synthetic/.gitkeep
 !eval/audio/synthetic/manifest.csv

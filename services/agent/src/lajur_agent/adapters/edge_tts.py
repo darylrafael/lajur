@@ -1,4 +1,8 @@
-"""Live Edge-TTS adapter for zero-cost, high-fidelity Indonesian Neural TTS."""
+"""Prototype Edge-TTS adapter (not approved for production).
+
+Uses the unofficial reverse-engineered Microsoft Edge browser read-aloud service.
+Audio is NOT from the official Azure Cognitive Services Speech API.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +15,7 @@ from lajur_agent.adapters.base import TTSAdapter, TTSAudioChunk
 
 
 class EdgeTTSAdapter(TTSAdapter):
-    """Zero-cost TTS adapter using Microsoft Edge Azure Neural voices."""
+    """Prototype TTS adapter using Microsoft Edge read-aloud service (unofficial)."""
 
     def __init__(
         self,
