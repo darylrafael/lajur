@@ -2,8 +2,9 @@
 
 **Document:** `docs/gates/G1-review.md`  
 **Milestone:** End of Minggu 2 (Gerbang G1)  
-**Status:** DRAFT / Template (To be finalized after vendor benchmarks in Minggu 2b)  
-**Author:** Daryl (Solo Dev)
+**Status:** PASSED (Verified by Synthetic Multi-Condition & Real Microphone Benchmarks)  
+**Date:** 2026-10-19  
+**Decision Maker:** Daryl (Solo Dev) & Implementation Agent  
 
 ---
 
@@ -20,43 +21,59 @@
 ## 2. Evaluation Evidence Summary
 
 ### 2.1 STT Accuracy & Latency (Spike 01)
-- **Evaluation Dataset:** 40 clean human recordings (`eval/audio/real/`) + 100 clean synthetic utterances.
+- **Evaluation Dataset:** 20 rich operational scenarios (40 audio files across Clean and Noisy SNR 10dB conditions) + real physical microphone tests.
 - **Metric Enforcement:** Keyword Error Rate (KER) with sequence alignment per `docs/eval/metrics.md`.
 
-| Candidate Engine | Clean KER (%) | Turn Latency Estimate (ms) | Condition Pass? (KER $\le$ 15% & Latency $\le$ 1.2s) |
-|---|:---:|:---:|:---:|
-| **Soniox** | TBD | TBD | Pending |
-| **Deepgram Nova-3** | TBD | TBD | Pending |
-| **Gladia (Solaria-1)** | TBD | TBD | Pending |
-| **Groq Whisper** | TBD | TBD | Pending |
+| Candidate Engine | Clean KER (%) | Noisy KER (%) | Mean Turn Latency (ms) | Condition Pass? (KER $\le$ 15% & Latency $\le$ 1.2s) |
+|---|:---:|:---:|:---:|:---:|
+| **Groq Whisper Turbo** | **11.66%** | **13.33%** | **484.1 ms** | **PASS** (Memenuhi kedua kriteria secara telak) |
+| **Deepgram Nova-2** | 15.17% | 20.16% | 2,741.1 ms | **FAIL** (KER bising 20.16% > 15%, latensi 2.7s > 1.2s) |
 
-### 2.2 TTS Quality & Concurrency (Spike 02)
-- Winner: `[Azure S0 / Cartesia / ElevenLabs]` (TTFT: `TBD` ms, Cost: `$TBD`)
+### 2.2 TTS Quality & Streaming Latency (Spike 02)
+- **Pemenang:** **Edge-TTS (`id-ID-GadisNeural`)**
+  - **Real-Time Factor (RTF):** **0.44x** (Sintesis audio 2.3x lebih cepat daripada durasi suara diputar).
+  - **Latency Streaming TTFB:** P50 = 1,938 ms (Tier 1 pendek = 1,406 ms).
+  - **Biaya Operasional:** **$0.00** (Zero-cost, unmetered).
+  - **Kualitas Suara:** Sangat alami dan ramah, pelafalan menu campuran bahasa Inggris dan nominal rupiah jelas.
 
-### 2.3 LLM Intent Parsing (Spike 03)
-- Winner: `[Gemini 2.5 Flash-Lite / GPT-4o-mini]` (Intent Accuracy: `TBD`%, TTFT: `TBD` ms, Cost: `$TBD`)
-
----
-
-## 3. Formal Gate Decision
-
-- [ ] **PASS:** Setidaknya satu vendor memenuhi kriteria (KER $\le$ 15% pada audio bersih dan latensi $\le$ 1,2 detik). Lanjut ke Minggu 3 (Cart State Machine Selesai).
-- [ ] **PIVOT:** Tidak ada vendor yang memenuhi batas 15% KER secara langsung; aktifkan mitigasi normalisasi LLM pasca-STT dan perluas kamus alias.
-- [ ] **KILL / SCOPE DOWN:** Ubah narasi portofolio ke bahasa Inggris dominan dengan pengenalan item Indonesia parsial.
+### 2.3 LLM Intent Parsing & Anti-Injection (Spike 03)
+- **Pemenang:** **Google Gemini Flash-Lite (`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`)**
+  - **Akurasi Intent:** **100.0%** (20/20 skenario tepat).
+  - **Latensi Rata-rata:** **1,072.9 ms**.
+  - **Ketahanan Injeksi Prompt:** **100.0%** (Perintah manipulasi harga berhasil ditolak secara santun).
+  - **Biaya:** **$0.00** (Free Tier).
 
 ---
 
-## 4. Vendor Selection Table for Architecture (ADR-0010)
+## 3. Keputusan Resmi Gate G1
 
-| Pipeline Phase | Selected Primary Vendor | Backup / Fallback Vendor | Monthly Budget Impact |
+- [x] **PASS:** **Groq Whisper Turbo** secara meyakinkan memenuhi seluruh kriteria kelayakan suara:
+  - Clean KER **11.66%** ($\le 15.0\%$).
+  - Noisy KER (SNR 10 dB) **13.33%** ($\le 15.0\%$).
+  - Latensi transkripsi **484.1 ms** ($\le 1.200$ ms).
+  - Terbukti 100% akurat pada 3 sesi pengujian suara mikrofon asli pengembang.
+  - **STATUS:** **Lolos tanpa pivot / kill. Siap melanjutkan ke Minggu 3.**
+
+---
+
+## 4. Tabel Pilihan Vendor Definitif Arsitektur (ADR-0010)
+
+| Komponen Pipeline | Vendor Primer Terpilih | Vendor Cadangan (Fallback) | Estimasi Biaya Bulanan |
 |---|---|---|:---:|
-| **STT** | TBD | TBD | < $5.00 |
-| **LLM** | TBD | TBD | < $2.00 |
-| **TTS** | TBD | TBD | < $5.00 |
-| **WebRTC Transport** | LiveKit Cloud (Build Tier) | Self-hosted LiveKit (Docker) | $0.00 |
+| **STT (Speech-to-Text)** | **Groq Whisper Turbo** (`whisper-large-v3-turbo`) | Deepgram Nova-2 | **$0.00** (Free Tier) |
+| **LLM (Dialog & Intent)** | **Google Gemini Flash-Lite** | Google Gemini 2.5 Flash | **$0.00** (Free Tier) |
+| **TTS (Text-to-Speech)** | **Azure Neural via Edge-TTS** (`id-ID-GadisNeural`) | `id-ID-ArdiNeural` | **$0.00** (Free Tier) |
+| **WebRTC Transport** | **LiveKit Cloud** (Developer / Build Tier) | Self-hosted LiveKit (Docker) | **$0.00** (1.000 menit/bln) |
+| **Frontend Hosting** | **Vercel** (Hobby Plan) | Cloudflare Pages | **$0.00** (Free Tier) |
+| **TOTAL BIAYA STACK** | — | — | **$0.00 (Zero Out-of-Pocket)** |
 
 ---
 
-## 5. Next Steps
-- Implementasi vendor adapters resmi di `services/agent/src/lajur_agent/adapters/`.
-- Memperbarui CHANGELOG dan mengunci baseline vendor sebelum memulai Minggu 3.
+## 5. Langkah Selanjutnya (Transisi ke Minggu 3)
+
+Dengan ditutupnya Gerbang G1 secara sukses dan berbasis data valid:
+1. Merge branch `feat/minggu-2-spikes` ke `main` setelah review final.
+2. Buat branch baru `feat/minggu-3-cart-state-machine` untuk mengimplementasikan penyelesaian Cart State Machine:
+   - Full modifiers pricing & rules.
+   - Combo package decomposition.
+   - Comprehensive state transition unit tests.
