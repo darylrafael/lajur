@@ -120,3 +120,32 @@ Sesuai batasan mutlak proyek (*Hard Constraint*): pengembang tidak akan mengguna
 | **LLM Groq (Kandidat Baru)** | `llama-3.3-70b-versatile` | `llama-3.3-70b-versatile` | $0.59 in / $0.79 out per 1M token (Free: 30 RPM, 14,400 RPD) | Alternatif LLM cepat tanpa kartu kredit dan tanpa training data pelanggan. |
 | **LLM Groq (Kandidat Ringan)**| `llama-3.1-8b-instant` | `llama-3.1-8b-instant` | $0.05 in / $0.08 out per 1M token (Free: 30 RPM, 14,400 RPD) | Kandidat TTFT ultra-cepat sub-150ms. |
 
+---
+
+## 7. Audit Latensi Jaringan (RTT) & Kesiapan Koneksi (Cold vs Warm TTFT)
+
+Pengukuran dilakukan langsung dari lingkungan pengembang (Laptop Windows 11, jaringan ISP residensial Indonesia) pada 2026-10-19.
+
+### 7.1 Round-Trip Time (RTT) Jaringan ke Endpoint Vendor
+Diukur melalui 5 kali ping HTTP/TLS berurutan:
+
+| Vendor Endpoint | URL Target | P50 RTT (ms) | Min RTT (ms) | Mean RTT (ms) | Lokasi / Catatan Infrastruktur |
+|---|---|:---:|:---:|:---:|---|
+| **Google Generative AI** | `generativelanguage.googleapis.com` | **42.0 ms** | 32.3 ms | 100.5 ms | Edge Point-of-Presence (PoP) Google Cloud aktif di Jakarta (`asia-southeast2`) / Singapura. |
+| **Deepgram API** | `api.deepgram.com` | **196.9 ms** | 191.6 ms | 351.5 ms | Endpoint global/US/Tokyo (transatlantik/transpasifik). |
+| **Groq Cloud API** | `api.groq.com` | **241.2 ms** | 228.4 ms | 471.3 ms | US cloud inference gateway. |
+
+### 7.2 TTFT LLM: Cold Start vs Warm Connection
+Diukur menggunakan streaming Server-Sent Events (SSE) / AsyncOpenAI stream:
+
+| Kandidat LLM | Model ID Tersemat | Cold TTFT (Inisiasi TCP/TLS Baru) | Warm TTFT (P50 Reused ClientSession) | Catatan Sesi Produksi |
+|---|---|:---:|:---:|---|
+| **Google Gemini Flash-Lite** | `models/gemini-3.5-flash-lite` | **794.2 ms** (s.d. 9.710 ms saat DNS/TLS awal) | **839.9 ms** (rentang: 603 ms – 961 ms) | Dalam agent session, koneksi HTTP/2 berstatus hangat (pre-warmed). Proyeksi pipeline wajib menggunakan angka **Warm**. |
+| **Groq-Hosted LLM** | `openai/gpt-oss-20b` | **8,589.6 ms** (handshake pertama) | **913.3 ms** (rentang: 593 ms – 1.002 ms) | Perlu parameter `json` dalam teks pesan sistem untuk menghindari error HTTP 400. |
+
+### 7.3 Pergeseran Resolusi Model ID (*Model Drift Between Sessions*)
+- Pada kick-off evaluasi awal (Minggu 2 awal), alias `gemini-flash-lite-latest` di-resolve server Google ke `models/gemini-3.1-flash-lite`.
+- Pada benchmark G1b dan audit (2026-10-19), alias yang sama secara otomatis di-resolve server Google ke `models/gemini-3.5-flash-lite`.
+- **Rekomendasi Arsitektur:** Selalu pin model version eksak (misal `gemini-2.5-flash-lite` atau model ID eksplisit) daripada mengandalkan alias `-latest` yang dapat bermutasi tanpa peringatan.
+
+
