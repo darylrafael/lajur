@@ -2,3 +2,4 @@ timestamp,spike_id,vendor,utterance_id,cost_usd,cumulative_spend_usd,budget_limi
 2026-10-19T12:12:00Z,spike_g1b,deepgram_groq_gemini,30_turns_batch,0.014,0.014,3.00
 2026-10-19,G1b Measurement Audit (Nova-3 real-time + VAD + RTT + Paired KER),$0.014,$0.00
 2026-10-19,G1c Benchmark (E1 LLM Reasoning + E2 Endpointing Trade-off + E3 TTS Survey),$0.035,$0.00
+2026-10-20,G1f Measurement Audit (T1 Accuracy + T3 Endpointing + T4 ElevenLabs TTS),$0.042,$0.00

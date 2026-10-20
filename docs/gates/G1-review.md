@@ -255,31 +255,30 @@ Sesuai protokol pra-registrasi [`docs/gates/G1c-protocol.md`](file:///c:/Users/L
 ### 9.1 Eksperimen E1: LLM Reasoning Overhead & Small Model (30 Skenario, Interleaved)
 Pengujian dijalankan secara bersilang (*interleaved*) untuk mengontrol variansi beban server.
 
-| Model & Konfigurasi | Exact Resolved Model ID | Warm TTFT P50 (ms) | Warm TTFT P95 (ms) | Mean TTFT (ms) [95% CI] | 1st Sentence P50 (ms) | Total Latency P50 (ms) | Intent Accuracy (%) |
+| Model & Konfigurasi | Exact Resolved Model ID | Warm TTFT P50 (ms) | Warm TTFT P95 (ms) | Mean TTFT (ms) [95% CI] | 1st Sentence P50 (ms) | Total Latency P50 (ms) | Intent Accuracy (%) [SUPERSEDED]* |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Google Gemini Flash-Lite (Default)** | `models/gemini-3.5-flash-lite` | **794.2 ms** | 1,381.2 ms | 875.9 ms `[783.6, 987.0]` | 798.5 ms | 973.2 ms | 50.0%* |
-| **Groq GPT-OSS-20b (Default Reasoning)** | `openai/gpt-oss-20b` | **818.6 ms** | 1,236.8 ms | 856.4 ms `[757.4, 973.8]` | 818.6 ms | 820.0 ms | 50.0%* |
-| **Groq GPT-OSS-20b (`reasoning_effort="low"`)**| `openai/gpt-oss-20b` | **602.6 ms** | 1,567.7 ms | 745.3 ms `[629.0, 882.9]` | 602.6 ms | 603.5 ms | 50.0%* |
-| **Groq Qwen-27b Non-Reasoning** | `qwen/qwen3.8-27b` | **258.5 ms** | 512.1 ms | 315.0 ms `[275.4, 365.1]` | 258.5 ms | 263.3 ms | 50.0%* |
+| **Google Gemini Flash-Lite (Default)** | `models/gemini-3.5-flash-lite` | **794.2 ms** | 1,381.2 ms | 875.9 ms `[783.6, 987.0]` | 798.5 ms | 973.2 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq GPT-OSS-20b (Default Reasoning)** | `openai/gpt-oss-20b` | **818.6 ms** | 1,236.8 ms | 856.4 ms `[757.4, 973.8]` | 818.6 ms | 820.0 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq GPT-OSS-20b (`reasoning_effort="low"`)**| `openai/gpt-oss-20b` | **602.6 ms** | 1,567.7 ms | 745.3 ms `[629.0, 882.9]` | 602.6 ms | 603.5 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq Qwen-27b Non-Reasoning** | `qwen/qwen3.8-27b` | **258.5 ms** | 512.1 ms | 315.0 ms `[275.4, 365.1]` | 258.5 ms | 263.3 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
 
-*\*Catatan Kritis:*
+*\*Catatan Kritis Hasil G1c:*
 1. **Dampak Reasoning Tokens:** Pada `openai/gpt-oss-20b`, mode default menghasilkan 90–220 token pemikiran (*reasoning tokens*) sebelum konten JSON dimulai. Menyetel `reasoning_effort="low"` memangkas token pemikiran menjadi 4–23 token, mempercepat TTFT sebesar **216.0 ms** (dari 818.6 ms menjadi 602.6 ms).
 2. **Kecepatan Model Non-Reasoning:** Model `qwen/qwen3.8-27b` pada Groq Free Tier menghasilkan TTFT ultra-cepat **258.5 ms** dengan dukungan JSON mode penuh dan kualitas bahasa Indonesia yang baik.
-3. **Caveat Gold Label:** Skor akurasi intent dievaluasi terhadap gold label yang dibuat secara otomatis oleh agen awal v0; baru 20 dari 135 skenario yang telah divalidasi langsung oleh manusia.
+3. **Penyebab Cacat Angka Akurasi 50.0% (SUPERSEDED):** Angka 50.0% identik di seluruh model pada G1c terbukti merupakan cacat implementasi skrip evaluasi (`benchmark_g1c.py`). Skrip membandingkan teks nama model (dengan spasi) langsung terhadap `item_id` (dengan underscore), sehingga selalu salah dan memicu nilai default `0.5` (50.0%). Hasil audit dan pengujian ulang 60 skenario disajikan pada **Bagian 10 (G1f Audit)**.
 
 ---
 
-### 9.2 Eksperimen E2: Trade-off Endpointing Deepgram Nova-3 vs False Cutoff
+### 9.2 Eksperimen E2: Trade-off Endpointing Deepgram Nova-3 vs False Cutoff [SUPERSEDED]
 Diuji pada 10 kalimat percakapan bertingkat dengan variasi jeda hening buatan di tengah kalimat (300 ms, 500 ms, 800 ms — total 30 audio uji), di-stream real-time $1.0\times$ ke Deepgram Nova-3.
 
-| Parameter Endpointing | Total Uji | False Cutoff Total (%) | False Cutoff @ 300ms Jeda | False Cutoff @ 500ms Jeda | False Cutoff @ 800ms Jeda | Latensi Turnaround Pasca-Ucapan (P50) |
+| Parameter Endpointing | Total Uji | False Cutoff Total (%) | False Cutoff @ 300ms Jeda | False Cutoff @ 500ms Jeda | False Cutoff @ 800ms Jeda | Latensi Turnaround Pasca-Ucapan (P50) [SUPERSEDED] |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `endpointing=150ms` | 30 | **13.3%** | 10.0% | 10.0% | 20.0% | Prematur (-265.7 ms) |
 | `endpointing=300ms` | 30 | **6.7%** | 0.0% | 0.0% | 20.0% | Sekitar akhir suara (-139.9 ms) |
-| `endpointing=500ms` | 30 | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **63.0 ms** (P95: 197.6 ms) |
+| `endpointing=500ms` | 30 | **0.0%** | **0.0%** | **0.0%** | **0.0%** | ~~**63.0 ms**~~ *(Cacat Tanpa Trailing Silence)* |
 
-*Definisi False Cutoff:* Event transkrip final dipancarkan saat jeda hening di tengah kalimat berlangsung, sebelum kata-kata terakhir selesai diucapkan.  
-*Temuan Utama:* Parameter `endpointing=150ms` sangat rentan memotong ucapan pelanggan ragu-ragu (13.3% terpotong). Sebaliknya, `endpointing=500ms` memberikan keamanan mutlak (**0% false cutoff**) bahkan pada jeda hening hingga 800 ms, dengan latensi deteksi akhir ucapan hanya **63.0 ms** pada koneksi streaming aktif.
+*Penyebab Cacat Angka 63.0 ms pada G1c (SUPERSEDED):* Angka 63.0 ms terjadi karena audio dipotong tepat pada akhir kata terakhir tanpa menyertakan keheningan ekor (*trailing silence*), lalu skrip langsung mengirim `CloseStream`. Deepgram langsung melakukan flush buffer seketika tanpa mengevaluasi jendela keheningan 500 ms. Hasil audit dengan keheningan ekor 1.5 detik disajikan pada **Bagian 10 (G1f Audit)**.
 
 ---
 
@@ -301,6 +300,70 @@ Riset kelayakan infrastruktur publik untuk menjalankan LiveKit Agent Worker Pyth
    - **Fly.io:** Mewajibkan kartu kredit setelah 2 jam trial.
    - **Hugging Face Spaces (Docker):** Mewajibkan langganan berbayar PRO ($9/bulan) untuk dynamic Docker container per kebijakan 2026.
    - **PythonAnywhere:** Memblokir outbound WebSocket/WebRTC (allowlist ketat).
+
+---
+
+## 10. Bagian G1f: Audit Pengukuran Akhir & Angka Terkoreksi (Final Audit & Corrected Levers)
+
+Sesuai addendum pra-registrasi [`docs/gates/G1c-addendum.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1c-addendum.md), dilakukan audit menyeluruh terhadap anomali G1c dan pengukuran definitif:
+
+### 10.1 Audit Akurasi Intent & Keranjang (Task 1: 60 Skenario Baku, Interleaved)
+Evaluasi dijalankan pada 60 skenario bertingkat menggunakan format prompt produksi lengkap. Penilaian dilakukan pada dua level: **Intent Match** (kecocokan tipe dan entitas menu terpetakan) dan **Resulting Cart Match** (hasil mutasi Cart State Machine deterministik terhadap `expected_cart`).
+
+| Model & Konfigurasi | Warm TTFT P50 (ms) | Total Latency P50 (ms) | Overall Intent Acc (%) | Overall Cart Acc (%) | Simple (%) | Qty & Combo (%) | Modifiers & Size (%) | Correction/Undo (%)* |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Google Gemini Flash-Lite** | 7.303,8 ms* | 7.535,9 ms | **73,3%** | **76,7%** | 80,0% | 94,7% | 93,3% | 0,0% (Cart: 18,2%) |
+| **Groq GPT-OSS-20b (Default)** | 885,5 ms | 886,2 ms | **53,3%** | **55,0%** | 80,0% | 47,4% | 73,3% | 0,0% (Cart: 9,1%) |
+| **Groq GPT-OSS-20b (`effort="low"`)** | 616,6 ms | 617,8 ms | **56,7%** | **56,7%** | 80,0% | 63,2% | 66,7% | 0,0% (Cart: 9,1%) |
+| **Groq Qwen-27b Non-Reasoning** | **419,1 ms** | **420,4 ms** | **73,3%** | **76,7%** | 80,0% | 89,5% | **100,0%** | 0,0% (Cart: 18,2%) |
+
+*\*Catatan Audit Penting:*
+1. **Caveat Kategori Correction/Undo:** Nilai Intent Accuracy 0.0% pada kategori koreksi terjadi karena skrip pembuat gold label awal (`generate_gold_intents.py`) secara otomatis menghasilkan intent sintetis `{"type": "undo", "params": {"steps": 1}}` pada skenario yang bertag koreksi. Sebaliknya, model bahasa secara alami langsung memancarkan item akhir yang diinginkan pelanggan (misal: "eh ganti burger keju" menghasilkan `add_item: burger_keju`). Pada level resulting cart, state machine mampu menangkap 18.2% dari kondisi ini.
+2. **Lonjakan TTFT Gemini Flash-Lite:** Angka P50 7.303 ms terjadi akibat *rate-limit queueing delay* pada endpoint gratis Google AI Studio saat menerima beban 60 giliran berturut-turut. Pada pengujian giliran tunggal terisolasi, warm TTFT tetap berada di kisaran ~794 ms.
+3. **Keunggulan Groq Qwen-27b:** Menghasilkan akurasi keranjang tertinggi (**76,7%**) sejajar dengan Gemini, dengan latensi TTFT ultra-cepat (**419,1 ms**) dan kepatuhan JSON yang sangat tinggi tanpa kegagalan format.
+
+---
+
+### 10.2 Pengujian Ulang Endpointing Deepgram Nova-3 dengan Trailing Silence (Task 3)
+Diuji ulang pada 30 klip ujaran ragu-ragu (jeda hening tengah 300 ms, 500 ms, 800 ms) dengan penambahan 1,5 detik keheningan ekor (*trailing silence*) untuk memberikan jendela hening alami bagi deteksi server:
+
+| Parameter Endpointing | Sample Size ($n$) | False Cutoff Rate Total (%) | Cutoff @ 300ms | Cutoff @ 500ms | Cutoff @ 800ms | Latensi Turnaround Pasca-Ucapan (P50) | Mean Latency [95% CI] |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `endpointing=150ms` | 30 | **3,3%** (1/30) | 0,0% | 0,0% | 10,0% | Prematur (-328,7 ms) | -311,2 ms `[-337.7, -282.2]` |
+| `endpointing=300ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | Sekitar akhir ucapan (-161,2 ms) | -156,7 ms `[-184.1, -129.7]` |
+| `endpointing=500ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | **108,8 ms** (P95: 221,9 ms) | **119,2 ms** `[92.2, 147.6]` |
+
+*Penjelasan Ilmiah Koreksi 63 ms $\to$ 108.8 ms:*
+Pada uji G1c terdahulu, nilai 63 ms didapat karena aliran audio ditutup seketika saat kata terakhir usai, memicu respons flush paksa Deepgram. Dengan keheningan ekor 1.5 detik, server mendeteksi jeda hening wajar dan memancarkan `speech_final=True` secara stabil pada P50 = **108,8 ms** pasca-ucapan (aman 100% dari false cutoff).
+
+---
+
+### 10.3 Pengukuran TTS Streaming ElevenLabs Free Tier (Task 4)
+Diuji pada 30 frasa balasan bot baku kasir drive-thru, 5 kali pengulangan bersilang (*interleaved*, total 150 request streaming) menggunakan model `eleven_flash_v2_5`:
+- **Kapabilitas Streaming:** Terkonfirmasi mendukung *chunked transfer encoding* (`Transfer-Encoding: chunked`).
+- **Time to First Audio Byte (TTFB):**
+  - **P50:** **126,8 ms**
+  - **P95:** **157,4 ms**
+  - **Mean [95% CI]:** **136,7 ms** `[129.6 ms, 147.3 ms]`
+- **Durasi Sintesis Total:** P50 = 208,4 ms.
+- **Ketentuan Lisensi & Kebijakan Data (Official Terms 2026-10-20, `elevenlabs.io/terms`):**
+  - *Non-Komersial Mutlak:* Sesuai Bagian 1(c), Free Plan hanya boleh digunakan untuk tujuan non-komersial/personal. Dilarang dimonetisasi atau diintegrasikan ke produk komersial.
+  - *Kewajiban Atribusi:* Wajib mencantumkan "elevenlabs.io" atau "11.ai" pada publikasi hasil suara.
+  - *Pelatihan Data Input:* Secara default, input teks pengguna pada tier gratis digunakan untuk riset dan pelatihan model ElevenLabs (dapat di-opt out pada pengaturan privasi).
+  - *Batas Kuota:* 10.000 karakter/bulan (pengujian 150 panggilan menghabiskan ~4.500 karakter).
+
+---
+
+### 10.4 Pengukuran Risiko Hosting Lokal (Task 5: 0.1 CPU & 512 MB RAM)
+- **Pengujian Komputasi VAD Lokal (LiveKit VAD 512 samples/32ms chunks):**
+  - Waktu komputasi CPU murni untuk 10 detik audio 16kHz adalah **< 0,9 ms per detik audio** (Total CPU time < 1 ms, Wall time 8,89 ms).
+  - Alokasi Memori Puncak VAD: **12,10 KB** (0,012 MB).
+  - Real-Time Factor (RTF) pada kuota 0.1 vCPU: **RTF ≈ 0,009 $\ll$ 1,0** (hanya memakai < 1% dari kapasitas 0.1 vCPU).
+  - *Kesimpulan:* Beban deteksi VAD dan turn-taking sangat ringan dan terbukti sanggup berjalan secara real-time pada batas komputasi 0.1 vCPU / 512 MB RAM tanpa risiko buffer backlog.
+- **Perilaku Sleep Free Web Service (Render Docs):**
+  - Render Free Web Service memasuki mode sleep setelah **15 menit tanpa traffic masuk (*inbound traffic*)**.
+  - Worker LiveKit yang hanya membuka koneksi WebSocket keluar (*outbound*) tidak dihitung sebagai inbound traffic oleh router Render, sehingga akan tertidur setelah 15 menit.
+  - *Mekanisme Bangun Resmi (Tanpa Pelanggaran ToS):* Frontend web simulator memanggil endpoint kesehatan HTTP worker (`GET /health`) saat pengguna pertama kali membuka halaman pemesanan. Panggilan HTTP masuk ini secara otomatis membangunkan container Render dari mode sleep (cold start ~50s) sesuai mekanisme resmi platform.
 
 
 

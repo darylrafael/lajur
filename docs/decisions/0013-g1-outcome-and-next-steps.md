@@ -7,13 +7,21 @@ Proposed
 Gerbang G1 (akhir Minggu 2) menetapkan kriteria kelayakan suara (*speech viability*) sebagai berikut (`PROJECT_PLAN.md` §3.2):
 > "Tidak ada vendor STT dengan KER ≤ 15% pada set ucapan ID–EN bersih dan latensi turn estimasi ≤ 1,2s"
 
-Berdasarkan audit pengukuran representatif G1b dan eksplorasi tuas teknis G1c pada 30 skenario baku:
-1. **Akurasi STT (KER ≤ 15%):** Berstatus **PROVISIONAL**. Kedua kandidat memenuhi kriteria pada dataset sintetis bersih (Deepgram Nova-3: 3.89%, Groq Whisper Turbo: 11.11%). Uji paired bootstrap selisih KER ($\bar{\Delta} = -7.22\%$) memiliki 95% CI `[-15.0%, 0.0%]`, yang menyentuh angka nol (belum signifikan secara statistik mutlak pada $n=30$). Data suara manusia nyata belum memiliki ground-truth teks untuk diukur akurasinya.
-2. **Latensi Turn Estimasi (≤ 1.2s):** Berstatus **FAIL**. Komponen pra-TTS dalam kondisi warm connection:
-   - Deepgram Nova-3 Streaming (P50 = 524.4 ms dari *true speech end*) + Gemini Flash-Lite Warm TTFT (P50 = 794.2 ms) menghasilkan **1.318,6 ms**.
-   - Deepgram Nova-3 + Groq GPT-OSS-20b Low Reasoning (P50 = 602.6 ms) menghasilkan **1.127,0 ms** (hanya menyisakan 73 ms untuk TTS).
-   - Deepgram Nova-3 + Groq Qwen-27b Non-Reasoning (P50 = 258.5 ms) menghasilkan **782.9 ms** (menyisakan 417 ms untuk TTS).
-   - Namun, **seluruh API TTS resmi berbayar mewajibkan kartu pembayaran/kredit**, dan satu-satunya TTS resmi card-free terukur (Gemini API TTS) memiliki TTFB P50 = **3.036,4 ms** serta melatih model dari data input pengguna.
+Berdasarkan audit pengukuran representatif G1b, G1c, dan audit akhir G1f pada 60 skenario baku:
+1. **Akurasi STT (KER ≤ 15%):** Berstatus **PROVISIONAL**. Kedua kandidat memenuhi kriteria pada dataset sintetis bersih (Deepgram Nova-3: 3.89%, Groq Whisper Turbo: 11.11%). Uji paired bootstrap selisih KER ($\bar{\Delta} = -7.22\%$) memiliki 95% CI `[-15.0%, 0.0%]`, yang menyentuh angka nol (belum signifikan secara statistik mutlak pada $n=30$). Data suara manusia nyata belum memiliki ground-truth teks untuk diukur akurasinya *(status: asumsi belum terukur / assumption, not measured)*.
+2. **Latensi Turn Estimasi (≤ 1.2s):** Berstatus **FAIL / CONDITIONAL ON TTS LICENSE**.
+   - **STT Streaming (Deepgram Nova-3):** Latensi turnaround pasca-ucapan terukur P50 = **108.8 ms** (P95: 221.9 ms) pada `endpointing=500ms` dengan keheningan ekor alami (angka 63 ms sebelumnya berstatus *SUPERSEDED* akibat penghentian aliran audio mendadak). False cutoff rate = 0.0%.
+   - **LLM Reasoning & Non-Reasoning (Groq & Gemini):**
+     - Groq `qwen/qwen3.8-27b` (Non-reasoning): Warm TTFT P50 = **419.1 ms** (P95: 574.2 ms), Akurasi Intent: **73.3%**, Akurasi Keranjang Akhir (*Resulting Cart*): **76.7%** (angka akurasi 50.0% sebelumnya berstatus *SUPERSEDED* akibat bug skrip penilai).
+     - Groq `openai/gpt-oss-20b` (`reasoning_effort="low"`): Warm TTFT P50 = **616.6 ms**, Akurasi Keranjang: **56.7%**.
+     - Google `gemini-3.5-flash-lite`: Warm TTFT P50 = **794.2 ms** (burst) / **7.303 ms** (beban antrean 60 giliran), Akurasi Keranjang: **76.7%**.
+   - **TTS Terukur (ElevenLabs vs Gemini):**
+     - **ElevenLabs Free Tier (`eleven_flash_v2_5`):** Terukur resmi via API key `.env`. Mendukung chunked streaming. TTFB audio pertama P50 = **126.8 ms** (P95: 157.4 ms). Namun terikat ketentuan: **strictly non-commercial only (Section 1(c) ToS)**, wajib atribusi publik, data input default dipakai untuk pelatihan model AI, dan kuota 10.000 karakter/bulan.
+     - **Gemini API TTS:** TTFB P50 = **3.036,4 ms** (tanpa streaming, melatih model dari input).
+     - **Azure Speech, Cartesia, Soniox:** Mewajibkan kartu kredit (*excluded: card required*).
+   - **Kalkulasi Total Turn Latency:**
+     - Jika ElevenLabs diizinkan khusus untuk demo portofolio non-komersial: Nova-3 (108.8 ms) + Qwen-27b (419.1 ms) + ElevenLabs TTFB (126.8 ms) = **654.7 ms** (memenuhi batas $\le 1.2\text{ s}$).
+     - Jika ElevenLabs ditolak karena batasan non-komersial/privasi ADR-0005: Turn latency gagal memenuhi 1.2 detik karena tidak ada vendor TTS komersial card-free lainnya.
 
 Batasan proyek (*Hard Constraint*): Sistem tidak akan menggunakan layanan pihak ketiga yang mewajibkan kartu pembayaran/kredit (*card-free constraint*).
 
@@ -26,19 +34,17 @@ Dokumen ini memaparkan 3 opsi keputusan teknis beserta trade-off masing-masing u
 ### Opsi A: Mempertahankan Target Latensi Turn ≤ 1,2 Detik (Stay the Course)
 Mempertahankan ambang batas ketat latensi turn ≤ 1.200 ms sesuai rancangan awal PRD dan PROJECT_PLAN.
 
-**Rekayasa Teknis yang Diperlukan Berdasarkan Data Terukur G1c:**
-1. **STT Streaming:** Menggunakan WebSocket streaming native (Deepgram Nova-3) dengan parameter `endpointing=300ms` (P50 latensi turnaround pasca-ucapan: -140 ms s.d. 63 ms). *Catatan: Pengujian E2 membuktikan bahwa menyetel endpointing ke 150 ms menyebabkan False Cutoff Rate melonjak ke 13.3%, memotong ucapan pelanggan yang ragu-ragu.*
-2. **Model LLM Non-Reasoning / Low Reasoning Cepat:**
-   - Groq `qwen/qwen3.8-27b` terukur mencapai Warm TTFT P50 = **258.5 ms** (P95: 512.1 ms, Mean: 315.0 ms, 95% CI `[275.4 ms, 365.1 ms]`).
-   - Groq `openai/gpt-oss-20b` dengan `reasoning_effort="low"` terukur mencapai Warm TTFT P50 = **602.6 ms** (menghemat 216 ms dibanding mode default reasoning).
-3. **Chunked Streaming ke TTS:** Begitu klausa pertama terbentuk di LLM, token teks langsung dialirkan ke proses sintesis suara.
-4. **Kebutuhan TTS Berlisensi Resmi:** Menemukan atau mengamankan provider TTS streaming resmi yang menyediakan latensi audio pertama (TTFB) ≤ 400 ms tanpa kewajiban kartu kredit *(status saat ini: asumsi belum terukur / tidak ditemukan TTS resmi streaming yang card-free)*.
+**Rekayasa Teknis yang Diperlukan Berdasarkan Data Terukur G1f:**
+1. **STT Streaming:** Menggunakan WebSocket streaming native (Deepgram Nova-3) dengan parameter `endpointing=300ms` s.d. `500ms` (P50 latensi turnaround pasca-ucapan: -161 ms s.d. 109 ms, 0% false cutoff).
+2. **Model LLM Non-Reasoning Cepat:** Menggunakan Groq `qwen/qwen3.8-27b` dengan Warm TTFT P50 = **419.1 ms** dan akurasi keranjang **76.7%** (atau mode low reasoning pada GPT-OSS-20B jika diperlukan).
+3. **Penerimaan Ketentuan ElevenLabs Non-Komersial:** Menerima batasan lisensi ElevenLabs Free Plan (hanya demo portofolio non-komersial dengan atribusi wajib) untuk mencapai TTFB suara **126.8 ms**.
+4. **Validasi Keranjang Deterministik Instan:** Menjalankan `packages/cart` deterministik dalam < 5 ms sebelum token dikirim ke TTS.
 
 **Trade-offs Opsi A:**
-- **Keuntungan:** Mempertahankan standar latensi interaktif percakapan instan bertaraf internasional (< 1.2 detik). Nilai jual portofolio sangat tinggi jika berhasil dicapai dari Indonesia.
+- **Keuntungan:** Mempertahankan standar latensi interaktif percakapan sub-detik (< 700 ms total terukur). Nilai jual portofolio sangat tinggi jika berhasil dicapai dari Indonesia secara bebas biaya kartu.
 - **Kerugian / Risiko:** 
-  - Ketiadaan API TTS resmi streaming card-free menjadi penghalang fatal jika batasan kartu tidak dilonggarkan.
-  - Model non-reasoning (Qwen 27B) membutuhkan validasi intent ekstra agar format JSON dan logika pesanan menu tetap stabil pada ujaran kompleks.
+  - Keterikatan pada lisensi non-komersial ElevenLabs (tidak dapat dijadikan produk komersial nyata tanpa kartu kredit).
+  - Risiko terputus akibat kuota 10.000 karakter/bulan pada tier gratis ElevenLabs.
 
 ---
 
