@@ -333,8 +333,11 @@ Diuji ulang pada 30 klip ujaran ragu-ragu (jeda hening tengah 300 ms, 500 ms, 80
 | `endpointing=300ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | Sekitar akhir ucapan (-161,2 ms) | -156,7 ms `[-184.1, -129.7]` |
 | `endpointing=500ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | **108,8 ms** (P95: 221,9 ms) | **119,2 ms** `[92.2, 147.6]` |
 
-*Penjelasan Ilmiah Koreksi 63 ms $\to$ 108.8 ms:*
-Pada uji G1c terdahulu, nilai 63 ms didapat karena aliran audio ditutup seketika saat kata terakhir usai, memicu respons flush paksa Deepgram. Dengan keheningan ekor 1.5 detik, server mendeteksi jeda hening wajar dan memancarkan `speech_final=True` secara stabil pada P50 = **108,8 ms** pasca-ucapan (aman 100% dari false cutoff).
+*Catatan Kritis Angka Turnaround 108.8 ms:*
+> [!WARNING]
+> **Status Angka 108.8 ms:** **TIDAK KREDIBEL (*not credible: speech-end reference suspected wrong, to be re-measured on the real pipeline in Minggu 4*)**.  
+> *Penjelasan Batasan Fisika Endpointing:* Algoritma endpointing Deepgram membutuhkan jendela keheningan terus-menerus $\ge 500\text{ ms}$ setelah ucapan selesai sebelum memancarkan event `speech_final=True`. Secara fisik, latensi turnaround dari akhir ucapan nyata (*true speech end*) ke transkrip final tidak mungkin lebih kecil dari $500\text{ ms} + \text{network RTT}$ (~700 ms dari Indonesia).  
+> Angka 108.8 ms (serta angka negatif pada varian 150/300ms) terbukti merupakan artefak misalignment penanda waktu hening pada file sintetis skrip offline. Estimasi latensi STT streaming dari akhir ucapan yang lebih realistis mengacu pada audit G1d: P50 = **524.4 ms** (Mean 549.4 ms, P95: 856.2 ms). Keputusan definitif diuji pada pipeline langsung LiveKit di Minggu 4.
 
 ---
 
@@ -354,16 +357,36 @@ Diuji pada 30 frasa balasan bot baku kasir drive-thru, 5 kali pengulangan bersil
 
 ---
 
-### 10.4 Pengukuran Risiko Hosting Lokal (Task 5: 0.1 CPU & 512 MB RAM)
-- **Pengujian Komputasi VAD Lokal (LiveKit VAD 512 samples/32ms chunks):**
-  - Waktu komputasi CPU murni untuk 10 detik audio 16kHz adalah **< 0,9 ms per detik audio** (Total CPU time < 1 ms, Wall time 8,89 ms).
-  - Alokasi Memori Puncak VAD: **12,10 KB** (0,012 MB).
-  - Real-Time Factor (RTF) pada kuota 0.1 vCPU: **RTF ≈ 0,009 $\ll$ 1,0** (hanya memakai < 1% dari kapasitas 0.1 vCPU).
-  - *Kesimpulan:* Beban deteksi VAD dan turn-taking sangat ringan dan terbukti sanggup berjalan secara real-time pada batas komputasi 0.1 vCPU / 512 MB RAM tanpa risiko buffer backlog.
+### 10.4 Pengukuran Risiko Hosting & Profil Memori Worker (0.1 CPU & 512 MB RAM)
+- **Pengujian Komputasi VAD Lokal (Label: VAD compute only, measured on host CPU, extrapolated):**
+  - Docker daemon tidak berjalan pada host Windows, sehingga pengujian kontainer terisolasi 0.1 vCPU tidak diklaim secara empiris.
+  - Komputasi Silero VAD (LiveKit VAD 512 samples/32ms chunks) diukur langsung pada CPU host pengembang dan diekstrapolasikan:
+    - Waktu komputasi CPU murni untuk 10 detik audio 16kHz adalah **< 0,9 ms per detik audio** (Total CPU time < 1 ms, Wall time 8,89 ms).
+    - Alokasi Memori Puncak VAD murni: **12,10 KB** (0,012 MB).
+    - Real-Time Factor (RTF) ekstrapolasi kuota 0.1 vCPU: **RTF ≈ 0,009 $\ll$ 1,0** (< 1% dari kapasitas 0.1 vCPU).
+- **Pengukuran Memori Proses Utuh Agent Worker (Whole-Process RSS Memory):**
+  - Diukur secara empiris pada host Windows 11 dengan Python 3.12 (`measure_worker_memory.py`):
+    - *Baseline Memory (Python runtime + base packages):* **19.70 MB**.
+    - *Fully Initialized Agent Worker (LiveKit Agents, Cart `MenuService`, Groq/Deepgram adapters loaded):* **113.92 MB RSS** (menggunakan ~22.2% dari plafon 512 MB RAM).
+    - *Konfirmasi Kelayakan:* Total footprint memori terkonfirmasi muat dengan aman (*fits comfortably*) dalam batas 512 MB free tier hosting tanpa risiko OOM (Out Of Memory).
 - **Perilaku Sleep Free Web Service (Render Docs):**
   - Render Free Web Service memasuki mode sleep setelah **15 menit tanpa traffic masuk (*inbound traffic*)**.
   - Worker LiveKit yang hanya membuka koneksi WebSocket keluar (*outbound*) tidak dihitung sebagai inbound traffic oleh router Render, sehingga akan tertidur setelah 15 menit.
-  - *Mekanisme Bangun Resmi (Tanpa Pelanggaran ToS):* Frontend web simulator memanggil endpoint kesehatan HTTP worker (`GET /health`) saat pengguna pertama kali membuka halaman pemesanan. Panggilan HTTP masuk ini secara otomatis membangunkan container Render dari mode sleep (cold start ~50s) sesuai mekanisme resmi platform.
+  - *Mekanisme Bangun Resmi:* Frontend web simulator memanggil endpoint kesehatan HTTP worker (`GET /health`) saat pengguna pertama kali membuka halaman pemesanan. Panggilan HTTP masuk ini secara otomatis membangunkan container Render dari mode sleep (cold start ~50s) sesuai mekanisme resmi platform.
+
+---
+
+## 11. Penutupan Gerbang G1 (Owner Decisions & Next Steps)
+
+Pada penutupan Minggu 2 (Fase Minggu 2g), pemilik proyek (Daryl) secara resmi menetapkan:
+1. **Status Akhir Gerbang G1:** **A-bersyarat (*A-conditional / NOT DEMONSTRATED*)**. Target latensi 1.2s tetap dipertahankan, dan status gerbang dicatat sebagai "belum terbukti" (bukan PASS).
+2. **Titik Keputusan Minggu 4:** Protokol pengukuran latensi end-to-end pada real pipeline LiveKit telah dipra-registrasikan di [`docs/gates/G1-minggu4-measurement.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-minggu4-measurement.md). Jika pengukuran Minggu 4 gagal mencapai 1.2s, proyek akan beralih ke Opsi B dengan angka target berbasis UX yang ditentukan sebelum pengukuran.
+3. **Status Dokumen Keputusan:**
+   - [ADR-0010: STT Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0010-stt-vendor.md): **Accepted as candidate, subject to Minggu 4 measurement** (Deepgram Nova-3).
+   - [ADR-0011: TTS Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0011-tts-vendor.md): **Open** (ElevenLabs Free Tier diterima bersyarat untuk demo/portofolio non-komersial saja).
+   - [ADR-0012: LLM Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0012-llm-vendor.md): **Accepted as candidate, subject to Minggu 4 measurement** (Groq Qwen-27b Non-Reasoning; Gemini Free Tier dilarang untuk data pengunjung nyata).
+   - [ADR-0013: G1 Outcome](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0013-g1-outcome-and-next-steps.md): **Accepted by owner** (Opsi A-bersyarat).
+
 
 
 

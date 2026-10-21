@@ -1,7 +1,7 @@
 # ADR-0010: Pemilihan Vendor Speech-to-Text (STT)
 
 ## Status
-Proposed
+Accepted as candidate, subject to Minggu 4 measurement
 
 ## Konteks
 Sistem voice ordering Lajur membutuhkan mesin Speech-to-Text (STT) yang mampu mentranskripsikan percakapan bahasa Indonesia bercampur istilah menu bahasa Inggris (*code-switching*) di lingkungan restoran drive-thru dengan akurasi tinggi (Keyterm Error Rate $\le 15\%$) dan latensi rendah.
@@ -18,10 +18,10 @@ Pada Spike Minggu 2 (dan audit pengukuran ulang G1b pada 30 skenario representat
 
 Uji paired bootstrap pada selisih KER per-utterance menghasilkan $\bar{\Delta} = -7.22\%$ dengan 95% CI `[-15.0%, 0.0%]`. Karena selang menyentuh 0.0%, keunggulan statistik belum signifikan mutlak pada $n=30$.
 
-## Usulan Keputusan
-Status pemilihan vendor STT tetap berstatus **Proposed** (belum definitif):
-- **Deepgram Nova-3 Streaming** unggul dalam akurasi pengenalan istilah menu (*code-switching*) dengan KER 3.89% dan beroperasi native streaming via WebSocket dengan latensi dari akhir bicara ~524 ms.
-- **Groq Whisper Turbo** beroperasi berbasis batch file/REST dengan latensi inferensi ~490 ms, tetapi membutuhkan jeda endpointing VAD (~500 ms) sebelum file dapat dipotong dan dikirim ke server.
+## Keputusan
+**Deepgram Nova-3 Streaming diterima sebagai kandidat utama (*primary candidate*)**, dengan status kelulusan akhir bergantung pada pengukuran end-to-end pada pipeline nyata di Minggu 4 ([`docs/gates/G1-minggu4-measurement.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-minggu4-measurement.md)):
+- Deepgram Nova-3 Streaming unggul dalam akurasi istilah menu (*code-switching*) dengan KER 3.89% dan beroperasi native streaming via WebSocket tanpa membutuhkan akumulasi rekaman audio utuh sebelum pengiriman.
+- Groq Whisper Turbo dipertahankan sebagai kandidat fallback offline/batch jika terjadi kendala pada koneksi WebSocket Deepgram.
 
 ## Alternatif yang Dipertimbangkan
 - **Soniox:** Dikeluarkan dari pertimbangan (*excluded: card required*) karena mewajibkan kartu kredit untuk aktivasi API.
