@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "A public drive-thru voice ordering demo"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "edge-tts>=7.3.1",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -30,9 +32,9 @@ pythonVersion = "3.12"
 typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
-extraPaths = ["packages/cart/src", "services/agent/src"]
+extraPaths = ["packages/cart/src", "services/agent/src", "."]
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-testpaths = ["packages/cart/tests", "services/agent/tests"]
-pythonpath = ["packages/cart/src", "services/agent/src"]
+testpaths = ["packages/cart/tests", "services/agent/tests", "eval/tests"]
+pythonpath = ["packages/cart/src", "services/agent/src", "."]

@@ -1,0 +1,392 @@
+# Gate G1 Review: Speech Viability Decision Record
+
+**Document:** `docs/gates/G1-review.md`  
+**Milestone:** End of Minggu 2 (Gerbang G1)  
+**Status:** FAIL / NOT PASS (Latency Threshold Not Met; STT Accuracy Provisional)  
+**Date:** 2026-10-19  
+**Reviewer:** Daryl (Solo Dev) & Implementation Agent  
+
+---
+
+## 1. Exact Gate G1 Criteria (PROJECT_PLAN.md §3.2 Verbatim)
+
+> **Kondisi Kegagalan (Kill / Pivot Trigger):**  
+> *"Tidak ada vendor STT dengan KER ≤ 15% pada set ucapan ID–EN bersih dan latensi turn estimasi ≤ 1,2s"*
+> 
+> **Tindakan jika Gagal:**  
+> *"Pivot ke normalisasi LLM pasca-STT atau turunkan klaim (\"mostly Indonesian + English item names\") dan perluas menu dengan alias. Jika tetap gagal: pindah ke bahasa Inggris saja + ID parsial, dan ubah narasi portofolio"*
+
+---
+
+## 2. Evaluation Evidence & Turn Latency Computation
+
+### 2.1 Formula Latensi Turn Estimasi
+Sesuai arsitektur *cascade pipeline* (ADR-0001), latensi satu *turn* percakapan dihitung dari akhir pelanggan berbicara hingga audio respons kasir mulai terdengar:
+
+$$\text{Estimated Turn Latency} = \text{STT Time to Final Transcript (incl. VAD/endpointing)} + \text{LLM Time to First Token (TTFT)} + \text{TTS Time to First Audio (TTFB)}$$
+
+### 2.2 Komponen Latensi Terukur (Data Empiris)
+
+1. **STT Time to Final Transcript:**
+   - **Groq Whisper Turbo (`whisper-large-v3-turbo`):**
+     - Rata-rata inferensi file batch sintetis ($n=20$): **484.1 ms**.
+     - Pengujian mikrofon langsung nyata ($n=3$): **749 ms – 946 ms**.
+   - **VAD / Endpointing Delay (Wajib untuk vendor berbasis file/batch seperti Groq):**
+     - Dalam pipeline percakapan langsung, sistem tidak bisa langsung mengirim audio saat pelanggan berhenti bicara. Dibutuhkan deteksi hening (*silence threshold*) VAD sebesar **+300 ms s.d. 500 ms** (rata-rata ~400 ms) untuk memastikan pelanggan benar-benar selesai berbicara sebelum memotong file audio dan mengirimkannya ke Groq API.
+     - Subtotal STT aktual di pipeline langsung: $484\text{ ms} + 400\text{ ms} = \mathbf{884\text{ ms}}$.
+   - **Deepgram Nova-2 (`model=nova-2`, REST non-streaming, bukan Nova-3 kandidat plan):**
+     - Rata-rata REST sintetis: **2,741.1 ms** (mic nyata: **2,939 ms – 4,276 ms**).
+
+2. **LLM Time to First Token (TTFT):**
+   - **Status Pengukuran:** **NOT MEASURED (Belum diukur secara streaming).**
+   - Yang terukur sejauh ini adalah inferensi batch REST non-streaming Google Gemini Flash-Lite (`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`) dari pengiriman transkrip hingga seluruh JSON intent selesai terbentuk: rata-rata **1,072.9 ms**.
+   - Nilai 1,072.9 ms ini digunakan sebagai batas atas (*upper bound*) hingga pengukuran streaming TTFT dilakukan.
+
+3. **TTS Time to First Audio (TTFB):**
+   - **Edge-TTS (`id-ID-GadisNeural`, prototype browser wrapper, unapproved):**
+     - Tier 1 (Acknowledgment pendek 1–5 kata): **1,406.0 ms**.
+     - Tier 2 (Konfirmasi sedang 8–15 kata): **2,102.5 ms**.
+     - Tier 3 (Ringkasan panjang 18–30 kata): **2,635.9 ms**.
+     - Median keseluruhan (P50): **1,938.8 ms** (P95: 3,154.0 ms).
+
+### 2.3 Total Estimasi Latensi Turn vs Ambang Batas Plan
+
+| Skenario Turn | STT + VAD Delay | LLM TTFT (Unmeasured, Total REST) | TTS TTFB | Total Turn Latency Estimasi | Ambang Batas Plan (§3.2) | Selisih / Status |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Kandidat Terbaik (Tier 1 Pendek)** | $484\text{ ms} + 300\text{ ms} = 784\text{ ms}$ | $1,072.9\text{ ms}$ | $1,406.0\text{ ms}$ | **3,262.9 ms (~3.26 detik)** | **$\le 1,200\text{ ms}$ (1.2 detik)** | **+2,063 ms (FAIL)** |
+| **Median (Tier 2 Konfirmasi)** | $484\text{ ms} + 400\text{ ms} = 884\text{ ms}$ | $1,072.9\text{ ms}$ | $2,102.5\text{ ms}$ | **4,059.4 ms (~4.06 detik)** | **$\le 1,200\text{ ms}$ (1.2 detik)** | **+2,859 ms (FAIL)** |
+| **Rentang Paling Lambat (Tier 3 Panjang)** | $946\text{ ms} + 500\text{ ms} = 1,446\text{ ms}$ | $2,611.2\text{ ms}$ | $2,635.9\text{ ms}$ | **6,693.1 ms (~6.69 detik)** | **$\le 1,200\text{ ms}$ (1.2 detik)** | **+5,493 ms (FAIL)** |
+
+**Kesimpulan Latensi:** Latensi *turn-around* estimasi saat ini berada di rentang **3,263 ms – 6,693 ms**, melampaui ambang batas rencana proyek ($\le 1,200\text{ ms}$) sebesar **2.7x hingga 5.5x**.
+
+### 2.4 Faktor yang BELUM Termasuk dalam Perhitungan di Atas
+1. **Network RTT dari Browser Pelanggan ke Server:** Latensi WebRTC internet publik Indonesia ke gateway cloud (est. 50–150 ms).
+2. **Cart State Machine Processing:** Waktu komputasi deterministik validasi menu, kalkulasi harga, diskon, stok bahan, dan aturan combo.
+3. **Barge-in Interruption Handling:** Waktu deteksi suara pelanggan saat bot sedang berbicara, pembatalan audio playback, dan pembersihan buffer pipeline.
+
+---
+
+## 3. Status Evaluasi per Kriteria Gate G1
+
+| No | Kriteria Gate G1 (§3.2) | Target | Hasil Terukur | Status | Alasan Evaluasi |
+|:---:|---|:---:|:---:|:---:|---|
+| 1 | **Akurasi STT ID–EN Bersih (KER)** | $\le 15.0\%$ | Groq Whisper Turbo: **11.66%** | **PROVISIONAL** | Hasil 11.66% diperoleh dari dataset sintetis $n=20$ skenario (bukan 100 skenario sesuai plan). Pengujian mic nyata baru $n=3$ tanpa transkrip referensi user. Deepgram yang diuji adalah Nova-2 (bukan Nova-3 dengan keyterm boosting). Gold label belum melalui spot-check manusia. |
+| 2 | **Latensi Turn Estimasi** | $\le 1,200\text{ ms}$ | Best case: **3,262.9 ms**; Range: **3.3s – 6.7s** | **FAIL** | Latensi melampaui batas toleransi 1.2 detik secara signifikan (2.7x–5.5x lebih lambat dari target). |
+| **TOTAL** | **STATUS GERBANG G1** | **PASS ALL** | **1 Provisional, 1 Fail** | **FAIL / NOT PASS** | **Kriteria latensi gagal dipenuhi.** Sesuai tata kelola, gerbang TIDAK LOLOS. |
+
+---
+
+## 4. Opsi Tindakan Fallback Sesuai §3.2 & Rekomendasi
+
+Teks §3.2 menetapkan tindakan berikut saat kriteria G1 tidak terpenuhi:
+> *"Pivot ke normalisasi LLM pasca-STT atau turunkan klaim (\"mostly Indonesian + English item names\") dan perluas menu dengan alias. Jika tetap gagal: pindah ke bahasa Inggris saja + ID parsial, dan ubah narasi portofolio"*
+
+### Rekomendasi Teknis untuk Pertimbangan Pengembang (TIDAK DITERAPKAN OTOMATIS):
+1. **Mitigasi Latensi STT:** Pindah dari model file-based batch (Groq REST yang membutuhkan VAD silence delay 400ms) ke native streaming WebSocket STT (LiveKit plugin deepgram / Soniox streaming).
+2. **Mitigasi Latensi LLM:** Mengaktifkan Server-Sent Events (SSE) streaming pada Gemini Flash-Lite untuk menangkap First Token secara instan (target TTFT < 300 ms) daripada menunggu seluruh JSON selesai.
+3. **Mitigasi Latensi TTS:** Menghentikan penggunaan file download buffer; gunakan token-streaming chunking (begitu frasa pertama *"Baik kak,"* selesai di LLM, langsung tembakkan ke TTS).
+4. **Keputusan Vendor TTS:** Menutup status TTS dengan kunci API resmi Azure Cognitive Services (S0 Pay-As-You-Go) atau memutuskan opsi alternatif berlisensi resmi.
+
+*Catatan: Seluruh tindakan fallback di atas berstatus REKOMENDASI dan TIDAK DITERAPKAN sebelum ada keputusan tertulis dari Daryl.*
+
+---
+
+## 5. Status Komponen & Vendor Saat Ini (Proposed ADRs)
+
+Seluruh keputusan vendor berstatus **"Proposed"** (bukan definitif) dan dicatat pada dokumen ADR terpisah:
+- **STT (ADR-0010 - Status: Proposed):** Groq Whisper Turbo kandidat sementara untuk evaluasi batch, namun terkendala arsitektur file-based (perlu VAD delay) dan free tier rate limit (20 RPM). Deepgram Nova-3 dengan keyterm boosting belum diuji.
+- **TTS (ADR-0011 - Status: Proposed / OPEN):** Edge-TTS berstatus **prototipe saja, tidak disetujui untuk produk**. Audio berasal dari layanan browser tidak resmi, bukan Azure Cognitive Services API resmi. Keputusan TTS berstatus OPEN.
+- **LLM (ADR-0012 - Status: Proposed):** Google Gemini Flash-Lite (`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`) berkinerja baik pada ekstraksi intent 20 skenario, namun Free Tier melanggar prinsip privasi ADR-0005 karena Google merekam dan melatih model dari data prompt/audio pengguna. Wajib menggunakan Tier Berbayar (Pay-as-you-go) untuk kepatuhan privasi.
+
+---
+
+## 6. What the Data Cannot Tell Us
+
+1. **Ukuran Sampel Sangat Terbatas ($n=20$ dan $n=3$):** Benchmark sintetis hanya menggunakan 20 skenario (dari 100 skenario yang direncanakan di v0). Pengujian mic fisik hanya berjalan 3 putaran ($n=3$). Sampel sekecil ini tidak memiliki signifikansi statistik untuk menetapkan peringkat vendor definitif.
+2. **Audio Sintetis vs Manusia Nyata:** Pengujian sintetis menggunakan vokal jernih Edge-TTS dengan variasi kecepatan buatan ($0.9x - 1.1x$). Data ini tidak merefleksikan variasi akustik nyata: tarikan napas, gumaman (*filler words*), aksen lokal, artikulasi tidak sempurna, clipping mikrofon, dan dinamika jarak mic.
+3. **Derau Putih Buatan (Gaussian Noise) vs Derau Drive-Thru Nyata:** Derau SNR 10 dB yang diuji adalah white Gaussian noise aditif sederhana. Kondisi ini tidak mencerminkan karakteristik frekuensi derau lapangan sebenarnya: gemuruh knalpot motor idle (low-frequency rumble), suara hujan lebat di atas atap seng, gema helm tertutup (*muffled reverberation*), atau distorsi speaker interkom drive-thru.
+4. **Gold Labels Belum Tervalidasi Manusia:** Target transkrip dan intent untuk 20 skenario dihasilkan secara otomatis oleh generator skenario awal dan belum melalui spot-check menyeluruh oleh manusia.
+5. **Keterbatasan dan Risiko Free Tier:** Performa pada free tier tidak mencerminkan keandalan sistem produksi. Free tier rentan terhadap *rate limiting* mendadak (HTTP 429), ketiadaan SLA ketersediaan, serta pelanggaran privasi data (Gemini Free Tier melatih model dari input pengguna).
+
+---
+
+## 7. Instruksi Lanjutan & Batasan Cabang
+
+- **Branch:** `feat/minggu-2-spikes`.
+- **TIDAK ADA MERGE KE `main`.**
+- **TIDAK MEMULAI MINGGU 3.**
+- Menunggu keputusan dan arahan dari pengembang terkait tindakan fallback §3.2 dan penyelesaian checklist status manusia.
+
+---
+
+## 8. Bagian G1b: Hasil Audit Pengukuran Ulang Representatif (Measurement Audit)
+
+Berdasarkan audit teknis terhadap pengukuran G1b pada 30 skenario baku dari `eval/datasets/v0/scenarios.jsonl` (mencakup 10 kondisi percakapan), dilakukan pengujian ulang berstandar ketat: pengaliran audio *real-time paced* ($1.0\times$), pemisahan jeda hening akhir (*trailing silence*), audit kode sumber endpointing LiveKit Agents, pengukuran RTT jaringan langsung dari Indonesia, serta bootstrapping berpasangan (*paired bootstrap*).
+
+---
+
+### 8.1 Rekonsiliasi & Hasil Empiris Terukur per Komponen
+
+#### A. Speech-to-Text (STT)
+
+1. **Deepgram Nova-3 Streaming (WebSocket + Keyterm Boosting):**
+   - **Parameter:** `model=nova-3`, `language=id`, `smart_format=true`, `keyterm` (30 istilah menu utama).
+   - **Penjelasan Diskrepansi Latensi (1.820 ms vs 63 ms):**
+     - Angka **1.820 ms** pada laporan awal adalah **KELIRU**. Pada skrip awal, pengiriman chunk audio menggunakan `asyncio.sleep(0.01)` (10x lebih cepat dari durasi audio nyata), sehingga klip audio berdurasi 3,5 detik tuntas dikirim dalam ~350 ms. Karena model ASR Deepgram memproses audio secara berurutan, selisih waktu antara chunk terakhir terkirim dan respons final diterima sebetulnya mengukur sisa durasi pemutaran audio, bukan latensi *turnaround* server setelah akhir ucapan.
+     - Angka **63 ms** pada file mikrofon tunggal (`mic_session_03.wav`) juga merupakan artefak teknis: file tersebut berdurasi 31 detik (bukan satu *single turn* pesanan), sehingga proses pengenalan ucapan telah selesai untuk bagian awal ketika sinyal `CloseStream` dikirim, dan paket transkrip yang kebetulan tiba berikutnya langsung tercatat. File 31 detik ini **didrop** dari analisis latensi turn tunggal.
+   - **Hasil Audit dengan Pacing Real-Time ($1.0\times$):**
+     - Pengiriman chunk 100 ms dilakukan tepat tiap 100 ms waktu nyata.
+     - Deteksi batas akhir ucapan (*true speech end*) dihitung berdasarkan amplop energi RMS (memisahkan rata-rata 0,92 detik *trailing silence* bawaan file sintesis).
+     - Deepgram secara native memancarkan event `speech_final` begitu mendeteksi jeda hening setelah ucapan.
+     - **Latensi dari Akhir Ucapan Nyata (*True Speech End*) ke Transkrip Final (`speech_final`):**
+       - P50: **524.4 ms**
+       - P95: **856.2 ms**
+       - Mean: **549.4 ms** (Bootstrap 95% CI: `[485.0 ms, 625.0 ms]`)
+   - **Akurasi STT pada 30 Skenario Sintetis Bersih:**
+     - Clean KER Mean: **3.89%** (Bootstrap 95% CI: `[0.00%, 8.33%]`)
+     - Clean WER Mean: **6.56%**
+
+2. **Groq Whisper Turbo (`whisper-large-v3-turbo`):**
+   - **Raw Inference Latency (REST):**
+     - P50: **490.2 ms** (P95: 769.3 ms, Mean: 520.1 ms)
+   - **Akurasi pada 30 Skenario Sintetis Bersih:**
+     - Clean KER Mean: **11.11%** (Bootstrap 95% CI: `[4.99%, 18.33%]`)
+     - Clean WER Mean: **10.09%**
+
+3. **Audit Endpointing & Deteksi Hening (VAD):**
+   - **Asal Angka 500 ms:** Nilai 500 ms berasal dari konstanta resmi `livekit-agents` v1.8.8 (`_ENDPOINTING_DEFAULTS["min_delay"] = 0.5`).
+   - **Audit Kode Sumber (`livekit/agents/voice/audio_recognition.py` baris 1462–1463 & 1741–1745):**
+     ```python
+     speech_end_time = time.time() - ev.silence_duration - ev.inference_duration
+     self._last_speaking_time = speech_end_time
+     ...
+     extra_sleep = endpointing_delay
+     if last_speaking_time:
+         extra_sleep += last_speaking_time - time.time()
+     ```
+     Karena `last_speaking_time - time.time()` bernilai negatif sebesar durasi hening yang telah berlalu, maka:
+     $$\text{extra\_sleep} \approx \text{endpointing\_delay} - (\text{silence\_duration} + \text{inference\_duration})$$
+   - **Kesimpulan Kritis:** Jeda VAD dan `min_delay` **TIDAK BERTAMBAH SECARA KUMULATIF/LINEAR**. Nilai `min_delay` bertindak sebagai batas waktu total (*clamped ceiling*) sejak ucapan nyata berakhir.
+   - **Pengukuran VAD Offline Nyata pada 30 Audio:**
+     - Waktu deteksi hening Silero VAD (P50): **386.0 ms** (Mean: 296.8 ms, 95% CI: `[229.6 ms, 356.9 ms]`).
+     - Jika `min_delay = 500 ms`: VAD mendeteksi pada 386 ms, sistem tidur tambahan 114 ms $\to$ total jeda = **500 ms**.
+     - Jika `min_delay` diturunkan ke 400 ms (*tuned config, projection*): total jeda = **400 ms**.
+     - Jika diturunkan ke 300 ms (*aggressive config, projection*): jeda tertahan oleh deteksi hening VAD fisik di ~**386 ms**.
+     - **Risiko Penurunan Ambang Batas:** Jeda hening ragu (*hesitation pauses*) penutur bahasa Indonesia berkisar 300–600 ms ("saya mau... burger satu, eh... sama cola"). Menyetel `min_delay` di bawah 400 ms berisiko memotong kalimat pelanggan di tengah jalan (*false turn cutoff*).
+
+4. **Uji Statistik Berpasangan (*Paired Bootstrap Comparison*):**
+   - Dihitung selisih KER per-utterance: $\Delta_i = \text{KER}_{\text{Nova-3}, i} - \text{KER}_{\text{Groq}, i}$ pada 30 skenario baku.
+   - Rata-rata selisih ($\bar{\Delta}$): **-7.22%** (Nova-3 lebih rendah 7.22 poin persentase).
+   - **Paired Bootstrap 95% Confidence Interval ($n=10,000$ resamples):**
+     $$\text{CI}_{95\%} = [-15.00\%, 0.00\%]$$
+   - **Pernyataan Hasil:** Selang kepercayaan 95% **TIDAK mengecualikan angka nol** (*does NOT exclude zero*, karena batas atas persis menyentuh 0.00% akibat performa imbang 0% KER pada 25 dari 30 skenario). Perbedaan akurasi belum memiliki signifikansi statistik mutlak pada ukuran sampel $n=30$.
+
+---
+
+#### B. Large Language Model (LLM Streaming & Warmth)
+
+Pengukuran dilakukan dari laptop pengembang di Indonesia pada koneksi internet residensial:
+
+1. **Round-Trip Time (RTT) Jaringan ke Endpoint Vendor:**
+   - Google (`generativelanguage.googleapis.com`): **P50 = 42.0 ms** (Edge PoP Google Cloud Jakarta `asia-southeast2` / Singapura).
+   - Deepgram (`api.deepgram.com`): **P50 = 196.9 ms** (US/Tokyo).
+   - Groq (`api.groq.com`): **P50 = 241.2 ms** (US cloud).
+
+2. **Perbandingan Cold vs Warm TTFT:**
+   - **Google Gemini Flash-Lite (Resolved Model: `gemini-3.5-flash-lite`):**
+     - Cold TTFT (koneksi awal): **794.2 ms** (s.d. 9.710 ms saat inisiasi DNS/TLS pertama).
+     - Warm TTFT (koneksi HTTP pooled/reused): **P50 = 839.9 ms** (rentang: 603 ms – 961 ms).
+     - First Complete Sentence (Warm): **P50 = 841.4 ms**.
+   - **Groq-Hosted LLM (Resolved Model: `openai/gpt-oss-20b`):**
+     - Cold TTFT: **8,589.6 ms**.
+     - Warm TTFT: **P50 = 913.3 ms** (rentang: 593 ms – 1.002 ms).
+   - **Catatan Proyeksi:** Pada sesi agent langsung, *connection pool* berstatus *warm*, sehingga angka **Warm** yang digunakan untuk proyeksi pipeline.
+
+---
+
+#### C. Text-to-Speech (TTS) — Status & Kepatuhan Batasan Kartu
+
+- **Status Pengukuran:** **NOT MEASURED**.
+- **Alasan Kepatuhan:** Batasan mutlak proyek (*Card-free Hard Constraint*) melarang layanan berbayar yang mewajibkan kartu pembayaran/kredit. Seluruh provider TTS resmi berbayar (Azure Speech S0, Cartesia Sonic, ElevenLabs) mewajibkan kartu saat pendaftaran. Prototipe browser Edge-TTS dilarang digunakan untuk klaim latensi produk resmi.
+
+---
+
+### 8.2 Tabel Proyeksi Latensi Pipeline Pre-TTS (Label: Proyeksi Berbasis Komponen Warm P50)
+
+Ambang batas latensi turn proyek adalah **$\le 1.200\text{ ms}$**. Seluruh nilai di bawah ini adalah proyeksi berbasis data terukur komponen *warm*:
+
+| No | Kandidat STT | Konfigurasi VAD / Endpointing | Kandidat LLM | Latensi Pre-TTS Terukur (P50) | Sisa Alokasi Maksimal untuk TTS TTFB agar Lolos $\le 1.2$s | Status Proyeksi | Asumsi Spesifik Komponen |
+|:---:|---|---|---|:---:|:---:|:---:|---|
+| 1 | **Deepgram Nova-3 (Stream)** | Built-in endpointing (~300ms) | Gemini Flash-Lite (Warm TTFT) | $524.4\text{ ms} + 839.9\text{ ms} = \mathbf{1,364.3\text{ ms}}$ | **-164.3 ms** (Defisit) | **FAIL** | Audio di-stream real-time; LLM koneksi warm; TTS instan (0 ms). |
+| 2 | **Deepgram Nova-3 (Stream)** | Built-in endpointing (~300ms) | Gemini Flash-Lite (1st Sentence) | $524.4\text{ ms} + 841.4\text{ ms} = \mathbf{1,365.8\text{ ms}}$ | **-165.8 ms** (Defisit) | **FAIL** | Chunk kalimat pertama langsung dilempar ke TTS; TTS instan (0 ms). |
+| 3 | **Groq Whisper Turbo (Batch)**| LiveKit Default (`min_delay` 500ms)| Gemini Flash-Lite (Warm TTFT) | $(490.2 + 500.0)\text{ ms} + 839.9\text{ ms} = \mathbf{1,830.1\text{ ms}}$ | **-630.1 ms** (Defisit) | **FAIL** | Inferensi file batch + 500 ms jeda hening VAD aman. |
+| 4 | **Deepgram Nova-3 + Qwen-27B (Measured)** | Built-in endpointing (~300ms) | Groq Qwen-27b Non-Reasoning (Warm TTFT) | $524.4\text{ ms} + 258.5\text{ ms} = \mathbf{782.9\text{ ms}}$ | **+417.1 ms** (Tersisa) | **PROJECTION (TTS unmeasured)** | STT dan LLM diukur empiris warm P50. Sisa alokasi untuk TTS TTFB: 417 ms (asumsi TTS berlisensi, belum terukur/tidak ada TTS card-free). |
+
+*Kesimpulan Proyeksi Empiris:*  
+Pada tumpukan teknologi *cascade* saat ini dengan komponen resmi card-free (Nova-3 streaming + Gemini Flash-Lite warm), fase pra-TTS saja membutuhkan **~1.364 ms**, melampaui plafon 1.200 ms dengan selisih 164 ms tanpa menyisakan ruang untuk latensi sintesis suara TTS. Penggunaan model non-reasoning cepat (Qwen 27B) menekan latensi pra-TTS ke **782.9 ms**, menyisakan ruang 417 ms untuk TTS, namun belum tersedia provider TTS streaming resmi yang bebas kartu kredit.
+
+---
+
+### 8.3 Status Evaluasi Gerbang G1 (Audit Update)
+
+| No | Kriteria Gerbang G1 (§3.2) | Target | Hasil Terukur Audit | Status | Alasan Evaluasi |
+|:---:|---|:---:|:---:|:---:|---|
+| 1 | **Akurasi STT ID–EN Bersih (KER)** | $\le 15.0\%$ | Nova-3: **3.89%**<br>Groq: **11.11%** | **PROVISIONAL** | Memenuhi KER $\le 15\%$ pada 30 skenario sintetis. Selang kepercayaan berpasangan menyentuh 0.00% (belum eksklusif). Data suara manusia nyata belum memiliki ground-truth teks untuk diukur. |
+| 2 | **Latensi Turn Estimasi** | $\le 1,200\text{ ms}$ | Pre-TTS Warm P50: **782.9 ms – 1,830 ms** | **FAIL** | Kombinasi standar (Nova-3 + Gemini) melampaui 1.200 ms sebelum TTS. Kombinasi tercepat (Nova-3 + Qwen) menyisakan 417 ms, tetapi belum ada TTS streaming card-free resmi. |
+| **TOTAL** | **STATUS GERBANG G1** | **PASS ALL** | **1 Provisional, 1 Fail** | **FAIL / NOT PASS** | **Ambang batas latensi 1.2 detik tidak terpenuhi.** Rekomendasi tindakan dituang pada ADR-0013. |
+
+---
+
+### 8.4 Tindakan Fallback §3.2 & Pilihan Arsitektur
+
+Sesuai `PROJECT_PLAN.md` §3.2 dan audit empiris, pilihan keputusan resmi dicatat pada dokumen arsitektur [ADR-0013: G1 Outcome and Next Steps](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0013-g1-outcome-and-next-steps.md) dengan 3 opsi:
+1. **Opsi A (Pertahankan Target 1.2s):** Rekayasa teknis agresif (WebSocket streaming penuh, VAD wajar 300 ms, LLM non-reasoning sub-300 ms, pencarian TTS streaming resmi sub-400 ms).
+2. **Opsi B (Penyesuaian Target Latensi Berbasis UX Drive-Thru):** Menyesuaikan SLO latensi turn dengan justifikasi UX interkom drive-thru (umpan balik visual keranjang instan di layar simulator sembari audio respons kasir berbicara natural, angka target resmi ditetapkan oleh pemilik proyek).
+3. **Opsi C (Re-scoping Bahasa sesuai §3.2 Verbatim):** Pivot ke normalisasi LLM pasca-STT atau turunkan klaim ("mostly Indonesian + English item names") dengan perluasan alias menu, atau beralih ke bahasa Inggris penuh + ID parsial.
+
+*Catatan: Alternatif API multimodal realtime audio-to-audio (misal Gemini Live API) dikesampingkan karena menghilangkan validasi keranjang deterministik sebelum berbicara (bertentangan dengan guardrail ADR-0001) dan belum diverifikasi batasan kartu kreditnya.*
+
+---
+
+## 9. Bagian G1c: Hasil Pengukuran Tuas Arsitektur (Measuring the Levers)
+
+Sesuai protokol pra-registrasi [`docs/gates/G1c-protocol.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1c-protocol.md), telah dijalankan eksperimen E1–E5 untuk mengukur dampak empiris dari tuas-tuas rekayasa teknis:
+
+### 9.1 Eksperimen E1: LLM Reasoning Overhead & Small Model (30 Skenario, Interleaved)
+Pengujian dijalankan secara bersilang (*interleaved*) untuk mengontrol variansi beban server.
+
+| Model & Konfigurasi | Exact Resolved Model ID | Warm TTFT P50 (ms) | Warm TTFT P95 (ms) | Mean TTFT (ms) [95% CI] | 1st Sentence P50 (ms) | Total Latency P50 (ms) | Intent Accuracy (%) [SUPERSEDED]* |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Google Gemini Flash-Lite (Default)** | `models/gemini-3.5-flash-lite` | **794.2 ms** | 1,381.2 ms | 875.9 ms `[783.6, 987.0]` | 798.5 ms | 973.2 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq GPT-OSS-20b (Default Reasoning)** | `openai/gpt-oss-20b` | **818.6 ms** | 1,236.8 ms | 856.4 ms `[757.4, 973.8]` | 818.6 ms | 820.0 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq GPT-OSS-20b (`reasoning_effort="low"`)**| `openai/gpt-oss-20b` | **602.6 ms** | 1,567.7 ms | 745.3 ms `[629.0, 882.9]` | 602.6 ms | 603.5 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+| **Groq Qwen-27b Non-Reasoning** | `qwen/qwen3.8-27b` | **258.5 ms** | 512.1 ms | 315.0 ms `[275.4, 365.1]` | 258.5 ms | 263.3 ms | ~~50.0%~~ *(Cacat Skrip G1c)* |
+
+*\*Catatan Kritis Hasil G1c:*
+1. **Dampak Reasoning Tokens:** Pada `openai/gpt-oss-20b`, mode default menghasilkan 90–220 token pemikiran (*reasoning tokens*) sebelum konten JSON dimulai. Menyetel `reasoning_effort="low"` memangkas token pemikiran menjadi 4–23 token, mempercepat TTFT sebesar **216.0 ms** (dari 818.6 ms menjadi 602.6 ms).
+2. **Kecepatan Model Non-Reasoning:** Model `qwen/qwen3.8-27b` pada Groq Free Tier menghasilkan TTFT ultra-cepat **258.5 ms** dengan dukungan JSON mode penuh dan kualitas bahasa Indonesia yang baik.
+3. **Penyebab Cacat Angka Akurasi 50.0% (SUPERSEDED):** Angka 50.0% identik di seluruh model pada G1c terbukti merupakan cacat implementasi skrip evaluasi (`benchmark_g1c.py`). Skrip membandingkan teks nama model (dengan spasi) langsung terhadap `item_id` (dengan underscore), sehingga selalu salah dan memicu nilai default `0.5` (50.0%). Hasil audit dan pengujian ulang 60 skenario disajikan pada **Bagian 10 (G1f Audit)**.
+
+---
+
+### 9.2 Eksperimen E2: Trade-off Endpointing Deepgram Nova-3 vs False Cutoff [SUPERSEDED]
+Diuji pada 10 kalimat percakapan bertingkat dengan variasi jeda hening buatan di tengah kalimat (300 ms, 500 ms, 800 ms — total 30 audio uji), di-stream real-time $1.0\times$ ke Deepgram Nova-3.
+
+| Parameter Endpointing | Total Uji | False Cutoff Total (%) | False Cutoff @ 300ms Jeda | False Cutoff @ 500ms Jeda | False Cutoff @ 800ms Jeda | Latensi Turnaround Pasca-Ucapan (P50) [SUPERSEDED] |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `endpointing=150ms` | 30 | **13.3%** | 10.0% | 10.0% | 20.0% | Prematur (-265.7 ms) |
+| `endpointing=300ms` | 30 | **6.7%** | 0.0% | 0.0% | 20.0% | Sekitar akhir suara (-139.9 ms) |
+| `endpointing=500ms` | 30 | **0.0%** | **0.0%** | **0.0%** | **0.0%** | ~~**63.0 ms**~~ *(Cacat Tanpa Trailing Silence)* |
+
+*Penyebab Cacat Angka 63.0 ms pada G1c (SUPERSEDED):* Angka 63.0 ms terjadi karena audio dipotong tepat pada akhir kata terakhir tanpa menyertakan keheningan ekor (*trailing silence*), lalu skrip langsung mengirim `CloseStream`. Deepgram langsung melakukan flush buffer seketika tanpa mengevaluasi jendela keheningan 500 ms. Hasil audit dengan keheningan ekor 1.5 detik disajikan pada **Bagian 10 (G1f Audit)**.
+
+---
+
+### 9.3 Eksperimen E3: Survei & Pengukuran TTS Card-Free Resmi
+1. **Hasil Survei Vendor:**
+   - **ElevenLabs Free Tier:** Bebas kartu (card-free: ya), 10.000 karakter/bulan, lisensi non-komersial wajib atribusi. Kunci API tidak ada di `.env`. Status: **Excluded**.
+   - **Gemini API TTS (`models/gemini-2.5-flash-preview-tts`):** Bebas kartu (card-free: ya). Bahasa Indonesia didukung (L16 PCM 24kHz). Namun tidak mendukung token streaming (audio dikirim buffer utuh). TTFB terukur: P50 = **3.036,4 ms** (P95: 3.596,5 ms). Ketentuan data: Google melatih model dari data free-tier (bertentangan dengan ADR-0005).
+   - **Azure Speech, Cartesia, Soniox:** Mewajibkan kartu kredit. Status: **Excluded: card required**.
+2. **Kesimpulan E3:** **Tidak ditemukan API TTS streaming resmi berlisensi yang bebas kartu kredit dan memenuhi syarat latensi serta privasi ADR-0005.** Tabel analisis sensitivitas dipertahankan.
+
+---
+
+### 9.4 Eksperimen E4: Survei Hosting Publik Worker (Card-Free)
+Riset kelayakan infrastruktur publik untuk menjalankan LiveKit Agent Worker Python:
+1. **Render (Free Web Service / Hobby Workspace):** Card-free: **Ya** ([render.com/docs/free](https://render.com/docs/free), 2026-10-19). Region: Oregon, Frankfurt, Singapore. 512 MB RAM, 0.1 vCPU, 750 jam/bulan gratis. Perilaku sleep: spin-down setelah 15 menit idle, cold start ~50s saat ada hit HTTP. Worker dapat dijalankan di dalam container Web Service dengan endpoint health check.
+2. **Zeabur (Free Plan):** Card-free: **Ya** ([zeabur.com/pricing](https://zeabur.com/pricing), 2026-10-19). Auto-sleep saat idle, bangun saat ada traffic.
+3. **Excluded:**
+   - **Koyeb:** Mewajibkan kartu kredit ($29 pre-auth hold).
+   - **Fly.io:** Mewajibkan kartu kredit setelah 2 jam trial.
+   - **Hugging Face Spaces (Docker):** Mewajibkan langganan berbayar PRO ($9/bulan) untuk dynamic Docker container per kebijakan 2026.
+   - **PythonAnywhere:** Memblokir outbound WebSocket/WebRTC (allowlist ketat).
+
+---
+
+## 10. Bagian G1f: Audit Pengukuran Akhir & Angka Terkoreksi (Final Audit & Corrected Levers)
+
+Sesuai addendum pra-registrasi [`docs/gates/G1c-addendum.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1c-addendum.md), dilakukan audit menyeluruh terhadap anomali G1c dan pengukuran definitif:
+
+### 10.1 Audit Akurasi Intent & Keranjang (Task 1: 60 Skenario Baku, Interleaved)
+Evaluasi dijalankan pada 60 skenario bertingkat menggunakan format prompt produksi lengkap. Penilaian dilakukan pada dua level: **Intent Match** (kecocokan tipe dan entitas menu terpetakan) dan **Resulting Cart Match** (hasil mutasi Cart State Machine deterministik terhadap `expected_cart`).
+
+| Model & Konfigurasi | Warm TTFT P50 (ms) | Total Latency P50 (ms) | Overall Intent Acc (%) | Overall Cart Acc (%) | Simple (%) | Qty & Combo (%) | Modifiers & Size (%) | Correction/Undo (%)* |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Google Gemini Flash-Lite** | 7.303,8 ms* | 7.535,9 ms | **73,3%** | **76,7%** | 80,0% | 94,7% | 93,3% | 0,0% (Cart: 18,2%) |
+| **Groq GPT-OSS-20b (Default)** | 885,5 ms | 886,2 ms | **53,3%** | **55,0%** | 80,0% | 47,4% | 73,3% | 0,0% (Cart: 9,1%) |
+| **Groq GPT-OSS-20b (`effort="low"`)** | 616,6 ms | 617,8 ms | **56,7%** | **56,7%** | 80,0% | 63,2% | 66,7% | 0,0% (Cart: 9,1%) |
+| **Groq Qwen-27b Non-Reasoning** | **419,1 ms** | **420,4 ms** | **73,3%** | **76,7%** | 80,0% | 89,5% | **100,0%** | 0,0% (Cart: 18,2%) |
+
+*\*Catatan Audit Penting:*
+1. **Caveat Kategori Correction/Undo:** Nilai Intent Accuracy 0.0% pada kategori koreksi terjadi karena skrip pembuat gold label awal (`generate_gold_intents.py`) secara otomatis menghasilkan intent sintetis `{"type": "undo", "params": {"steps": 1}}` pada skenario yang bertag koreksi. Sebaliknya, model bahasa secara alami langsung memancarkan item akhir yang diinginkan pelanggan (misal: "eh ganti burger keju" menghasilkan `add_item: burger_keju`). Pada level resulting cart, state machine mampu menangkap 18.2% dari kondisi ini.
+2. **Lonjakan TTFT Gemini Flash-Lite:** Angka P50 7.303 ms terjadi akibat *rate-limit queueing delay* pada endpoint gratis Google AI Studio saat menerima beban 60 giliran berturut-turut. Pada pengujian giliran tunggal terisolasi, warm TTFT tetap berada di kisaran ~794 ms.
+3. **Keunggulan Groq Qwen-27b:** Menghasilkan akurasi keranjang tertinggi (**76,7%**) sejajar dengan Gemini, dengan latensi TTFT ultra-cepat (**419,1 ms**) dan kepatuhan JSON yang sangat tinggi tanpa kegagalan format.
+
+---
+
+### 10.2 Pengujian Ulang Endpointing Deepgram Nova-3 dengan Trailing Silence (Task 3)
+Diuji ulang pada 30 klip ujaran ragu-ragu (jeda hening tengah 300 ms, 500 ms, 800 ms) dengan penambahan 1,5 detik keheningan ekor (*trailing silence*) untuk memberikan jendela hening alami bagi deteksi server:
+
+| Parameter Endpointing | Sample Size ($n$) | False Cutoff Rate Total (%) | Cutoff @ 300ms | Cutoff @ 500ms | Cutoff @ 800ms | Latensi Turnaround Pasca-Ucapan (P50) | Mean Latency [95% CI] |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `endpointing=150ms` | 30 | **3,3%** (1/30) | 0,0% | 0,0% | 10,0% | Prematur (-328,7 ms) | -311,2 ms `[-337.7, -282.2]` |
+| `endpointing=300ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | Sekitar akhir ucapan (-161,2 ms) | -156,7 ms `[-184.1, -129.7]` |
+| `endpointing=500ms` | 30 | **0,0%** (0/30) | 0,0% | 0,0% | 0,0% | **108,8 ms** (P95: 221,9 ms) | **119,2 ms** `[92.2, 147.6]` |
+
+*Catatan Kritis Angka Turnaround 108.8 ms:*
+> [!WARNING]
+> **Status Angka 108.8 ms:** **TIDAK KREDIBEL (*not credible: speech-end reference suspected wrong, to be re-measured on the real pipeline in Minggu 4*)**.  
+> *Penjelasan Batasan Fisika Endpointing:* Algoritma endpointing Deepgram membutuhkan jendela keheningan terus-menerus $\ge 500\text{ ms}$ setelah ucapan selesai sebelum memancarkan event `speech_final=True`. Secara fisik, latensi turnaround dari akhir ucapan nyata (*true speech end*) ke transkrip final tidak mungkin lebih kecil dari $500\text{ ms} + \text{network RTT}$ (~700 ms dari Indonesia).  
+> Angka 108.8 ms (serta angka negatif pada varian 150/300ms) terbukti merupakan artefak misalignment penanda waktu hening pada file sintetis skrip offline. Estimasi latensi STT streaming dari akhir ucapan yang lebih realistis mengacu pada audit G1d: P50 = **524.4 ms** (Mean 549.4 ms, P95: 856.2 ms). Keputusan definitif diuji pada pipeline langsung LiveKit di Minggu 4.
+
+---
+
+### 10.3 Pengukuran TTS Streaming ElevenLabs Free Tier (Task 4)
+Diuji pada 30 frasa balasan bot baku kasir drive-thru, 5 kali pengulangan bersilang (*interleaved*, total 150 request streaming) menggunakan model `eleven_flash_v2_5`:
+- **Kapabilitas Streaming:** Terkonfirmasi mendukung *chunked transfer encoding* (`Transfer-Encoding: chunked`).
+- **Time to First Audio Byte (TTFB):**
+  - **P50:** **126,8 ms**
+  - **P95:** **157,4 ms**
+  - **Mean [95% CI]:** **136,7 ms** `[129.6 ms, 147.3 ms]`
+- **Durasi Sintesis Total:** P50 = 208,4 ms.
+- **Ketentuan Lisensi & Kebijakan Data (Official Terms 2026-10-20, `elevenlabs.io/terms`):**
+  - *Non-Komersial Mutlak:* Sesuai Bagian 1(c), Free Plan hanya boleh digunakan untuk tujuan non-komersial/personal. Dilarang dimonetisasi atau diintegrasikan ke produk komersial.
+  - *Kewajiban Atribusi:* Wajib mencantumkan "elevenlabs.io" atau "11.ai" pada publikasi hasil suara.
+  - *Pelatihan Data Input:* Secara default, input teks pengguna pada tier gratis digunakan untuk riset dan pelatihan model ElevenLabs (dapat di-opt out pada pengaturan privasi).
+  - *Batas Kuota:* 10.000 karakter/bulan (pengujian 150 panggilan menghabiskan ~4.500 karakter).
+
+---
+
+### 10.4 Pengukuran Risiko Hosting & Profil Memori Worker (0.1 CPU & 512 MB RAM)
+- **Pengujian Komputasi VAD Lokal (Label: VAD compute only, measured on host CPU, extrapolated):**
+  - Docker daemon tidak berjalan pada host Windows, sehingga pengujian kontainer terisolasi 0.1 vCPU tidak diklaim secara empiris.
+  - Komputasi Silero VAD (LiveKit VAD 512 samples/32ms chunks) diukur langsung pada CPU host pengembang dan diekstrapolasikan:
+    - Waktu komputasi CPU murni untuk 10 detik audio 16kHz adalah **< 0,9 ms per detik audio** (Total CPU time < 1 ms, Wall time 8,89 ms).
+    - Alokasi Memori Puncak VAD murni: **12,10 KB** (0,012 MB).
+    - Real-Time Factor (RTF) ekstrapolasi kuota 0.1 vCPU: **RTF ≈ 0,009 $\ll$ 1,0** (< 1% dari kapasitas 0.1 vCPU).
+- **Pengukuran Memori Proses Utuh Agent Worker (Whole-Process RSS Memory):**
+  - Diukur secara empiris pada host Windows 11 dengan Python 3.12 (`measure_worker_memory.py`):
+    - *Baseline Memory (Python runtime + base packages):* **19.70 MB**.
+    - *Fully Initialized Agent Worker (LiveKit Agents, Cart `MenuService`, Groq/Deepgram adapters loaded):* **113.92 MB RSS** (menggunakan ~22.2% dari plafon 512 MB RAM).
+    - *Konfirmasi Kelayakan:* Total footprint memori terkonfirmasi muat dengan aman (*fits comfortably*) dalam batas 512 MB free tier hosting tanpa risiko OOM (Out Of Memory).
+- **Perilaku Sleep Free Web Service (Render Docs):**
+  - Render Free Web Service memasuki mode sleep setelah **15 menit tanpa traffic masuk (*inbound traffic*)**.
+  - Worker LiveKit yang hanya membuka koneksi WebSocket keluar (*outbound*) tidak dihitung sebagai inbound traffic oleh router Render, sehingga akan tertidur setelah 15 menit.
+  - *Mekanisme Bangun Resmi:* Frontend web simulator memanggil endpoint kesehatan HTTP worker (`GET /health`) saat pengguna pertama kali membuka halaman pemesanan. Panggilan HTTP masuk ini secara otomatis membangunkan container Render dari mode sleep (cold start ~50s) sesuai mekanisme resmi platform.
+
+---
+
+## 11. Penutupan Gerbang G1 (Owner Decisions & Next Steps)
+
+Pada penutupan Minggu 2 (Fase Minggu 2g), pemilik proyek (Daryl) secara resmi menetapkan:
+1. **Status Akhir Gerbang G1:** **A-bersyarat (*A-conditional / NOT DEMONSTRATED*)**. Target latensi 1.2s tetap dipertahankan, dan status gerbang dicatat sebagai "belum terbukti" (bukan PASS).
+2. **Titik Keputusan Minggu 4:** Protokol pengukuran latensi end-to-end pada real pipeline LiveKit telah dipra-registrasikan di [`docs/gates/G1-minggu4-measurement.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-minggu4-measurement.md). Jika pengukuran Minggu 4 gagal mencapai 1.2s, proyek akan beralih ke Opsi B dengan angka target berbasis UX yang ditentukan sebelum pengukuran.
+3. **Status Dokumen Keputusan:**
+   - [ADR-0010: STT Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0010-stt-vendor.md): **Accepted as candidate, subject to Minggu 4 measurement** (Deepgram Nova-3).
+   - [ADR-0011: TTS Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0011-tts-vendor.md): **Open** (ElevenLabs Free Tier diterima bersyarat untuk demo/portofolio non-komersial saja).
+   - [ADR-0012: LLM Vendor](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0012-llm-vendor.md): **Accepted as candidate, subject to Minggu 4 measurement** (Groq Qwen-27b Non-Reasoning; Gemini Free Tier dilarang untuk data pengunjung nyata).
+   - [ADR-0013: G1 Outcome](file:///c:/Users/Lenovo/Downloads/drivethru/docs/decisions/0013-g1-outcome-and-next-steps.md): **Accepted by owner** (Opsi A-bersyarat).
+
+
+
+

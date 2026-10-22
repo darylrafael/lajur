@@ -1,0 +1,25 @@
+{
+  "seed": 42,
+  "spot_check_scenario_ids": [
+    "scen_007",
+    "scen_008",
+    "scen_009",
+    "scen_023",
+    "scen_024",
+    "scen_027",
+    "scen_029",
+    "scen_036",
+    "scen_051",
+    "scen_056",
+    "scen_057",
+    "scen_058",
+    "scen_060",
+    "scen_063",
+    "scen_071",
+    "scen_072",
+    "scen_108",
+    "scen_109",
+    "scen_115",
+    "scen_130"
+  ]
+}
