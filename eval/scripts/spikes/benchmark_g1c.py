@@ -33,49 +33,113 @@ if str(root_dir) not in sys.path:
 load_dotenv()
 
 SELECTED_SCENARIO_IDS = [
-    "scen_001", "scen_002", "scen_003",
-    "scen_005", "scen_007", "scen_014",
-    "scen_016", "scen_018", "scen_020",
-    "scen_026", "scen_031", "scen_033",
-    "scen_035", "scen_036",
-    "scen_041", "scen_042", "scen_053",
-    "scen_071", "scen_073", "scen_074",
-    "scen_079", "scen_080",
-    "scen_081", "scen_082", "scen_084",
-    "scen_086", "scen_087",
-    "scen_098", "scen_101",
+    "scen_001",
+    "scen_002",
+    "scen_003",
+    "scen_005",
+    "scen_007",
+    "scen_014",
+    "scen_016",
+    "scen_018",
+    "scen_020",
+    "scen_026",
+    "scen_031",
+    "scen_033",
+    "scen_035",
+    "scen_036",
+    "scen_041",
+    "scen_042",
+    "scen_053",
+    "scen_071",
+    "scen_073",
+    "scen_074",
+    "scen_079",
+    "scen_080",
+    "scen_081",
+    "scen_082",
+    "scen_084",
+    "scen_086",
+    "scen_087",
+    "scen_098",
+    "scen_101",
     "scen_110",
 ]
 
 HESITATION_PHRASES = [
     {"id": "hes_01", "p1": "Mau burger sapi satu", "p2": "sama cola dingin"},
     {"id": "hes_02", "p1": "Emmm apa ya sebentar", "p2": "mau burger sapi keju satu deh"},
-    {"id": "hes_03", "p1": "Aduh mau makan apa ya", "p2": "ayam goreng crispy satu sama es teh manis"},
+    {
+        "id": "hes_03",
+        "p1": "Aduh mau makan apa ya",
+        "p2": "ayam goreng crispy satu sama es teh manis",
+    },
     {"id": "hes_04", "p1": "Wait a minute umm", "p2": "okay one french fries large"},
-    {"id": "hes_05", "p1": "Paket hemat burger sapi satu", "p2": "eh burgernya ganti burger keju ya"},
+    {
+        "id": "hes_05",
+        "p1": "Paket hemat burger sapi satu",
+        "p2": "eh burgernya ganti burger keju ya",
+    },
     {"id": "hes_06", "p1": "Saya mau pesan cheeseburger dua", "p2": "eh gajadi satu aja"},
-    {"id": "hes_07", "p1": "Pesan es teh manis dua", "p2": "eh gak jadi teh manisnya ganti air mineral"},
-    {"id": "hes_08", "p1": "Mau chicken wings satu porsi", "p2": "tambah kentang goreng yang large"},
+    {
+        "id": "hes_07",
+        "p1": "Pesan es teh manis dua",
+        "p2": "eh gak jadi teh manisnya ganti air mineral",
+    },
+    {
+        "id": "hes_08",
+        "p1": "Mau chicken wings satu porsi",
+        "p2": "tambah kentang goreng yang large",
+    },
     {"id": "hes_09", "p1": "Tolong double cheeseburger satu", "p2": "tanpa acar sama extra keju"},
     {"id": "hes_10", "p1": "Beli sundae cokelat satu", "p2": "sama apple pie satu ya"},
 ]
 
 KEYTERMS = [
-    "burger", "cheeseburger", "double cheeseburger", "triple cheeseburger",
-    "kentang goreng", "french fries", "ayam goreng", "crispy", "wings",
-    "nugget", "es teh manis", "kopi susu", "gula aren", "cola", "air mineral",
-    "sundae", "ice cream", "apple pie", "large", "medium", "reguler",
-    "extra cheese", "less sugar", "tanpa es", "no onions", "no pickles",
-    "paket hemat", "combo", "nasi putih", "nasi uduk", "gajadi", "batalin"
+    "burger",
+    "cheeseburger",
+    "double cheeseburger",
+    "triple cheeseburger",
+    "kentang goreng",
+    "french fries",
+    "ayam goreng",
+    "crispy",
+    "wings",
+    "nugget",
+    "es teh manis",
+    "kopi susu",
+    "gula aren",
+    "cola",
+    "air mineral",
+    "sundae",
+    "ice cream",
+    "apple pie",
+    "large",
+    "medium",
+    "reguler",
+    "extra cheese",
+    "less sugar",
+    "tanpa es",
+    "no onions",
+    "no pickles",
+    "paket hemat",
+    "combo",
+    "nasi putih",
+    "nasi uduk",
+    "gajadi",
+    "batalin",
 ]
 
 
-def bootstrap_ci_mean(data: list[float], n_resamples: int = 10000, alpha: float = 0.05) -> tuple[float, float]:
+def bootstrap_ci_mean(
+    data: list[float], n_resamples: int = 10000, alpha: float = 0.05
+) -> tuple[float, float]:
     """Compute 95% bootstrap confidence interval for the mean."""
     if not data:
         return 0.0, 0.0
     arr = np.array(data)
-    boot_means = [np.random.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_resamples)]
+    boot_means = [
+        np.random.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_resamples)
+    ]
     low = float(np.percentile(boot_means, (alpha / 2.0) * 100))
     high = float(np.percentile(boot_means, (1.0 - alpha / 2.0) * 100))
     return low, high
@@ -90,6 +154,7 @@ async def synthesize_phrase_pcm(text: str, voice: str = "id-ID-GadisNeural") -> 
             mp3_bytes += chunk["data"]
 
     import av
+
     container = av.open(io.BytesIO(mp3_bytes), format="mp3")
     resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
     all_samples: list[np.ndarray] = []
@@ -105,6 +170,7 @@ async def synthesize_phrase_pcm(text: str, voice: str = "id-ID-GadisNeural") -> 
 # ==============================================================================
 # EXPERIMENT E1: LLM Reasoning Overhead & Small Model
 # ==============================================================================
+
 
 async def run_e1_llm_benchmark(
     scenarios: list[dict[str, Any]],
@@ -132,6 +198,7 @@ async def run_e1_llm_benchmark(
         for i, scen in enumerate(scenarios, 1):
             sid = scen["id"]
             user_text = scen["utterances"][0]
+            # THROWAWAY: scoring-only cart logic from Minggu 2 spike; real cart is in packages/cart/.
             expected_cart = scen.get("expected_cart", {})
 
             # --- Config 1: Gemini Flash-Lite Default ---
@@ -140,9 +207,19 @@ async def run_e1_llm_benchmark(
             chunks1: list[str] = []
             resolved_gem = "gemini-flash-lite-latest"
             payload1 = {
-                "system_instruction": {"parts": [{"text": "Kamu kasir AI. Balas JSON format: {\"reply\": \"...\", \"intents\": [{\"type\": \"add_item\", \"name\": \"...\"}]}"}]},
+                "system_instruction": {
+                    "parts": [
+                        {
+                            "text": 'Kamu kasir AI. Balas JSON format: {"reply": "...", "intents": [{"type": "add_item", "name": "..."}]}'
+                        }
+                    ]
+                },
                 "contents": [{"role": "user", "parts": [{"text": user_text}]}],
-                "generationConfig": {"response_mime_type": "application/json", "temperature": 0.1, "maxOutputTokens": 250},
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.1,
+                    "maxOutputTokens": 250,
+                },
             }
             try:
                 async with gemini_session.post(gemini_url, json=payload1) as resp:
@@ -166,11 +243,22 @@ async def run_e1_llm_benchmark(
                 print(f"Gemini error on {sid}: {e}")
             tot1 = (time.perf_counter() - t0) * 1000.0
             full_text1 = "".join(chunks1)
-            results["gemini_flash_lite_default"].append({
-                "sid": sid, "ttft_ms": ttft1 or tot1, "first_sent_ms": first_sent1 or tot1,
-                "total_ms": tot1, "content": full_text1, "model_id": resolved_gem,
-                "accuracy": 1.0 if any(it.get("item_id") in full_text1.lower() for it in expected_cart.get("items", [])) else 0.5,
-            })
+            results["gemini_flash_lite_default"].append(
+                {
+                    "sid": sid,
+                    "ttft_ms": ttft1 or tot1,
+                    "first_sent_ms": first_sent1 or tot1,
+                    "total_ms": tot1,
+                    "content": full_text1,
+                    "model_id": resolved_gem,
+                    "accuracy": 1.0
+                    if any(
+                        it.get("item_id") in full_text1.lower()
+                        for it in expected_cart.get("items", [])
+                    )
+                    else 0.5,
+                }
+            )
             await asyncio.sleep(0.3)
 
             # --- Config 2: Groq gpt-oss-20b Default (Reasoning on) ---
@@ -181,7 +269,10 @@ async def run_e1_llm_benchmark(
                 stream2 = await groq_client.chat.completions.create(
                     model="openai/gpt-oss-20b",
                     messages=[
-                        {"role": "system", "content": "Kamu kasir AI. Balas JSON format: {\"reply\": \"...\", \"intents\": [{\"type\": \"add_item\", \"name\": \"...\"}]}"},
+                        {
+                            "role": "system",
+                            "content": 'Kamu kasir AI. Balas JSON format: {"reply": "...", "intents": [{"type": "add_item", "name": "..."}]}',
+                        },
                         {"role": "user", "content": user_text},
                     ],
                     response_format={"type": "json_object"},
@@ -202,11 +293,22 @@ async def run_e1_llm_benchmark(
                 print(f"Groq 20b default error on {sid}: {e}")
             tot2 = (time.perf_counter() - t0) * 1000.0
             full_text2 = "".join(chunks2)
-            results["groq_gpt_oss_20b_default"].append({
-                "sid": sid, "ttft_ms": ttft2 or tot2, "first_sent_ms": first_sent2 or tot2,
-                "total_ms": tot2, "content": full_text2, "model_id": "openai/gpt-oss-20b",
-                "accuracy": 1.0 if any(it.get("item_id") in full_text2.lower() for it in expected_cart.get("items", [])) else 0.5,
-            })
+            results["groq_gpt_oss_20b_default"].append(
+                {
+                    "sid": sid,
+                    "ttft_ms": ttft2 or tot2,
+                    "first_sent_ms": first_sent2 or tot2,
+                    "total_ms": tot2,
+                    "content": full_text2,
+                    "model_id": "openai/gpt-oss-20b",
+                    "accuracy": 1.0
+                    if any(
+                        it.get("item_id") in full_text2.lower()
+                        for it in expected_cart.get("items", [])
+                    )
+                    else 0.5,
+                }
+            )
             await asyncio.sleep(0.5)
 
             # --- Config 3: Groq gpt-oss-20b with reasoning_effort='low' ---
@@ -217,7 +319,10 @@ async def run_e1_llm_benchmark(
                 stream3 = await groq_client.chat.completions.create(
                     model="openai/gpt-oss-20b",
                     messages=[
-                        {"role": "system", "content": "Kamu kasir AI. Balas JSON format: {\"reply\": \"...\", \"intents\": [{\"type\": \"add_item\", \"name\": \"...\"}]}"},
+                        {
+                            "role": "system",
+                            "content": 'Kamu kasir AI. Balas JSON format: {"reply": "...", "intents": [{"type": "add_item", "name": "..."}]}',
+                        },
                         {"role": "user", "content": user_text},
                     ],
                     response_format={"type": "json_object"},
@@ -239,11 +344,22 @@ async def run_e1_llm_benchmark(
                 print(f"Groq 20b low reasoning error on {sid}: {e}")
             tot3 = (time.perf_counter() - t0) * 1000.0
             full_text3 = "".join(chunks3)
-            results["groq_gpt_oss_20b_low_reasoning"].append({
-                "sid": sid, "ttft_ms": ttft3 or tot3, "first_sent_ms": first_sent3 or tot3,
-                "total_ms": tot3, "content": full_text3, "model_id": "openai/gpt-oss-20b",
-                "accuracy": 1.0 if any(it.get("item_id") in full_text3.lower() for it in expected_cart.get("items", [])) else 0.5,
-            })
+            results["groq_gpt_oss_20b_low_reasoning"].append(
+                {
+                    "sid": sid,
+                    "ttft_ms": ttft3 or tot3,
+                    "first_sent_ms": first_sent3 or tot3,
+                    "total_ms": tot3,
+                    "content": full_text3,
+                    "model_id": "openai/gpt-oss-20b",
+                    "accuracy": 1.0
+                    if any(
+                        it.get("item_id") in full_text3.lower()
+                        for it in expected_cart.get("items", [])
+                    )
+                    else 0.5,
+                }
+            )
             await asyncio.sleep(0.5)
 
             # --- Config 4: Groq qwen/qwen3.8-27b Non-Reasoning ---
@@ -254,7 +370,10 @@ async def run_e1_llm_benchmark(
                 stream4 = await groq_client.chat.completions.create(
                     model="qwen/qwen3.8-27b",
                     messages=[
-                        {"role": "system", "content": "Kamu kasir AI. Balas JSON format: {\"reply\": \"...\", \"intents\": [{\"type\": \"add_item\", \"name\": \"...\"}]}"},
+                        {
+                            "role": "system",
+                            "content": 'Kamu kasir AI. Balas JSON format: {"reply": "...", "intents": [{"type": "add_item", "name": "..."}]}',
+                        },
                         {"role": "user", "content": user_text},
                     ],
                     response_format={"type": "json_object"},
@@ -275,11 +394,22 @@ async def run_e1_llm_benchmark(
                 print(f"Qwen 27b error on {sid}: {e}")
             tot4 = (time.perf_counter() - t0) * 1000.0
             full_text4 = "".join(chunks4)
-            results["groq_qwen_27b_non_reasoning"].append({
-                "sid": sid, "ttft_ms": ttft4 or tot4, "first_sent_ms": first_sent4 or tot4,
-                "total_ms": tot4, "content": full_text4, "model_id": "qwen/qwen3.8-27b",
-                "accuracy": 1.0 if any(it.get("item_id") in full_text4.lower() for it in expected_cart.get("items", [])) else 0.5,
-            })
+            results["groq_qwen_27b_non_reasoning"].append(
+                {
+                    "sid": sid,
+                    "ttft_ms": ttft4 or tot4,
+                    "first_sent_ms": first_sent4 or tot4,
+                    "total_ms": tot4,
+                    "content": full_text4,
+                    "model_id": "qwen/qwen3.8-27b",
+                    "accuracy": 1.0
+                    if any(
+                        it.get("item_id") in full_text4.lower()
+                        for it in expected_cart.get("items", [])
+                    )
+                    else 0.5,
+                }
+            )
 
             print(
                 f"[{i:02d}/30] {sid} | Gem: TTFT {results['gemini_flash_lite_default'][-1]['ttft_ms']:.0f}ms | "
@@ -314,6 +444,7 @@ async def run_e1_llm_benchmark(
 # ==============================================================================
 # EXPERIMENT E2: Deepgram Nova-3 Endpointing vs False Cutoff
 # ==============================================================================
+
 
 async def synthesize_hesitation_clips() -> list[dict[str, Any]]:
     """Synthesize 10 phrases with 300, 500, 800 ms mid-sentence pauses (total 30 clips)."""
@@ -350,19 +481,21 @@ async def synthesize_hesitation_clips() -> list[dict[str, Any]]:
             pause_end_s = p1_dur_s + (pause_ms / 1000.0)
             true_speech_end_s = pause_end_s + p2_dur_s
 
-            clips.append({
-                "clip_id": f"{hid}_p{pause_ms}ms",
-                "phrase_id": hid,
-                "pause_ms": pause_ms,
-                "p1_text": p1,
-                "p2_text": p2,
-                "full_text": f"{p1} ... {p2}",
-                "wav_path": str(out_wav),
-                "pause_start_s": pause_start_s,
-                "pause_end_s": pause_end_s,
-                "true_speech_end_s": true_speech_end_s,
-                "total_duration_s": len(combined_pcm) / 16000.0,
-            })
+            clips.append(
+                {
+                    "clip_id": f"{hid}_p{pause_ms}ms",
+                    "phrase_id": hid,
+                    "pause_ms": pause_ms,
+                    "p1_text": p1,
+                    "p2_text": p2,
+                    "full_text": f"{p1} ... {p2}",
+                    "wav_path": str(out_wav),
+                    "pause_start_s": pause_start_s,
+                    "pause_end_s": pause_end_s,
+                    "true_speech_end_s": true_speech_end_s,
+                    "total_duration_s": len(combined_pcm) / 16000.0,
+                }
+            )
 
     print(f"Synthesized {len(clips)} hesitation test clips in {audio_dir}")
     return clips
@@ -429,7 +562,9 @@ async def stream_nova3_with_endpointing(
                         if data.get("speech_final", False) or data.get("is_final", False):
                             tr = ""
                             try:
-                                tr = data["channel"]["alternatives"][0].get("transcript", "").strip()
+                                tr = (
+                                    data["channel"]["alternatives"][0].get("transcript", "").strip()
+                                )
                             except (KeyError, IndexError):
                                 pass
 
@@ -516,6 +651,7 @@ async def run_e2_endpointing_benchmark(
 # EXPERIMENT E3: TTS Card-Free Survey & Measurement
 # ==============================================================================
 
+
 async def run_e3_tts_survey_and_measurement(gemini_key: str) -> dict[str, Any]:
     print("\n" + "=" * 70)
     print("  [E3] TTS CARD-FREE SURVEY & MEASUREMENT")
@@ -577,7 +713,7 @@ async def run_e3_tts_survey_and_measurement(gemini_key: str) -> dict[str, Any]:
                 t0 = time.perf_counter()
                 payload = {
                     "contents": [{"role": "user", "parts": [{"text": phrase}]}],
-                    "generationConfig": {"responseModalities": ["AUDIO"]}
+                    "generationConfig": {"responseModalities": ["AUDIO"]},
                 }
                 try:
                     async with session.post(gemini_tts_url, json=payload) as resp:
@@ -589,13 +725,15 @@ async def run_e3_tts_survey_and_measurement(gemini_key: str) -> dict[str, Any]:
                             has_audio = any("inlineData" in p for p in parts)
                             if has_audio:
                                 measured_ttfb_ms.append(elapsed)
-                                print(f"  [{idx}.{run_i+1}] '{phrase[:25]}...' -> TTFB: {elapsed:.1f}ms (Full buffer, non-streaming)")
+                                print(
+                                    f"  [{idx}.{run_i + 1}] '{phrase[:25]}...' -> TTFB: {elapsed:.1f}ms (Full buffer, non-streaming)"
+                                )
                         elif resp.status == 429:
-                            print(f"  [{idx}.{run_i+1}] HTTP 429 Rate limited, skipping")
+                            print(f"  [{idx}.{run_i + 1}] HTTP 429 Rate limited, skipping")
                         else:
-                            print(f"  [{idx}.{run_i+1}] HTTP {resp.status}")
+                            print(f"  [{idx}.{run_i + 1}] HTTP {resp.status}")
                 except Exception as e:
-                    print(f"  [{idx}.{run_i+1}] Error: {e}")
+                    print(f"  [{idx}.{run_i + 1}] Error: {e}")
                 await asyncio.sleep(2.0)
 
     measurement_summary = {
@@ -617,6 +755,7 @@ async def run_e3_tts_survey_and_measurement(gemini_key: str) -> dict[str, Any]:
 # ==============================================================================
 # MAIN EXECUTION
 # ==============================================================================
+
 
 async def main() -> None:
     print("=" * 70)
@@ -662,7 +801,14 @@ async def main() -> None:
     cost_ledger_path = Path("eval/results/spikes/cost-ledger.csv")
     with open(cost_ledger_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["2026-10-19", "G1c Benchmark (E1 LLM Reasoning + E2 Endpointing Trade-off + E3 TTS Survey)", "$0.035", "$0.00"])
+        writer.writerow(
+            [
+                "2026-10-19",
+                "G1c Benchmark (E1 LLM Reasoning + E2 Endpointing Trade-off + E3 TTS Survey)",
+                "$0.035",
+                "$0.00",
+            ]
+        )
 
     print(f"\n[OK] G1c Benchmark finished successfully! Results saved to {out_file}")
 

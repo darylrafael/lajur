@@ -38,3 +38,11 @@ extraPaths = ["packages/cart/src", "services/agent/src", "."]
 addopts = ["--import-mode=importlib"]
 testpaths = ["packages/cart/tests", "services/agent/tests", "eval/tests"]
 pythonpath = ["packages/cart/src", "services/agent/src", "."]
+
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "def main\\(\\):",
+]

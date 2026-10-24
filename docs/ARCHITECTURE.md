@@ -93,3 +93,40 @@ Browser Client (Next.js 14)
    - Menyediakan instance LiveKit Server lokal mandiri (port 7880) untuk pengembangan offline di Windows / WSL tanpa bergantung kuota LiveKit Cloud.
 4. **Keputusan Hosting:**
    - Didokumentasikan dalam ADR-0009 (`docs/decisions/0009-hosting-frontend-and-worker.md`).
+
+
+---
+
+## 6. Cart State Machine & Intent Schema v1 (Minggu 3)
+
+Implementasi state machine deterministik murni dan skema intent v1 (`packages/cart`):
+
+```text
+LLM Semantic Intent Parser (Stateless, Prompt / Tool Calling)
+   │
+   └──► Proposes IntentEnvelope JSON (Discriminator: type, extra="forbid", no price fields)
+           │
+           ▼
+   apply_intent(current_state, cart, intent, menu_service, context, history, pending_choice)
+           │
+           ├─► MenuService Validation (in_stock, available_hours, size, modifiers, 20-item cap)
+           ├─► Dialog Transitions: ordering ──► awaiting_choice ──► confirming ──► done / handoff
+           ├─► Total Price Computation (Strictly integer rupiah from menu.json)
+           └─► StateMachineResult(new_state, cart, events, rejections, speech_facts, pending_choice)
+```
+
+1. **Intent Schema v1 Frozen (`packages/cart/intent.schema.json`):**
+   - Diskriminated union 12 intent Pydantic: `add_item`, `remove_item`, `modify_item`, `replace_item`, `undo_last`, `clear_cart`, `answer_choice`, `confirm`, `decline_more`, `handoff`, `ask_info`, `unknown`.
+   - Menggunakan `ConfigDict(extra="forbid")` dan tidak memiliki satupun field keuangan (`price`, `total`, `discount`), sehingga manipulasi harga oleh LLM menjadi mustahil secara konstruksi (*impossible by construction*).
+2. **Pure & Deterministic State Machine (`lajur_cart.state_machine`):**
+   - Fungsi murni `apply_intent()` mengembalikan state baru tanpa efek samping (I/O murni terpisah).
+   - Seluruh mutasi keranjang hanya dapat dipicu oleh state machine; LLM terisolasi total dari state memori maupun mutasi langsung.
+   - Mendukung riwayat multi-turn, undo per aksi, penanganan ambiguitas, dan slot paket hemat (`awaiting_choice`).
+3. **Kepatuhan Skenario 100%:**
+   - Lulus 136/136 pengujian replay dataset pada `eval/datasets/v0/gold_intents_v2.jsonl`.
+   - 100% lulus di seluruh kategori utama: *simple* (15/15), *quantity* (14/14), *modifier* (21/21), *combo* (24/24), *correction/undo* (11/11), *out_of_stock* (5/5), *breakfast* (9/9), *handoff* (8/8), *injection* (8/8).
+4. **Verifikasi Properti & Coverage:**
+   - Pengujian berbasis properti (`Hypothesis`) memverifikasi 8 invarian bisnis utama (validitas keranjang, determinisme, batas kuantitas 20, batas jam operasional, idempotensi konfirmasi, ketahanan terhadap terminal state).
+   - Mencapai 96% line coverage pada modul `packages/cart`.
+5. **Interactive REPL CLI (`python -m lajur_cart.repl`):**
+   - Memungkinkan pengujian interaktif langsung oleh manusia via CLI dengan format JSON intent atau perintah teks singkat (`add`, `remove`, `replace`, `modify`, `confirm`, `undo`).

@@ -1,0 +1,599 @@
+{
+  "$defs": {
+    "AddItemIntent": {
+      "additionalProperties": false,
+      "description": "Intent to add one or more units of an item or combo to the cart.",
+      "properties": {
+        "type": {
+          "const": "add_item",
+          "default": "add_item",
+          "title": "Type",
+          "type": "string"
+        },
+        "item_id": {
+          "description": "Canonical ID of the menu item or combo",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "quantity": {
+          "default": 1,
+          "description": "Quantity to add (minimum 1)",
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "size": {
+          "default": "regular",
+          "description": "Size variant",
+          "enum": [
+            "regular",
+            "medium",
+            "large"
+          ],
+          "title": "Size",
+          "type": "string"
+        },
+        "modifiers": {
+          "description": "List of chosen modifier option IDs",
+          "items": {
+            "type": "string"
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "slot_choices": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Combo slot_id -> chosen item_id",
+          "title": "Slot Choices",
+          "type": "object"
+        },
+        "upsell_rules": {
+          "description": "Applied combo upsell rule IDs",
+          "items": {
+            "type": "string"
+          },
+          "title": "Upsell Rules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "title": "AddItemIntent",
+      "type": "object"
+    },
+    "AnswerChoiceIntent": {
+      "additionalProperties": false,
+      "description": "Intent providing an answer to a pending choice (combo slot or required modifier).",
+      "properties": {
+        "type": {
+          "const": "answer_choice",
+          "default": "answer_choice",
+          "title": "Type",
+          "type": "string"
+        },
+        "choice_id": {
+          "description": "Chosen item_id, modifier option_id, or line_id",
+          "title": "Choice Id",
+          "type": "string"
+        },
+        "slot_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Slot ID being answered if answering a combo slot",
+          "title": "Slot Id"
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Line ID being disambiguated if resolving ambiguity",
+          "title": "Line Id"
+        }
+      },
+      "required": [
+        "choice_id"
+      ],
+      "title": "AnswerChoiceIntent",
+      "type": "object"
+    },
+    "AskInfoIntent": {
+      "additionalProperties": false,
+      "description": "Intent asking for menu, price, breakfast hours, or ingredient information.",
+      "properties": {
+        "type": {
+          "const": "ask_info",
+          "default": "ask_info",
+          "title": "Type",
+          "type": "string"
+        },
+        "query_type": {
+          "default": "general",
+          "description": "Type of question (e.g. 'operating_hours', 'ingredients', 'price', 'menu')",
+          "title": "Query Type",
+          "type": "string"
+        },
+        "target_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target item mentioned in the question",
+          "title": "Target Item Id"
+        }
+      },
+      "title": "AskInfoIntent",
+      "type": "object"
+    },
+    "ClearCartIntent": {
+      "additionalProperties": false,
+      "description": "Intent to empty all items from the current cart.",
+      "properties": {
+        "type": {
+          "const": "clear_cart",
+          "default": "clear_cart",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "ClearCartIntent",
+      "type": "object"
+    },
+    "ConfirmIntent": {
+      "additionalProperties": false,
+      "description": "Intent confirming the order is complete and ready for checkout.",
+      "properties": {
+        "type": {
+          "const": "confirm",
+          "default": "confirm",
+          "title": "Type",
+          "type": "string"
+        },
+        "payment_method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional payment method mentioned by customer",
+          "title": "Payment Method"
+        }
+      },
+      "title": "ConfirmIntent",
+      "type": "object"
+    },
+    "DeclineMoreIntent": {
+      "additionalProperties": false,
+      "description": "Intent declining further items or upsell offers (e.g. 'itu aja', 'cukup').",
+      "properties": {
+        "type": {
+          "const": "decline_more",
+          "default": "decline_more",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "DeclineMoreIntent",
+      "type": "object"
+    },
+    "HandoffIntent": {
+      "additionalProperties": false,
+      "description": "Intent requesting immediate escalation to a human drive-thru crew member.",
+      "properties": {
+        "type": {
+          "const": "handoff",
+          "default": "handoff",
+          "title": "Type",
+          "type": "string"
+        },
+        "reason": {
+          "default": "customer_requested",
+          "description": "Reason for transferring to human",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "title": "HandoffIntent",
+      "type": "object"
+    },
+    "ModifyItemIntent": {
+      "additionalProperties": false,
+      "description": "Intent to modify size, modifiers, or quantity of an existing cart line.",
+      "properties": {
+        "type": {
+          "const": "modify_item",
+          "default": "modify_item",
+          "title": "Type",
+          "type": "string"
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target cart line_id to modify",
+          "title": "Line Id"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target item_id if line_id is not specified",
+          "title": "Item Id"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New quantity if changing quantity",
+          "title": "Quantity"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "enum": [
+                "regular",
+                "medium",
+                "large"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New size variant if changing size",
+          "title": "Size"
+        },
+        "add_modifiers": {
+          "description": "Modifier option IDs to add",
+          "items": {
+            "type": "string"
+          },
+          "title": "Add Modifiers",
+          "type": "array"
+        },
+        "remove_modifiers": {
+          "description": "Modifier option IDs to remove",
+          "items": {
+            "type": "string"
+          },
+          "title": "Remove Modifiers",
+          "type": "array"
+        },
+        "slot_choices": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Combo slot_id -> new chosen item_id",
+          "title": "Slot Choices",
+          "type": "object"
+        },
+        "add_upsell_rules": {
+          "description": "Combo upsell rule IDs to apply",
+          "items": {
+            "type": "string"
+          },
+          "title": "Add Upsell Rules",
+          "type": "array"
+        },
+        "remove_upsell_rules": {
+          "description": "Combo upsell rule IDs to remove",
+          "items": {
+            "type": "string"
+          },
+          "title": "Remove Upsell Rules",
+          "type": "array"
+        }
+      },
+      "title": "ModifyItemIntent",
+      "type": "object"
+    },
+    "RemoveItemIntent": {
+      "additionalProperties": false,
+      "description": "Intent to remove an item or reduce its quantity.",
+      "properties": {
+        "type": {
+          "const": "remove_item",
+          "default": "remove_item",
+          "title": "Type",
+          "type": "string"
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Specific cart line_id to remove from",
+          "title": "Line Id"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Item ID to match if line_id is not specified",
+          "title": "Item Id"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Quantity to remove. If None or >= line quantity, removes the whole line.",
+          "title": "Quantity"
+        }
+      },
+      "title": "RemoveItemIntent",
+      "type": "object"
+    },
+    "ReplaceItemIntent": {
+      "additionalProperties": false,
+      "description": "Intent to swap an existing cart line with a different menu item.",
+      "properties": {
+        "type": {
+          "const": "replace_item",
+          "default": "replace_item",
+          "title": "Type",
+          "type": "string"
+        },
+        "target_line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cart line_id of the item being replaced",
+          "title": "Target Line Id"
+        },
+        "target_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Item ID of the item being replaced if line_id not specified",
+          "title": "Target Item Id"
+        },
+        "replacement_item_id": {
+          "description": "Canonical ID of the replacement menu item",
+          "title": "Replacement Item Id",
+          "type": "string"
+        },
+        "quantity": {
+          "default": 1,
+          "description": "Quantity for the replacement item",
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "size": {
+          "default": "regular",
+          "description": "Size variant for replacement item",
+          "enum": [
+            "regular",
+            "medium",
+            "large"
+          ],
+          "title": "Size",
+          "type": "string"
+        },
+        "modifiers": {
+          "description": "Modifiers for replacement item",
+          "items": {
+            "type": "string"
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "slot_choices": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Combo slots if replacement is a combo",
+          "title": "Slot Choices",
+          "type": "object"
+        },
+        "upsell_rules": {
+          "description": "Combo upsell rule IDs if replacement is a combo",
+          "items": {
+            "type": "string"
+          },
+          "title": "Upsell Rules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "replacement_item_id"
+      ],
+      "title": "ReplaceItemIntent",
+      "type": "object"
+    },
+    "UndoLastIntent": {
+      "additionalProperties": false,
+      "description": "Intent to undo the last conversational ordering action.",
+      "properties": {
+        "type": {
+          "const": "undo_last",
+          "default": "undo_last",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "UndoLastIntent",
+      "type": "object"
+    },
+    "UnknownIntent": {
+      "additionalProperties": false,
+      "description": "Fallback intent when utterance is unparseable, out-of-domain, or chit-chat.",
+      "properties": {
+        "type": {
+          "const": "unknown",
+          "default": "unknown",
+          "title": "Type",
+          "type": "string"
+        },
+        "raw_text": {
+          "default": "",
+          "description": "Raw transcript of the utterance",
+          "title": "Raw Text",
+          "type": "string"
+        },
+        "reason": {
+          "default": "unrecognized",
+          "description": "Reason why intent could not be parsed",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "title": "UnknownIntent",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Top-level envelope returned by the semantic intent parser.",
+  "properties": {
+    "intents": {
+      "description": "Sequence of structured intents parsed from utterance",
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "add_item": "#/$defs/AddItemIntent",
+            "answer_choice": "#/$defs/AnswerChoiceIntent",
+            "ask_info": "#/$defs/AskInfoIntent",
+            "clear_cart": "#/$defs/ClearCartIntent",
+            "confirm": "#/$defs/ConfirmIntent",
+            "decline_more": "#/$defs/DeclineMoreIntent",
+            "handoff": "#/$defs/HandoffIntent",
+            "modify_item": "#/$defs/ModifyItemIntent",
+            "remove_item": "#/$defs/RemoveItemIntent",
+            "replace_item": "#/$defs/ReplaceItemIntent",
+            "undo_last": "#/$defs/UndoLastIntent",
+            "unknown": "#/$defs/UnknownIntent"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/AddItemIntent"
+          },
+          {
+            "$ref": "#/$defs/RemoveItemIntent"
+          },
+          {
+            "$ref": "#/$defs/ModifyItemIntent"
+          },
+          {
+            "$ref": "#/$defs/ReplaceItemIntent"
+          },
+          {
+            "$ref": "#/$defs/UndoLastIntent"
+          },
+          {
+            "$ref": "#/$defs/ClearCartIntent"
+          },
+          {
+            "$ref": "#/$defs/AnswerChoiceIntent"
+          },
+          {
+            "$ref": "#/$defs/ConfirmIntent"
+          },
+          {
+            "$ref": "#/$defs/DeclineMoreIntent"
+          },
+          {
+            "$ref": "#/$defs/HandoffIntent"
+          },
+          {
+            "$ref": "#/$defs/AskInfoIntent"
+          },
+          {
+            "$ref": "#/$defs/UnknownIntent"
+          }
+        ]
+      },
+      "title": "Intents",
+      "type": "array"
+    },
+    "customer_language": {
+      "default": "id",
+      "description": "Detected language blend",
+      "enum": [
+        "id",
+        "en",
+        "mixed"
+      ],
+      "title": "Customer Language",
+      "type": "string"
+    }
+  },
+  "title": "IntentEnvelope",
+  "type": "object"
+}

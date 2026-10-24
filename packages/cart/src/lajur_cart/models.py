@@ -88,6 +88,7 @@ class Combo(BaseModel):
 class CartLine(BaseModel):
     """Single line item within a customer's shopping cart."""
 
+    line_id: str = Field(default="", description="Unique identifier for line item in cart")
     item_id: str
     quantity: int = Field(default=1, ge=1, description="Quantity ordered")
     size: Literal["regular", "medium", "large"] = "regular"
