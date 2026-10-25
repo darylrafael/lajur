@@ -67,3 +67,14 @@ Di mana:
    - Pemilik proyek (Daryl) secara resmi memilih **Opsi B** (Revisi SLO berbasis UX interkom drive-thru).
    - Angka target baru ditetapkan oleh Daryl berdasarkan kenyamanan pacing interkom drive-thru (misal: P50 $\le 1.8\text{ s}$ atau $\le 2.0\text{ s}$) sebelum pengoptimalan lebih lanjut.
    - PRD §4.5 dan PROJECT_PLAN §3.2 & §4.5 diperbarui secara formal untuk mencerminkan SLO baru.
+
+
+---
+
+## 5. Owner Fallback Target
+
+*Target ini ditetapkan secara resmi oleh pemilik proyek (Daryl) pada Minggu 4 sebelum putaran pengukuran dijalankan, dan hanya berlaku jika median (P50) latensi end-to-end hasil pengukuran meleset dari ambang batas 1.2 s (mengaktifkan Opsi B per ADR-0013).*
+
+- **Target Angka Fallback:** **P50 $\le 1.8\text{ s}$ AND P95 $\le 3.0\text{ s}$**, diukur dari akhir ucapan pengguna (*end of speech*) hingga paket audio pertama dari balasan bot (*first audio of the reply*).
+- **Justifikasi Berbasis Pengalaman Pengguna (User Experience):**  
+  > *"in a drive-thru speaker box I expect a short beat while the order is registered, and I care more that I was heard than that the reply is instant. I accept up to 1.8 s for the spoken reply as long as a live transcript shows while I speak, so I know I was heard, and the cart on screen updates when the intent is applied. In my judgment, beyond about 3 s at the tail people start repeating themselves or talking over the bot, which breaks turn-taking. If the median exceeds 1.8 s, I will treat the latency claim as failed and re-scope, not raise the number again."*

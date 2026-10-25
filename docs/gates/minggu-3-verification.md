@@ -84,9 +84,13 @@ Sesuai instruksi dan audit teknis objektif, klaim-klaim dari Minggu 3 direlabel 
 
 ---
 
-## 5. Audit & Spot-Check 20 Seeded Gold Intent Labels
+## 5. Agent Audit of v1 (Superseded) — 20 Seeded Gold Intent Labels
 
-Pemeriksaan mendalam terhadap 20 skenario terindeks pada `eval/datasets/v0/gold_intents.jsonl` (seeded seed=42 dari `docs/spikes/week-02-human-checklist.md`):
+> [!IMPORTANT]
+> **Status Label:** Bagian ini adalah **agent audit of v1 (superseded)** terhadap file lama `eval/datasets/v0/gold_intents.jsonl` dari daftar spot-check Minggu 2. Ini **BUKAN** review dari pemilik proyek (*human review*).
+> **Status Review Pemilik Proyek:** Review pemilik terhadap 20 label pada `gold_intents_v2.jsonl` berstatus **PENDING**. Seluruh label v2 berstatus **unverified: agent-authored** dan tidak boleh digunakan untuk klaim akurasi model sebelum review manusia tuntas.
+
+Pemeriksaan otomatis oleh agen terhadap 20 skenario terindeks pada `eval/datasets/v0/gold_intents.jsonl` (seeded seed=42 dari `docs/spikes/week-02-human-checklist.md`):
 
 | No | Scenario ID | Utterance Pelanggan | Evaluasi Label Intent v0 | Status | Catatan Temuan Teknis |
 |:---:|---|---|---|:---:|---|

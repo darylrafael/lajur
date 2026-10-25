@@ -317,7 +317,13 @@ Evaluasi dijalankan pada 60 skenario bertingkat menggunakan format prompt produk
 | **Groq GPT-OSS-20b (`effort="low"`)** | 616,6 ms | 617,8 ms | **56,7%** | **56,7%** | 80,0% | 63,2% | 66,7% | 0,0% (Cart: 9,1%) |
 | **Groq Qwen-27b Non-Reasoning** | **419,1 ms** | **420,4 ms** | **73,3%** | **76,7%** | 80,0% | 89,5% | **100,0%** | 0,0% (Cart: 18,2%) |
 
-*\*Catatan Audit Penting:*
+*\*Catatan Audit Kritis terhadap Akurasi Minggu 2:*
+> [!CAUTION]
+> **Peringatan Integritas Akurasi Model:**
+> 1. **Angka Akurasi Intent 73,3% Tidak Andal (*Unreliable*):** Evaluasi akurasi level intent di Minggu 2 menggunakan label v1 (`gold_intents.jsonl`) yang memiliki enkripsi koreksi/undo yang lemah dan cacat (hasil audit internal agen menemukan 5 dari 20 sampel salah). Oleh karena itu, angka 73,3% tidak andal dan **TIDAK BOLEH dikutip sebagai ukuran kualitas pemahaman model LLM**.
+> 2. **Akurasi Level Keranjang (Cart-Level Accuracy) Bergantung pada Label Sintetis:** Akurasi level keranjang dihitung terhadap `expected_cart` yang dihasilkan secara otomatis oleh skrip agen awal dan belum melalui review manusia menyeluruh (*not human-reviewed*). Jangan mengutip metrik ini sebagai ukuran kualitas produksi.
+> 3. **Catatan Perubahan pada File v1:** Pada awal Minggu 4 (commit `073c1df`), agen memperbaiki 5 record yang cacat pada v1 (`scen_051` upsize, `scen_058` slot/no-ice, `scen_071` multi-turn replace, `scen_072` decrement, `scen_130` slot). Seluruh angka benchmark Minggu 2 di atas dihitung menggunakan versi awal file v1 sebelum perbaikan tersebut (versi awal tetap tersimpan dan dapat diaudit pada riwayat git).
+
 1. **Caveat Kategori Correction/Undo:** Nilai Intent Accuracy 0.0% pada kategori koreksi terjadi karena skrip pembuat gold label awal (`generate_gold_intents.py`) secara otomatis menghasilkan intent sintetis `{"type": "undo", "params": {"steps": 1}}` pada skenario yang bertag koreksi. Sebaliknya, model bahasa secara alami langsung memancarkan item akhir yang diinginkan pelanggan (misal: "eh ganti burger keju" menghasilkan `add_item: burger_keju`). Pada level resulting cart, state machine mampu menangkap 18.2% dari kondisi ini.
 2. **Lonjakan TTFT Gemini Flash-Lite:** Angka P50 7.303 ms terjadi akibat *rate-limit queueing delay* pada endpoint gratis Google AI Studio saat menerima beban 60 giliran berturut-turut. Pada pengujian giliran tunggal terisolasi, warm TTFT tetap berada di kisaran ~794 ms.
 3. **Keunggulan Groq Qwen-27b:** Menghasilkan akurasi keranjang tertinggi (**76,7%**) sejajar dengan Gemini, dengan latensi TTFT ultra-cepat (**419,1 ms**) dan kepatuhan JSON yang sangat tinggi tanpa kegagalan format.
