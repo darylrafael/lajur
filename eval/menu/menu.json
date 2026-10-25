@@ -280,7 +280,9 @@
         "burger sapi",
         "beef burger",
         "single burger",
-        "hamburger"
+        "hamburger",
+        "single beef burger",
+        "single beef burgers"
       ],
       "price": 22000,
       "sizes": [],
@@ -427,7 +429,9 @@
       "aliases": [
         "ayam pedas",
         "spicy chicken",
-        "ayam spicy"
+        "ayam spicy",
+        "spicy fried chicken",
+        "fried chicken spicy"
       ],
       "price": 22000,
       "sizes": [],
@@ -462,7 +466,9 @@
         "nugget 6 pcs",
         "chicken nuggets 6",
         "naget 6",
-        "nuggets isi 6"
+        "nuggets isi 6",
+        "nugget ayam isi 6",
+        "nugget ayam yang isi 6"
       ],
       "price": 28000,
       "sizes": [],
@@ -481,7 +487,8 @@
         "nugget 9 pcs",
         "chicken nuggets 9",
         "naget 9",
-        "nuggets isi 9"
+        "nuggets isi 9",
+        "9 pcs chicken nuggets"
       ],
       "price": 38000,
       "sizes": [],
@@ -567,7 +574,8 @@
       "aliases": [
         "egg muffin",
         "muffin telur",
-        "muffin keju"
+        "muffin keju",
+        "egg and cheese muffin"
       ],
       "price": 24000,
       "sizes": [],
@@ -621,7 +629,8 @@
       "aliases": [
         "bubur spesial",
         "bubur ayam telur",
-        "special porridge"
+        "special porridge",
+        "bubur ayam spesial"
       ],
       "price": 24000,
       "sizes": [],
@@ -860,7 +869,8 @@
         "coca cola",
         "kola",
         "cola",
-        "soda"
+        "soda",
+        "colas"
       ],
       "price": 12000,
       "sizes": [
@@ -978,7 +988,8 @@
         "palm sugar latte",
         "kopi susu aren",
         "iced latte",
-        "kopsus"
+        "kopsus",
+        "kopi susu gula aren"
       ],
       "price": 19000,
       "sizes": [
@@ -1079,7 +1090,8 @@
         "es krim cone",
         "ice cream cone",
         "es krim vanila",
-        "soft serve"
+        "soft serve",
+        "vanilla cone"
       ],
       "price": 9000,
       "sizes": [],
@@ -1159,7 +1171,8 @@
       "aliases": [
         "lava cake",
         "kue cokelat",
-        "molten cake"
+        "molten cake",
+        "molten chocolate cake"
       ],
       "price": 19000,
       "sizes": [],
@@ -1177,7 +1190,8 @@
         "paket burger tunggal",
         "paket hemat 1",
         "combo burger tunggal",
-        "single burger combo"
+        "single burger combo",
+        "paket hemat burger tunggal"
       ],
       "base_price": 39000,
       "available_hours": "regular",
@@ -1235,7 +1249,8 @@
         "paket burger ganda",
         "double cheese combo",
         "paket hemat 2",
-        "combo double cheeseburger"
+        "combo double cheeseburger",
+        "paket hemat burger ganda"
       ],
       "base_price": 53000,
       "available_hours": "regular",
@@ -1292,7 +1307,10 @@
         "paket ayam 1",
         "paket hemat ayam",
         "1 pc chicken meal",
-        "combo ayam satu"
+        "combo ayam satu",
+        "paket ayam satu potong",
+        "paket ayam spicy satu potong",
+        "paket hemat ayam satu potong"
       ],
       "base_price": 34000,
       "available_hours": "regular",
@@ -1351,7 +1369,9 @@
         "paket ayam 2",
         "paket hemat ayam 2",
         "2 pcs chicken meal",
-        "combo ayam dua"
+        "combo ayam dua",
+        "paket hemat ayam dua potong",
+        "paket ayam dua potong"
       ],
       "base_price": 49000,
       "available_hours": "regular",

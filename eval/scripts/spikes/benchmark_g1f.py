@@ -35,43 +35,133 @@ load_dotenv()
 
 SELECTED_60_SIDS = [
     # correction / undo (11)
-    "scen_071", "scen_072", "scen_073", "scen_074", "scen_075",
-    "scen_076", "scen_077", "scen_078", "scen_079", "scen_080", "scen_134",
+    "scen_071",
+    "scen_072",
+    "scen_073",
+    "scen_074",
+    "scen_075",
+    "scen_076",
+    "scen_077",
+    "scen_078",
+    "scen_079",
+    "scen_080",
+    "scen_134",
     # modifiers & sizes (15)
-    "scen_026", "scen_027", "scen_028", "scen_029", "scen_030",
-    "scen_031", "scen_032", "scen_033", "scen_034", "scen_035",
-    "scen_036", "scen_037", "scen_038", "scen_039", "scen_040",
+    "scen_026",
+    "scen_027",
+    "scen_028",
+    "scen_029",
+    "scen_030",
+    "scen_031",
+    "scen_032",
+    "scen_033",
+    "scen_034",
+    "scen_035",
+    "scen_036",
+    "scen_037",
+    "scen_038",
+    "scen_039",
+    "scen_040",
     # quantity & combo (15)
-    "scen_016", "scen_017", "scen_018", "scen_019", "scen_020",
-    "scen_021", "scen_022", "scen_023", "scen_024", "scen_025",
-    "scen_041", "scen_042", "scen_043", "scen_044", "scen_045",
+    "scen_016",
+    "scen_017",
+    "scen_018",
+    "scen_019",
+    "scen_020",
+    "scen_021",
+    "scen_022",
+    "scen_023",
+    "scen_024",
+    "scen_025",
+    "scen_041",
+    "scen_042",
+    "scen_043",
+    "scen_044",
+    "scen_045",
     # simple (19)
-    "scen_001", "scen_002", "scen_003", "scen_004", "scen_005",
-    "scen_006", "scen_007", "scen_008", "scen_009", "scen_010",
-    "scen_011", "scen_012", "scen_013", "scen_014", "scen_015",
-    "scen_046", "scen_047", "scen_048", "scen_049"
+    "scen_001",
+    "scen_002",
+    "scen_003",
+    "scen_004",
+    "scen_005",
+    "scen_006",
+    "scen_007",
+    "scen_008",
+    "scen_009",
+    "scen_010",
+    "scen_011",
+    "scen_012",
+    "scen_013",
+    "scen_014",
+    "scen_015",
+    "scen_046",
+    "scen_047",
+    "scen_048",
+    "scen_049",
 ]
 
 HESITATION_PHRASES = [
     {"id": "hes_01", "p1": "Mau burger sapi satu", "p2": "sama cola dingin"},
     {"id": "hes_02", "p1": "Emmm apa ya sebentar", "p2": "mau burger sapi keju satu deh"},
-    {"id": "hes_03", "p1": "Aduh mau makan apa ya", "p2": "ayam goreng crispy satu sama es teh manis"},
+    {
+        "id": "hes_03",
+        "p1": "Aduh mau makan apa ya",
+        "p2": "ayam goreng crispy satu sama es teh manis",
+    },
     {"id": "hes_04", "p1": "Wait a minute umm", "p2": "okay one french fries large"},
-    {"id": "hes_05", "p1": "Paket hemat burger sapi satu", "p2": "eh burgernya ganti burger keju ya"},
+    {
+        "id": "hes_05",
+        "p1": "Paket hemat burger sapi satu",
+        "p2": "eh burgernya ganti burger keju ya",
+    },
     {"id": "hes_06", "p1": "Saya mau pesan cheeseburger dua", "p2": "eh gajadi satu aja"},
-    {"id": "hes_07", "p1": "Pesan es teh manis dua", "p2": "eh gak jadi teh manisnya ganti air mineral"},
-    {"id": "hes_08", "p1": "Mau chicken wings satu porsi", "p2": "tambah kentang goreng yang large"},
+    {
+        "id": "hes_07",
+        "p1": "Pesan es teh manis dua",
+        "p2": "eh gak jadi teh manisnya ganti air mineral",
+    },
+    {
+        "id": "hes_08",
+        "p1": "Mau chicken wings satu porsi",
+        "p2": "tambah kentang goreng yang large",
+    },
     {"id": "hes_09", "p1": "Tolong double cheeseburger satu", "p2": "tanpa acar sama extra keju"},
     {"id": "hes_10", "p1": "Beli sundae cokelat satu", "p2": "sama apple pie satu ya"},
 ]
 
 KEYTERMS = [
-    "burger", "cheeseburger", "double cheeseburger", "triple cheeseburger",
-    "kentang goreng", "french fries", "ayam goreng", "crispy", "wings",
-    "nugget", "es teh manis", "kopi susu", "gula aren", "cola", "air mineral",
-    "sundae", "ice cream", "apple pie", "large", "medium", "reguler",
-    "extra cheese", "less sugar", "tanpa es", "no onions", "no pickles",
-    "paket hemat", "combo", "nasi putih", "nasi uduk", "gajadi", "batalin"
+    "burger",
+    "cheeseburger",
+    "double cheeseburger",
+    "triple cheeseburger",
+    "kentang goreng",
+    "french fries",
+    "ayam goreng",
+    "crispy",
+    "wings",
+    "nugget",
+    "es teh manis",
+    "kopi susu",
+    "gula aren",
+    "cola",
+    "air mineral",
+    "sundae",
+    "ice cream",
+    "apple pie",
+    "large",
+    "medium",
+    "reguler",
+    "extra cheese",
+    "less sugar",
+    "tanpa es",
+    "no onions",
+    "no pickles",
+    "paket hemat",
+    "combo",
+    "nasi putih",
+    "nasi uduk",
+    "gajadi",
+    "batalin",
 ]
 
 PRODUCTION_SYSTEM_INSTRUCTION = """
@@ -138,15 +228,19 @@ BOT_REPLY_PHRASES_30 = [
     "Baik, double cheeseburger tanpa acar sudah dicatat.",
     "Apakah pesanannya sudah lengkap kak?",
     "Pesanan Anda sedang diproses oleh dapur.",
-    "Selamat datang di Lajur, mau pesan apa hari ini?"
+    "Selamat datang di Lajur, mau pesan apa hari ini?",
 ]
 
 
-def bootstrap_ci_mean(data: list[float], n_resamples: int = 10000, alpha: float = 0.05) -> tuple[float, float]:
+def bootstrap_ci_mean(
+    data: list[float], n_resamples: int = 10000, alpha: float = 0.05
+) -> tuple[float, float]:
     if not data:
         return 0.0, 0.0
     arr = np.array(data)
-    boot_means = [np.random.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_resamples)]
+    boot_means = [
+        np.random.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_resamples)
+    ]
     low = float(np.percentile(boot_means, (alpha / 2.0) * 100))
     high = float(np.percentile(boot_means, (1.0 - alpha / 2.0) * 100))
     return low, high
@@ -160,6 +254,7 @@ async def synthesize_phrase_pcm(text: str, voice: str = "id-ID-GadisNeural") -> 
             mp3_bytes += chunk["data"]
 
     import av
+
     container = av.open(io.BytesIO(mp3_bytes), format="mp3")
     resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
     all_samples: list[np.ndarray] = []
@@ -176,6 +271,8 @@ async def synthesize_phrase_pcm(text: str, voice: str = "id-ID-GadisNeural") -> 
 # TASK 1: INTENT & RESULTING-CART ACCURACY BENCHMARK (60 TURNS, INTERLEAVED)
 # ==============================================================================
 
+
+# THROWAWAY: scoring-only cart logic from Minggu 2 spike; real cart is in packages/cart/.
 def evaluate_intent_and_cart(
     extracted_json: dict[str, Any],
     gold_entry: dict[str, Any],
@@ -209,8 +306,20 @@ def evaluate_intent_and_cart(
                 # Check resolved item ID or name
                 raw_id = m_params.get("item_id", "")
                 raw_name = m_params.get("name", "")
-                resolved = menu_service.get_item_or_combo(raw_id) or menu_service.resolve_alias(raw_name) or menu_service.resolve_alias(raw_id)
-                resolved_id = resolved.id if resolved else (raw_id if raw_id in menu_service.items or raw_id in menu_service.combos else "")
+                resolved = (
+                    menu_service.get_item_or_combo(raw_id)
+                    or menu_service.resolve_alias(raw_name)
+                    or menu_service.resolve_alias(raw_id)
+                )
+                resolved_id = (
+                    resolved.id
+                    if resolved
+                    else (
+                        raw_id
+                        if raw_id in menu_service.items or raw_id in menu_service.combos
+                        else ""
+                    )
+                )
 
                 gold_id = g_params.get("item_id", "")
                 gold_qty = g_params.get("quantity", 1)
@@ -231,13 +340,19 @@ def evaluate_intent_and_cart(
             p = it.get("params", {})
             raw_id = p.get("item_id", "")
             raw_name = p.get("name", "")
-            resolved = menu_service.get_item_or_combo(raw_id) or menu_service.resolve_alias(raw_name) or menu_service.resolve_alias(raw_id)
+            resolved = (
+                menu_service.get_item_or_combo(raw_id)
+                or menu_service.resolve_alias(raw_name)
+                or menu_service.resolve_alias(raw_id)
+            )
             item_id = resolved.id if resolved else raw_id
-            built_items.append({
-                "item_id": item_id,
-                "quantity": p.get("quantity", 1),
-                "size": p.get("size", "regular") or "regular",
-            })
+            built_items.append(
+                {
+                    "item_id": item_id,
+                    "quantity": p.get("quantity", 1),
+                    "size": p.get("size", "regular") or "regular",
+                }
+            )
         elif it.get("type") == "undo":
             if built_items:
                 built_items.pop()
@@ -346,11 +461,19 @@ async def run_task1_llm_benchmark(
             except Exception:
                 pass
             im1, cm1, _ = evaluate_intent_and_cart(parsed1, gold_entry, scen, menu_service)
-            results["gemini_flash_lite_default"].append({
-                "sid": sid, "category": cat, "ttft_ms": ttft1 or tot1, "total_ms": tot1,
-                "first_sent_ms": first_sent1 or tot1, "intent_match": im1, "cart_match": cm1,
-                "raw_json": parsed1, "model_id": resolved_gem,
-            })
+            results["gemini_flash_lite_default"].append(
+                {
+                    "sid": sid,
+                    "category": cat,
+                    "ttft_ms": ttft1 or tot1,
+                    "total_ms": tot1,
+                    "first_sent_ms": first_sent1 or tot1,
+                    "intent_match": im1,
+                    "cart_match": cm1,
+                    "raw_json": parsed1,
+                    "model_id": resolved_gem,
+                }
+            )
             await asyncio.sleep(0.3)
 
             # -------------------------------------------------------------
@@ -390,11 +513,19 @@ async def run_task1_llm_benchmark(
             except Exception:
                 pass
             im2, cm2, _ = evaluate_intent_and_cart(parsed2, gold_entry, scen, menu_service)
-            results["groq_gpt_oss_20b_default"].append({
-                "sid": sid, "category": cat, "ttft_ms": ttft2 or tot2, "total_ms": tot2,
-                "first_sent_ms": first_sent2 or tot2, "intent_match": im2, "cart_match": cm2,
-                "raw_json": parsed2, "model_id": "openai/gpt-oss-20b",
-            })
+            results["groq_gpt_oss_20b_default"].append(
+                {
+                    "sid": sid,
+                    "category": cat,
+                    "ttft_ms": ttft2 or tot2,
+                    "total_ms": tot2,
+                    "first_sent_ms": first_sent2 or tot2,
+                    "intent_match": im2,
+                    "cart_match": cm2,
+                    "raw_json": parsed2,
+                    "model_id": "openai/gpt-oss-20b",
+                }
+            )
             await asyncio.sleep(0.4)
 
             # -------------------------------------------------------------
@@ -435,11 +566,19 @@ async def run_task1_llm_benchmark(
             except Exception:
                 pass
             im3, cm3, _ = evaluate_intent_and_cart(parsed3, gold_entry, scen, menu_service)
-            results["groq_gpt_oss_20b_low_reasoning"].append({
-                "sid": sid, "category": cat, "ttft_ms": ttft3 or tot3, "total_ms": tot3,
-                "first_sent_ms": first_sent3 or tot3, "intent_match": im3, "cart_match": cm3,
-                "raw_json": parsed3, "model_id": "openai/gpt-oss-20b",
-            })
+            results["groq_gpt_oss_20b_low_reasoning"].append(
+                {
+                    "sid": sid,
+                    "category": cat,
+                    "ttft_ms": ttft3 or tot3,
+                    "total_ms": tot3,
+                    "first_sent_ms": first_sent3 or tot3,
+                    "intent_match": im3,
+                    "cart_match": cm3,
+                    "raw_json": parsed3,
+                    "model_id": "openai/gpt-oss-20b",
+                }
+            )
             await asyncio.sleep(0.4)
 
             # -------------------------------------------------------------
@@ -479,11 +618,19 @@ async def run_task1_llm_benchmark(
             except Exception:
                 pass
             im4, cm4, _ = evaluate_intent_and_cart(parsed4, gold_entry, scen, menu_service)
-            results["groq_qwen_27b_non_reasoning"].append({
-                "sid": sid, "category": cat, "ttft_ms": ttft4 or tot4, "total_ms": tot4,
-                "first_sent_ms": first_sent4 or tot4, "intent_match": im4, "cart_match": cm4,
-                "raw_json": parsed4, "model_id": "qwen/qwen3.8-27b",
-            })
+            results["groq_qwen_27b_non_reasoning"].append(
+                {
+                    "sid": sid,
+                    "category": cat,
+                    "ttft_ms": ttft4 or tot4,
+                    "total_ms": tot4,
+                    "first_sent_ms": first_sent4 or tot4,
+                    "intent_match": im4,
+                    "cart_match": cm4,
+                    "raw_json": parsed4,
+                    "model_id": "qwen/qwen3.8-27b",
+                }
+            )
 
             print(
                 f"[{idx:02d}/60] {sid} ({cat}) | "
@@ -508,8 +655,10 @@ async def run_task1_llm_benchmark(
             if c_runs:
                 per_cat[c] = {
                     "count": len(c_runs),
-                    "intent_acc_pct": (sum(1 for r in c_runs if r["intent_match"]) / len(c_runs)) * 100.0,
-                    "cart_acc_pct": (sum(1 for r in c_runs if r["cart_match"]) / len(c_runs)) * 100.0,
+                    "intent_acc_pct": (sum(1 for r in c_runs if r["intent_match"]) / len(c_runs))
+                    * 100.0,
+                    "cart_acc_pct": (sum(1 for r in c_runs if r["cart_match"]) / len(c_runs))
+                    * 100.0,
                 }
 
         summary[cfg] = {
@@ -531,6 +680,7 @@ async def run_task1_llm_benchmark(
 # ==============================================================================
 # TASK 3: ENDPOINTING LATENCY & FALSE CUTOFF REDO (WITH TRAILING SILENCE)
 # ==============================================================================
+
 
 async def prepare_hesitation_clips_with_silence() -> list[dict[str, Any]]:
     audio_dir = Path("eval/audio/synthetic/g1f_hesitation")
@@ -567,18 +717,20 @@ async def prepare_hesitation_clips_with_silence() -> list[dict[str, Any]]:
             pause_end_s = p1_dur_s + (pause_ms / 1000.0)
             true_speech_end_s = pause_end_s + p2_dur_s
 
-            clips.append({
-                "clip_id": f"{hid}_p{pause_ms}ms",
-                "phrase_id": hid,
-                "pause_ms": pause_ms,
-                "p1_text": p1,
-                "p2_text": p2,
-                "wav_path": str(out_wav),
-                "pause_start_s": pause_start_s,
-                "pause_end_s": pause_end_s,
-                "true_speech_end_s": true_speech_end_s,
-                "total_duration_s": len(full_pcm) / 16000.0,
-            })
+            clips.append(
+                {
+                    "clip_id": f"{hid}_p{pause_ms}ms",
+                    "phrase_id": hid,
+                    "pause_ms": pause_ms,
+                    "p1_text": p1,
+                    "p2_text": p2,
+                    "wav_path": str(out_wav),
+                    "pause_start_s": pause_start_s,
+                    "pause_end_s": pause_end_s,
+                    "true_speech_end_s": true_speech_end_s,
+                    "total_duration_s": len(full_pcm) / 16000.0,
+                }
+            )
     return clips
 
 
@@ -614,6 +766,7 @@ async def stream_nova3_endpointing_redo(
 
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(url, headers=headers) as ws:
+
             async def sender() -> None:
                 nonlocal t_speech_end_sent
                 for i, chunk in enumerate(chunks):
@@ -641,16 +794,20 @@ async def stream_nova3_endpointing_redo(
                         if data.get("speech_final", False) or data.get("is_final", False):
                             tr = ""
                             try:
-                                tr = data["channel"]["alternatives"][0].get("transcript", "").strip()
+                                tr = (
+                                    data["channel"]["alternatives"][0].get("transcript", "").strip()
+                                )
                             except (KeyError, IndexError):
                                 pass
                             if tr:
                                 speech_final_times.append(t_now)
-                                all_events.append({
-                                    "t_event_rel_ms": stream_elapsed * 1000.0,
-                                    "transcript": tr,
-                                    "speech_final": data.get("speech_final", False),
-                                })
+                                all_events.append(
+                                    {
+                                        "t_event_rel_ms": stream_elapsed * 1000.0,
+                                        "transcript": tr,
+                                        "speech_final": data.get("speech_final", False),
+                                    }
+                                )
                                 # False cutoff check: Was event emitted during mid-sentence pause?
                                 if pause_start_s <= stream_elapsed <= (pause_end_s + 0.1):
                                     false_cutoff_detected = True
@@ -721,7 +878,11 @@ async def run_task3_endpointing_redo(
 
     summary: dict[str, Any] = {}
     for cfg, runs in results.items():
-        latencies = [r["turnaround_latency_ms"] for r in runs if not r["false_cutoff"] and r["turnaround_latency_ms"] > 0]
+        latencies = [
+            r["turnaround_latency_ms"]
+            for r in runs
+            if not r["false_cutoff"] and r["turnaround_latency_ms"] > 0
+        ]
         if not latencies:
             latencies = [r["turnaround_latency_ms"] for r in runs]
 
@@ -736,9 +897,12 @@ async def run_task3_endpointing_redo(
             "sample_size": len(runs),
             "false_cutoff_rate_total_pct": cutoff_rate,
             "false_cutoff_by_pause": {
-                "pause_300ms_pct": (sum(1 for r in p300_runs if r["false_cutoff"]) / len(p300_runs)) * 100.0,
-                "pause_500ms_pct": (sum(1 for r in p500_runs if r["false_cutoff"]) / len(p500_runs)) * 100.0,
-                "pause_800ms_pct": (sum(1 for r in p800_runs if r["false_cutoff"]) / len(p800_runs)) * 100.0,
+                "pause_300ms_pct": (sum(1 for r in p300_runs if r["false_cutoff"]) / len(p300_runs))
+                * 100.0,
+                "pause_500ms_pct": (sum(1 for r in p500_runs if r["false_cutoff"]) / len(p500_runs))
+                * 100.0,
+                "pause_800ms_pct": (sum(1 for r in p800_runs if r["false_cutoff"]) / len(p800_runs))
+                * 100.0,
             },
             "turnaround_p50_ms": float(np.percentile(latencies, 50)) if latencies else 0.0,
             "turnaround_p95_ms": float(np.percentile(latencies, 95)) if latencies else 0.0,
@@ -753,6 +917,7 @@ async def run_task3_endpointing_redo(
 # TASK 4: ELEVENLABS FREE TIER TTS BENCHMARK (30 PHRASES X 5 INTERLEAVED RUNS)
 # ==============================================================================
 
+
 async def run_task4_elevenlabs_benchmark(
     phrases: list[str],
     api_key: str,
@@ -763,10 +928,7 @@ async def run_task4_elevenlabs_benchmark(
 
     voice_id = "EXAVITQu4vr4xnSDxMaL"  # Sarah
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
-    headers = {
-        "xi-api-key": api_key,
-        "Content-Type": "application/json"
-    }
+    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
 
     all_runs: list[dict[str, Any]] = []
     streaming_confirmed = False
@@ -778,7 +940,7 @@ async def run_task4_elevenlabs_benchmark(
                 payload = {
                     "text": text,
                     "model_id": "eleven_flash_v2_5",
-                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
                 }
                 t0 = time.perf_counter()
                 ttfb: float | None = None
@@ -798,15 +960,17 @@ async def run_task4_elevenlabs_benchmark(
                     print(f"ElevenLabs error on phrase {idx}: {e}")
 
                 tot_ms = (time.perf_counter() - t0) * 1000.0
-                all_runs.append({
-                    "repeat": repeat,
-                    "phrase_idx": idx,
-                    "text": text,
-                    "ttfb_ms": ttfb or tot_ms,
-                    "total_ms": tot_ms,
-                    "chunk_count": chunk_count,
-                    "total_bytes": total_bytes,
-                })
+                all_runs.append(
+                    {
+                        "repeat": repeat,
+                        "phrase_idx": idx,
+                        "text": text,
+                        "ttfb_ms": ttfb or tot_ms,
+                        "total_ms": tot_ms,
+                        "chunk_count": chunk_count,
+                        "total_bytes": total_bytes,
+                    }
+                )
                 await asyncio.sleep(0.3)
 
             p50_curr = float(np.percentile([r["ttfb_ms"] for r in all_runs], 50))
@@ -835,6 +999,7 @@ async def run_task4_elevenlabs_benchmark(
 # MAIN RUNNER
 # ==============================================================================
 
+
 async def main() -> None:
     print("=" * 80)
     print("  LAJUR MINGGU 2f G1 AUDIT & FINAL MEASUREMENT SUITE")
@@ -856,7 +1021,9 @@ async def main() -> None:
         gold_map = {json.loads(line)["scenario_id"]: json.loads(line) for line in f if line.strip()}
 
     # Run Task 1
-    t1_results = await run_task1_llm_benchmark(scenarios, gold_map, gemini_key, groq_key, menu_service)
+    t1_results = await run_task1_llm_benchmark(
+        scenarios, gold_map, gemini_key, groq_key, menu_service
+    )
 
     # Run Task 3
     hesitation_clips = await prepare_hesitation_clips_with_silence()
@@ -885,7 +1052,14 @@ async def main() -> None:
     cost_ledger_path = Path("eval/results/spikes/cost-ledger.csv")
     with open(cost_ledger_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["2026-10-20", "G1f Measurement Audit (T1 Accuracy + T3 Endpointing + T4 ElevenLabs TTS)", "$0.042", "$0.00"])
+        writer.writerow(
+            [
+                "2026-10-20",
+                "G1f Measurement Audit (T1 Accuracy + T3 Endpointing + T4 ElevenLabs TTS)",
+                "$0.042",
+                "$0.00",
+            ]
+        )
 
     print(f"\n[OK] G1f Benchmark finished successfully! Results saved to {out_file}")
 

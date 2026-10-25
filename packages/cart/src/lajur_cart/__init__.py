@@ -1,5 +1,22 @@
 """Lajur Cart & Menu Service package."""
 
+from lajur_cart.intents import (
+    AddItemIntent,
+    AnswerChoiceIntent,
+    AskInfoIntent,
+    ClearCartIntent,
+    ConfirmIntent,
+    DeclineMoreIntent,
+    HandoffIntent,
+    Intent,
+    IntentEnvelope,
+    ModifyItemIntent,
+    RemoveItemIntent,
+    ReplaceItemIntent,
+    UndoLastIntent,
+    UnknownIntent,
+    export_intent_json_schema,
+)
 from lajur_cart.menu_service import MenuService, ValidationError
 from lajur_cart.models import (
     Cart,
@@ -12,17 +29,50 @@ from lajur_cart.models import (
     ModifierOption,
     UpsellRule,
 )
+from lajur_cart.state_machine import (
+    CartEvent,
+    CartSession,
+    DialogState,
+    PendingChoice,
+    Rejection,
+    SpeechFacts,
+    StateMachineResult,
+    apply_intent,
+)
 
 __all__ = [
+    "AddItemIntent",
+    "AnswerChoiceIntent",
+    "AskInfoIntent",
     "Cart",
+    "CartEvent",
     "CartLine",
+    "CartSession",
+    "ClearCartIntent",
     "Combo",
     "ComboSlot",
+    "ConfirmIntent",
+    "DeclineMoreIntent",
+    "DialogState",
+    "HandoffIntent",
+    "Intent",
+    "IntentEnvelope",
     "Item",
     "ItemSize",
     "MenuService",
     "Modifier",
     "ModifierOption",
+    "ModifyItemIntent",
+    "PendingChoice",
+    "Rejection",
+    "RemoveItemIntent",
+    "ReplaceItemIntent",
+    "SpeechFacts",
+    "StateMachineResult",
+    "UndoLastIntent",
+    "UnknownIntent",
     "UpsellRule",
     "ValidationError",
+    "apply_intent",
+    "export_intent_json_schema",
 ]

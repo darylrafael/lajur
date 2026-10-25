@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added (Minggu 3 — Cart State Machine + Intent Schema v1)
+- **Intent Schema v1 (`packages/cart/src/lajur_cart/intents.py` & `intent.schema.json`):** Pydantic discriminated union of 12 structured intents with `ConfigDict(extra="forbid")` and zero financial fields (`price`, `total`, `discount`), rendering price manipulation impossible by construction. Exported official JSON Schema.
+- **Pure Deterministic State Machine (`packages/cart/src/lajur_cart/state_machine.py`):** Pure functional `apply_intent()` transition system with full dialog states (`ordering`, `awaiting_choice`, `confirming`, `done`, `handoff`), deep immutable history, undo capability, pending combo slot / required modifier resolution, and structured rejections.
+- **Replay Dataset v2 (`eval/datasets/v0/gold_intents_v2.jsonl`):** 135 agent-authored scenarios conforming to Intent Schema v1, replacing abstract undo with real conversational correction intents (`replace_item`, `remove_item`, `modify_item`, `clear_cart`).
+- **Human Review Document (`docs/spikes/week-03-human-review.md`):** Side-by-side comparison table of 20 scenarios (all 11 correction/undo scenarios plus 9 seeded random scenarios, seed=42) labeled `unverified: agent-authored for human review`.
+- **Scenario Replay Test Suite (`test_scenarios_v2_replay.py`):** 136 tests validating that the state machine reproduces expected cart items, quantities, sizes, modifiers, slots, total price, and status with 100% pass rate across all primary categories.
+- **Property-Based Testing (`packages/cart/tests/test_property_state_machine.py`):** Hypothesis tests asserting 8 core business invariants under randomized sequences of valid and invalid intents.
+- **High Code Coverage:** Achieved 96% line coverage across `packages/cart` (target >= 95%).
+- **Interactive REPL CLI (`packages/cart/src/lajur_cart/repl.py`):** Added `python -m lajur_cart.repl` allowing human testers to exercise the state machine via JSON intents or simplified commands.
+- **Alias Coverage Report (`docs/eval/alias-coverage-report.md`):** Added missing menu aliases and achieved 100% coverage on all 135 evaluation utterances.
+
+### Added (Minggu 1 & 2 Spikes)
 - **`packages/cart` Package:** Pure Python cart and menu management module with Pydantic models (`Item`, `Modifier`, `Combo`, `Cart`, `CartLine`), deterministic clock injection for operational hours (breakfast 05:00–11:00), out-of-stock validation, nested combo slot choices validation, and §11.2 20-items-per-order cap.
 - **Cart Test Suite:** 149 comprehensive pytest tests verifying all edge cases and validating all 135 evaluation dataset scenarios against exact integer rupiah totals.
 - **Dataset v0.1 & Coverage Report:** Expanded dev dataset to 135 scenarios (54 mixed ID-EN / 40%, 11 helmet noise, 8 human handoff requests, 8 prompt injection/prank, and 35 natural handwritten scenarios) documented in `eval/datasets/v0/COVERAGE.md`.
