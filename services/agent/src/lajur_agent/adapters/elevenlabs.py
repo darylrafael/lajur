@@ -77,6 +77,49 @@ class ElevenLabsTTSAdapter(TTSAdapter):
                     raise RuntimeError(f"ElevenLabs synthesis failed ({resp.status}): {err[:300]}")
                 return await resp.read()
 
+    async def stream_audio_chunks(
+        self, text: str, chunk_size: int = 640
+    ) -> AsyncIterator[bytes]:
+        """Stream raw audio chunks of exact size as they arrive over HTTP streaming."""
+        if not text.strip():
+            return
+
+        url = f"{self._base_url}?output_format={self._output_format}&optimize_streaming_latency=4"
+        headers = {
+            "xi-api-key": self._api_key,
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "text": text,
+            "model_id": self._model_id,
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75,
+            },
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=20),
+            ) as resp:
+                if resp.status != 200:
+                    err = await resp.text()
+                    raise RuntimeError(f"ElevenLabs streaming failed ({resp.status}): {err[:300]}")
+
+                buf = bytearray()
+                async for chunk in resp.content.iter_chunked(2048):
+                    buf.extend(chunk)
+                    while len(buf) >= chunk_size:
+                        frame = bytes(buf[:chunk_size])
+                        del buf[:chunk_size]
+                        yield frame
+                if buf:
+                    buf.extend(b"\x00" * (chunk_size - len(buf)))
+                    yield bytes(buf)
+
     async def synthesize_stream(
         self,
         text_stream: AsyncIterator[str],

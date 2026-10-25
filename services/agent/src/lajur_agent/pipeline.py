@@ -82,9 +82,11 @@ class VoiceOrderingPipeline:
             for a in combo.aliases:
                 aliases_map[a.lower()] = combo.id
 
+        self._allowed_item_ids = list(self._item_names.keys())
+        self._all_aliases = aliases_map
         self._menu_context = {
-            "allowed_item_ids": list(self._item_names.keys()),
-            "key_aliases": aliases_map,
+            "allowed_item_ids": self._allowed_item_ids,
+            "key_aliases": dict(list(aliases_map.items())[:20]),
         }
 
     def _check_kill_switch(self) -> bool:
@@ -138,6 +140,7 @@ class VoiceOrderingPipeline:
         self,
         utterance: str,
         speech_end_timestamp: float | None = None,
+        audio_frame_consumer: Any = None,
     ) -> PipelineTurnResult:
         """Execute one complete dialog turn across the full cascade."""
         self.turn_counter += 1
@@ -272,11 +275,24 @@ class VoiceOrderingPipeline:
         pending_snap = self.session.pending_choice.model_dump() if self.session.pending_choice else None
 
         t_llm_start = time.perf_counter()
+        utterance_lower = utterance.lower()
+        matched_aliases = {k: v for k, v in self._all_aliases.items() if k in utterance_lower}
+        if len(matched_aliases) < 15:
+            for k, v in list(self._all_aliases.items())[:20]:
+                if len(matched_aliases) >= 20:
+                    break
+                matched_aliases[k] = v
+
+        turn_menu_context = {
+            "allowed_item_ids": self._allowed_item_ids,
+            "key_aliases": matched_aliases,
+        }
+
         intent_res = await self.llm_adapter.parse_intent(
             transcript=utterance,
             cart_snapshot=cart_snap,
             pending_choice=pending_snap,
-            menu_context=self._menu_context,
+            menu_context=turn_menu_context,
         )
         t_llm_first_tok = t_llm_start + (intent_res.ttft_ms / 1000.0)
         t_intent_valid = time.perf_counter()
@@ -361,9 +377,28 @@ class VoiceOrderingPipeline:
 
         # Stage 4: TTS Synthesis
         t_tts_start = time.perf_counter()
-        audio_bytes = await self.tts_adapter.synthesize_text(reply_text)
-        t_tts_first_byte = t_tts_start + 0.120  # Measured TTFB or real time
-        t_first_audio = time.perf_counter()
+        t_tts_first_byte: float | None = None
+        t_first_audio: float | None = None
+        collected_chunks: list[bytes] = []
+
+        if audio_frame_consumer is not None and hasattr(self.tts_adapter, "stream_audio_chunks"):
+            async for pcm_frame in self.tts_adapter.stream_audio_chunks(reply_text):
+                now = time.perf_counter()
+                if t_tts_first_byte is None:
+                    t_tts_first_byte = now
+                    t_first_audio = now
+                collected_chunks.append(pcm_frame)
+                await audio_frame_consumer(pcm_frame)
+            audio_bytes = b"".join(collected_chunks)
+        else:
+            audio_bytes = await self.tts_adapter.synthesize_text(reply_text)
+            t_first_audio = time.perf_counter()
+            t_tts_first_byte = t_tts_start + 0.120
+
+        if t_tts_first_byte is None:
+            t_tts_first_byte = time.perf_counter()
+        if t_first_audio is None:
+            t_first_audio = time.perf_counter()
 
         # Compute cost estimation
         # Groq Qwen: ~$0.20/1M tokens, Deepgram ~$0.0077/min, ElevenLabs Free

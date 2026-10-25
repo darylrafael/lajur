@@ -51,6 +51,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Local databases and event logs
+*.sqlite3
+data/
+
 # Audio files (ADR-0005: never store audio)
 *.wav
 *.mp3
