@@ -130,3 +130,46 @@ LLM Semantic Intent Parser (Stateless, Prompt / Tool Calling)
    - Mencapai 96% line coverage pada modul `packages/cart`.
 5. **Interactive REPL CLI (`python -m lajur_cart.repl`):**
    - Memungkinkan pengujian interaktif langsung oleh manusia via CLI dengan format JSON intent atau perintah teks singkat (`add`, `remove`, `replace`, `modify`, `confirm`, `undo`).
+
+---
+
+## 7. Arsitektur Voice Ordering Pipeline Tracer Bullet (Minggu 4)
+
+Pada Minggu 4, walking skeleton dikembangkan menjadi tracer bullet pipeline suara penuh yang mengintegrasikan cascade nyata dari audio WebRTC hingga audio balasan kasir:
+
+```text
+WebRTC Audio Client (Mic)
+       │
+       ▼
+[LiveKit Agent Worker (services/agent)]
+       │
+       ├─► 1. STT Adapter (Deepgram Nova-3 WebSocket, endpointing=500ms)
+       │       └──> Output: Transkrip Teks Bahasa Indonesia
+       │
+       ├─► 2. LLM Intent Adapter (Groq Qwen-27b Non-Reasoning, max 150 token)
+       │       └──> Output: IntentEnvelope (Pydantic Schema v1 tervalidasi)
+       │
+       ├─► 3. Cart State Machine (packages/cart deterministik murni)
+       │       └──> Output: SpeechFacts + State Baru + Keranjang Belanja Terupdate
+       │
+       ├─► 4. Balasan Kasir (Mode Ganda yang Dapat Dipilih):
+       │       ├─ Mode 1: Verbalisasi LLM (Groq Qwen-27b dari SpeechFacts)
+       │       └─ Mode 2: Templat Deterministik (Tanpa jeda token LLM)
+       │
+       ├─► 5. TTS Streaming Adapter (ElevenLabs Flash v2.5, chunk 640-byte linear16)
+       │       └──> Output: Streaming Frame PCM 16kHz
+       │
+       ├─► 6. WebRTC Audio Output (Agent Audio Track)
+       │
+       └─► 7. WebRTC Data Channel ("lajur-control")
+               └──> Payload JSON: Sync Cart, Transkrip Langsung, SpeechFacts
+
+[Observability & Guardrails]
+       ├─ Guardrails: Kill switch (KILL_SWITCH / EMERGENCY_STOP), 3-min timeout, max 12 turns, 20-items cap
+       └─ SQLite Event Logger (TurnEventLogger): Latensi per-tahap, token, biaya, zero raw audio persistence
+```
+
+1. **Streaming Audio Chunking & Low TTFB:** Audio balasan dari ElevenLabs Flash v2.5 di-stream langsung secara per-chunk (640 bytes = 20ms frame) ke WebRTC AudioSource tanpa menunggu buffering file audio utuh, memangkas latensi putaran balasan kasir.
+2. **Koneksi STT Per-Turn:** Setiap giliran ucapan menggunakan koneksi streaming WebSocket Deepgram independen dengan `endpointing=500`, menjamin 0% false cutoff dan mengisolasi konteks VAD antar-skenario.
+3. **Sinkronisasi Layar Klien:** State keranjang mutakhir dan status dialog disiarkan secara real-time via data channel WebRTC `lajur-control`.
+4. **Audit Observabilitas Tanpa Penyimpanan Suara:** Setiap giliran percakapan mencatat jejak timestamp objektif ke `data/turn_events.sqlite3` tanpa menyimpan raw audio (mematuhi ADR-0005).

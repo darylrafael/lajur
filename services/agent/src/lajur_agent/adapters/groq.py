@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import logging
@@ -220,21 +221,30 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
             }
 
             req_start = time.perf_counter()
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    self._chat_url,
-                    headers=headers,
-                    json=body,
-                    timeout=aiohttp.ClientTimeout(total=15),
-                ) as resp:
-                    latency_ms = (time.perf_counter() - req_start) * 1000.0
-                    if resp.status != 200:
-                        err_text = await resp.text()
-                        logger.warning("Groq chat error (%d): %s", resp.status, err_text[:200])
-                        retries += 1
-                        error_feedback = f"HTTP {resp.status}"
-                        continue
-                    data = await resp.json()
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        self._chat_url,
+                        headers=headers,
+                        json=body,
+                        timeout=aiohttp.ClientTimeout(total=15),
+                    ) as resp:
+                        latency_ms = (time.perf_counter() - req_start) * 1000.0
+                        if resp.status != 200:
+                            err_text = await resp.text()
+                            logger.warning("Groq chat error (%d): %s", resp.status, err_text[:200])
+                            if resp.status == 429:
+                                await asyncio.sleep(6.0)
+                            retries += 1
+                            error_feedback = f"HTTP {resp.status}"
+                            continue
+                        data = await resp.json()
+            except (aiohttp.ClientError, asyncio.TimeoutError) as net_err:
+                logger.warning("Groq network connection error: %s. Retrying...", net_err)
+                await asyncio.sleep(2.0)
+                retries += 1
+                error_feedback = f"Network error: {net_err}"
+                continue
 
             usage = data.get("usage", {})
             tokens_in = usage.get("prompt_tokens", 0)
@@ -243,7 +253,11 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
 
             try:
                 parsed_json = json.loads(raw_content)
-                envelope = IntentEnvelope.model_validate(parsed_json)
+                envelope_dict = {
+                    "intents": parsed_json.get("intents", []),
+                    "customer_language": parsed_json.get("customer_language", "id"),
+                }
+                envelope = IntentEnvelope.model_validate(envelope_dict)
                 intents_list = [it.model_dump() for it in envelope.intents]
                 suggested_reply = parsed_json.get("suggested_reply", "")
 
@@ -314,17 +328,22 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
         }
 
         req_start = time.perf_counter()
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self._chat_url,
-                headers=headers,
-                json=body,
-                timeout=aiohttp.ClientTimeout(total=10),
-            ) as resp:
-                latency_ms = (time.perf_counter() - req_start) * 1000.0
-                if resp.status != 200:
-                    return "Baik kak, pesanan sudah dicatat.", latency_ms, 0, 0
-                data = await resp.json()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    self._chat_url,
+                    headers=headers,
+                    json=body,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    latency_ms = (time.perf_counter() - req_start) * 1000.0
+                    if resp.status != 200:
+                        return "Baik kak, pesanan sudah dicatat.", latency_ms, 0, 0
+                    data = await resp.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as net_err:
+            latency_ms = (time.perf_counter() - req_start) * 1000.0
+            logger.warning("Groq verbalize network error: %s", net_err)
+            return "Baik kak, pesanan dicatat.", latency_ms, 0, 0
 
         usage = data.get("usage", {})
         reply_text = data["choices"][0]["message"]["content"].strip()

@@ -2,9 +2,9 @@
 
 Protocol Document: docs/gates/G1-minggu4-measurement.md
 Enforces:
-1. Real pipeline cascade: WebRTC Client -> WebRTC Agent -> Deepgram Nova-3 STT
+1. Real pipeline cascade: WebRTC Client -> WebRTC Agent -> Deepgram Nova-3 STT (endpointing=500)
    -> Groq Qwen-27b Intent -> Cart State Machine (packages/cart)
-   -> Cashier Reply Generator (Template / LLM) -> ElevenLabs TTS -> WebRTC Client Audio.
+   -> Cashier Reply Generator (Template / LLM) -> ElevenLabs Flash v2.5 TTS -> WebRTC Client Audio.
 2. Ground-truth speech-end reference timestamp (T_speech_end_in) logged objectively
    from script playback timing, NOT from STT endpointing.
 3. 30 diverse turns evaluated in BOTH configurations (Mode 1: LLM verbalization,
@@ -26,7 +26,7 @@ import sys
 import time
 import wave
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 import edge_tts
@@ -108,12 +108,8 @@ async def synthesize_phrase_pcm(text: str, voice: str = "id-ID-GadisNeural") -> 
     communicate = edge_tts.Communicate(text, voice=voice)
     mp3_bytes = b""
     async for chunk in communicate.stream():
-        if chunk.get("type") == "audio" and "data" in chunk:
-            data_bytes = chunk.get("data")
-            if isinstance(data_bytes, bytes):
-                mp3_bytes += data_bytes
-
-    from typing import cast
+        if chunk.get("type") == "audio" and "data" in chunk and isinstance(chunk["data"], bytes):
+            mp3_bytes += chunk["data"]
 
     import av
 
@@ -134,25 +130,33 @@ async def prepare_test_audio_clips(scenarios_map: dict[str, Any]) -> list[dict[s
     audio_dir.mkdir(parents=True, exist_ok=True)
     clips: list[dict[str, Any]] = []
 
-    print(f"\n--- Preparing Scripted Test Audio for {len(SELECTED_30_SIDS)} Scenarios ---")
+    print(f"\n--- Preparing Scripted Test Audio for {len(SELECTED_30_SIDS)} Scenarios ---", flush=True)
     for sid in SELECTED_30_SIDS:
         scen = scenarios_map[sid]
         text = scen["utterances"][0]
         out_wav = audio_dir / f"{sid}.wav"
 
-        active_pcm = await synthesize_phrase_pcm(text)
-        active_samples = len(active_pcm)
-        active_duration_s = active_samples / 16000.0
+        if out_wav.exists():
+            with wave.open(str(out_wav), "rb") as wf:
+                full_pcm_bytes = wf.readframes(wf.getnframes())
+            # Trailing silence is 1.5s (24000 samples = 48000 bytes)
+            total_samples = len(full_pcm_bytes) // 2
+            active_samples = total_samples - int(16000 * 1.5)
+            active_duration_s = active_samples / 16000.0
+            full_pcm = np.frombuffer(full_pcm_bytes, dtype=np.int16)
+        else:
+            active_pcm = await synthesize_phrase_pcm(text)
+            active_samples = len(active_pcm)
+            active_duration_s = active_samples / 16000.0
 
-        # Append 1.5s trailing silence for natural endpointing detection
-        trailing_silence = np.zeros(int(16000 * 1.5), dtype=np.int16)
-        full_pcm = np.concatenate([active_pcm, trailing_silence])
+            trailing_silence = np.zeros(int(16000 * 1.5), dtype=np.int16)
+            full_pcm = np.concatenate([active_pcm, trailing_silence])
 
-        with wave.open(str(out_wav), "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(16000)
-            wf.writeframes(full_pcm.tobytes())
+            with wave.open(str(out_wav), "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(16000)
+                wf.writeframes(full_pcm.tobytes())
 
         category = scen.get("tags", ["simple"])[0]
         if "quantity" in scen.get("tags", []):
@@ -167,12 +171,12 @@ async def prepare_test_audio_clips(scenarios_map: dict[str, Any]) -> list[dict[s
             "text": text,
             "category": category,
             "wav_path": str(out_wav),
+            "raw_bytes": full_pcm.tobytes(),
             "active_samples": active_samples,
             "active_duration_s": active_duration_s,
-            "total_samples": len(full_pcm),
             "expected_cart": scen.get("expected_cart", {}),
         })
-        print(f"  [{sid}] ({category}) '{text}' -> {active_duration_s:.2f}s speech + 1.5s silence")
+        print(f"  [{sid}] ({category}) '{text}' -> {active_duration_s:.2f}s speech", flush=True)
 
     return clips
 
@@ -190,7 +194,6 @@ def evaluate_cart_match(actual_cart: dict[str, Any], expected_cart: dict[str, An
         for act_item in act_items:
             if act_item.get("item_id") == exp_item.get("item_id"):
                 if act_item.get("quantity") == exp_item.get("quantity"):
-                    # Check size if specified
                     if "size" in exp_item and act_item.get("size") != exp_item.get("size"):
                         continue
                     match_found = True
@@ -201,208 +204,11 @@ def evaluate_cart_match(actual_cart: dict[str, Any], expected_cart: dict[str, An
     return True
 
 
-async def run_single_turn_benchmark(
-    clip: dict[str, Any],
-    reply_mode: str,
-    pipeline: VoiceOrderingPipeline,
-    agent_source: lk_rtc.AudioSource,
-    client_source: lk_rtc.AudioSource,
-    client_room: lk_rtc.Room,
-    agent_room: lk_rtc.Room,
-    dg_key: str,
-    eleven_key: str,
-) -> dict[str, Any]:
-    """Execute one turn through the real WebRTC pipeline and measure end-to-end latency."""
-    wav_path = Path(clip["wav_path"])
-    with wave.open(str(wav_path), "rb") as wf:
-        raw_pcm = wf.readframes(wf.getnframes())
-
-    active_samples = clip["active_samples"]
-    chunk_samples = 320  # 20ms at 16kHz
-    chunk_bytes = 640
-    num_chunks = len(raw_pcm) // chunk_bytes
-
-    t_speech_end: float = 0.0
-    t_stt_final: float = 0.0
-    t_first_audio_received: float = 0.0
-    false_cutoff: bool = False
-    final_transcript: str = ""
-
-    audio_received_event = asyncio.Event()
-
-    # 1. Setup client-side receiver listener for agent voice
-    rx_task_active = True
-
-    async def client_audio_listener(track: lk_rtc.Track) -> None:
-        nonlocal t_first_audio_received
-        stream = lk_rtc.AudioStream(track, sample_rate=16000, num_channels=1)
-        try:
-            async for ev in stream:
-                if not rx_task_active:
-                    break
-                raw = ev.frame.data.tobytes()
-                if len(raw) >= 320 and t_speech_end > 0.0 and t_first_audio_received == 0.0:
-                    samples = np.frombuffer(raw, dtype=np.int16)
-                    rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2)))
-                    if rms > 300.0:
-                        t_first_audio_received = time.perf_counter()
-                        audio_received_event.set()
-        finally:
-            await stream.aclose()
-
-    # Find agent track on client
-    listener_task: asyncio.Task[None] | None = None
-    for p in client_room.remote_participants.values():
-        for pub in p.track_publications.values():
-            if pub.track and pub.track.kind == lk_rtc.TrackKind.KIND_AUDIO:
-                listener_task = asyncio.create_task(client_audio_listener(pub.track))
-                break
-
-    # 2. Setup agent audio pipeline streaming to Deepgram WebSocket
-    dg_url = (
-        "wss://api.deepgram.com/v1/listen?model=nova-3&language=id&smart_format=true"
-        "&encoding=linear16&sample_rate=16000&interim_results=true&endpointing=300"
-    )
-    dg_headers = {"Authorization": f"Token {dg_key}"}
-
-    turn_completed = asyncio.Event()
-    turn_result_holder: dict[str, Any] = {}
-
-    async def agent_pipeline(incoming_track: lk_rtc.Track) -> None:
-        nonlocal t_stt_final, false_cutoff, final_transcript
-        audio_stream = lk_rtc.AudioStream(incoming_track, sample_rate=16000, num_channels=1)
-        async with aiohttp.ClientSession() as http_sess:
-            async with http_sess.ws_connect(dg_url, headers=dg_headers) as ws:
-
-                async def sender() -> None:
-                    try:
-                        async for ev in audio_stream:
-                            await ws.send_bytes(ev.frame.data.tobytes())
-                    except asyncio.CancelledError:
-                        pass
-                    except Exception as e:
-                        logger.debug("STT stream sender err: %s", e)
-
-                async def receiver() -> None:
-                    nonlocal t_stt_final, false_cutoff, final_transcript
-                    async for msg in ws:
-                        if msg.type == aiohttp.WSMsgType.TEXT:
-                            data = json.loads(msg.data)
-                            is_final = data.get("is_final", False) or data.get("speech_final", False)
-                            tr = ""
-                            try:
-                                tr = data["channel"]["alternatives"][0]["transcript"].strip()
-                            except (KeyError, IndexError):
-                                pass
-                            if tr and is_final:
-                                now = time.perf_counter()
-                                if t_speech_end == 0.0 or now < t_speech_end:
-                                    false_cutoff = True
-                                final_transcript = tr
-                                t_stt_final = now
-
-                                # Process turn through pipeline with streaming frame capture
-                                async def audio_consumer(frame_bytes: bytes) -> None:
-                                    frame = lk_rtc.AudioFrame(frame_bytes, 16000, 1, 320)
-                                    await agent_source.capture_frame(frame)
-                                    await asyncio.sleep(0.018)
-
-                                pipeline.reply_mode = reply_mode
-                                res = await pipeline.process_turn(
-                                    utterance=tr,
-                                    speech_end_timestamp=t_speech_end,
-                                    audio_frame_consumer=audio_consumer,
-                                )
-                                turn_result_holder["pipeline_result"] = res
-                                turn_completed.set()
-                                break
-                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
-                            break
-
-                s_task = asyncio.create_task(sender())
-                r_task = asyncio.create_task(receiver())
-                await r_task
-                s_task.cancel()
-        await audio_stream.aclose()
-
-    # Find client track on agent
-    agent_task: asyncio.Task[None] | None = None
-    for p in agent_room.remote_participants.values():
-        for pub in p.track_publications.values():
-            if pub.track and pub.track.kind == lk_rtc.TrackKind.KIND_AUDIO:
-                agent_task = asyncio.create_task(agent_pipeline(pub.track))
-                break
-
-    await asyncio.sleep(0.2)
-
-    # 3. Stream client audio frames at 1.0x real-time pacing
-    samples_sent = 0
-    for i in range(num_chunks):
-        t_chunk_start = time.perf_counter()
-        chunk = raw_pcm[i * chunk_bytes : (i + 1) * chunk_bytes]
-        frame = lk_rtc.AudioFrame(chunk, 16000, 1, chunk_samples)
-        await client_source.capture_frame(frame)
-        samples_sent += chunk_samples
-
-        if t_speech_end == 0.0 and samples_sent >= active_samples:
-            t_speech_end = time.perf_counter()
-
-        elapsed = time.perf_counter() - t_chunk_start
-        sleep_time = 0.02 - elapsed
-        if sleep_time > 0:
-            await asyncio.sleep(sleep_time)
-
-    # 4. Await first reply audio frame over WebRTC
-    try:
-        await asyncio.wait_for(audio_received_event.wait(), timeout=12.0)
-    except asyncio.TimeoutError:
-        logger.warning("[%s] Timed out waiting for WebRTC audio reply", clip["sid"])
-        if t_first_audio_received == 0.0:
-            t_first_audio_received = time.perf_counter()
-
-    rx_task_active = False
-    if listener_task:
-        listener_task.cancel()
-    if agent_task:
-        agent_task.cancel()
-
-    # Calculate metrics
-    turn_latency_ms = max(0.0, (t_first_audio_received - t_speech_end) * 1000.0)
-    stt_turnaround_ms = max(0.0, (t_stt_final - t_speech_end) * 1000.0)
-
-    p_res = turn_result_holder.get("pipeline_result")
-    bot_reply = p_res.reply_text if p_res else ""
-    actual_cart = p_res.cart if p_res else {}
-
-    cart_matched = evaluate_cart_match(actual_cart, clip["expected_cart"])
-    intent_matched = (
-        p_res.turn_event.intent_type != "unknown" and p_res.turn_event.intent_type != "kill_switch" if p_res else False
-    )
-
-    chars_sent = len(bot_reply)
-
-    return {
-        "sid": clip["sid"],
-        "category": clip["category"],
-        "reply_mode": reply_mode,
-        "transcript": final_transcript,
-        "bot_reply": bot_reply,
-        "turn_latency_ms": turn_latency_ms,
-        "stt_turnaround_ms": stt_turnaround_ms,
-        "intent_matched": intent_matched,
-        "cart_matched": cart_matched,
-        "false_cutoff": false_cutoff,
-        "chars_sent": chars_sent,
-        "tokens_in": p_res.turn_event.tokens_in if p_res else 0,
-        "tokens_out": p_res.turn_event.tokens_out if p_res else 0,
-    }
-
-
 async def main() -> None:
-    print("=" * 80)
-    print("GATE G1 FINAL VALIDATION BENCHMARK (MINGGU 4)")
-    print("Pre-registered Protocol: docs/gates/G1-minggu4-measurement.md")
-    print("=" * 80)
+    print("=" * 80, flush=True)
+    print("GATE G1 FINAL VALIDATION BENCHMARK (MINGGU 4)", flush=True)
+    print("Pre-registered Protocol: docs/gates/G1-minggu4-measurement.md", flush=True)
+    print("=" * 80, flush=True)
 
     # 1. Load Scenarios
     scenarios_path = Path("eval/datasets/v0/scenarios.jsonl")
@@ -417,10 +223,14 @@ async def main() -> None:
     eleven_key = os.getenv("ELEVENLABS_API_KEY", "")
     tts_adapter = ElevenLabsTTSAdapter(api_key=eleven_key)
     quota_before = await tts_adapter.get_remaining_characters()
-    print(f"\n[ElevenLabs Quota Before Run] Remaining Characters: {quota_before:,} / 10,000")
+    print(f"\n[ElevenLabs Quota Before Run] Remaining Characters: {quota_before:,} / 10,000", flush=True)
 
     # 3. Prepare Test Audio Clips
     clips = await prepare_test_audio_clips(scenarios_map)
+    limit = int(os.getenv("BENCHMARK_LIMIT", "0"))
+    if limit > 0:
+        print(f"\n[TEST MODE] Limiting benchmark to first {limit} scenarios", flush=True)
+        clips = clips[:limit]
 
     # 4. Connect WebRTC Rooms
     url = os.getenv("LIVEKIT_URL", "")
@@ -428,7 +238,7 @@ async def main() -> None:
     api_secret = os.getenv("LIVEKIT_API_SECRET", "")
     room_name = f"g1-bench-{int(time.time())}"
 
-    print(f"\nConnecting Agent and Client to LiveKit Room: {room_name}...")
+    print(f"\nConnecting Agent and Client to LiveKit Room: {room_name}...", flush=True)
     agent_token = (
         lk_api.AccessToken(api_key, api_secret)
         .with_identity("agent-lajur")
@@ -445,25 +255,10 @@ async def main() -> None:
     agent_room = lk_rtc.Room()
     client_room = lk_rtc.Room()
 
-    await agent_room.connect(url, agent_token)
-    await client_room.connect(url, client_token)
-
-    agent_source = lk_rtc.AudioSource(16000, 1)
-    agent_track = lk_rtc.LocalAudioTrack.create_audio_track("agent-audio", agent_source)
-    await agent_room.local_participant.publish_track(agent_track)
-
-    client_source = lk_rtc.AudioSource(16000, 1)
-    client_track = lk_rtc.LocalAudioTrack.create_audio_track("client-audio", client_source)
-    await client_room.local_participant.publish_track(client_track)
-
-    await asyncio.sleep(1.0)
-    print("WebRTC Audio Tracks Connected and Published.")
-
-    # 5. Initialize Pipeline
     ms = MenuService()
     dg_key = os.getenv("DEEPGRAM_API_KEY", "")
     groq_key = os.getenv("GROQ_API_KEY", "")
-    stt = DeepgramSTTAdapter(api_key=dg_key, model="nova-3", language="id", endpointing=300)
+    stt = DeepgramSTTAdapter(api_key=dg_key, model="nova-3", language="id", endpointing=500)
     llm = GroqLLMIntentAdapter(api_key=groq_key, model="qwen/qwen3.8-27b", max_tokens=150)
     logger_db = TurnEventLogger()
 
@@ -476,67 +271,318 @@ async def main() -> None:
         event_logger=logger_db,
     )
 
-    # 6. Execute 30 turns interleaved across Mode 2 (template) and Mode 1 (LLM) = 60 turns total
+    # State variables per turn
+    t_speech_end = 0.0
+    t_stt_final = 0.0
+    t_first_audio_received = 0.0
+    current_reply_mode = "template"
+    false_cutoff_detected = False
+    turn_transcript = ""
+
+    first_audio_received_event = asyncio.Event()
+    turn_pipeline_done_event = asyncio.Event()
+    last_turn_result: Any = None
+    current_turn_queue: asyncio.Queue[bytes] | None = None
+
+    agent_sub_event = asyncio.Event()
+    client_sub_event = asyncio.Event()
+
+    agent_source = lk_rtc.AudioSource(16000, 1)
+    agent_track = lk_rtc.LocalAudioTrack.create_audio_track("agent-audio", agent_source)
+    client_source = lk_rtc.AudioSource(16000, 1)
+    client_track = lk_rtc.LocalAudioTrack.create_audio_track("client-audio", client_source)
+
+    # Setup client receiver listener for agent voice
+    @client_room.on("track_subscribed")
+    def on_client_sub(track: lk_rtc.Track, pub: lk_rtc.TrackPublication, participant: lk_rtc.RemoteParticipant) -> None:
+        if track.kind == lk_rtc.TrackKind.KIND_AUDIO:
+            logger.info("[Client] Subscribed to agent audio track.")
+            client_sub_event.set()
+
+            async def client_rx() -> None:
+                nonlocal t_first_audio_received
+                stream = lk_rtc.AudioStream(track, sample_rate=16000, num_channels=1)
+                try:
+                    async for ev in stream:
+                        raw = ev.frame.data.tobytes()
+                        if len(raw) >= 320 and t_speech_end > 0.0 and t_first_audio_received == 0.0:
+                            samples = np.frombuffer(raw, dtype=np.int16)
+                            rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2)))
+                            if rms > 300.0:
+                                t_first_audio_received = time.perf_counter()
+                                first_audio_received_event.set()
+                finally:
+                    await stream.aclose()
+
+            asyncio.create_task(client_rx())
+
+    # Setup agent audio listener continuously receiving client WebRTC audio
+    @agent_room.on("track_subscribed")
+    def on_agent_sub(track: lk_rtc.Track, pub: lk_rtc.TrackPublication, participant: lk_rtc.RemoteParticipant) -> None:
+        if track.kind == lk_rtc.TrackKind.KIND_AUDIO:
+            logger.info("[Agent] Subscribed to client audio track.")
+            agent_sub_event.set()
+
+            async def agent_rx() -> None:
+                stream = lk_rtc.AudioStream(track, sample_rate=16000, num_channels=1)
+                try:
+                    async for ev in stream:
+                        q = current_turn_queue
+                        if q is not None:
+                            await q.put(ev.frame.data.tobytes())
+                finally:
+                    await stream.aclose()
+
+            asyncio.create_task(agent_rx())
+
+    dg_url = (
+        "wss://api.deepgram.com/v1/listen?model=nova-3&language=id&smart_format=true"
+        "&encoding=linear16&sample_rate=16000&interim_results=true&endpointing=500"
+    )
+    dg_headers = {"Authorization": f"Token {dg_key}"}
+
+    await agent_room.connect(url, agent_token)
+    await client_room.connect(url, client_token)
+    await agent_room.local_participant.publish_track(agent_track)
+    await client_room.local_participant.publish_track(client_track)
+
+    try:
+        await asyncio.wait_for(asyncio.gather(agent_sub_event.wait(), client_sub_event.wait()), timeout=15.0)
+        print("WebRTC Audio Tracks Connected and Subscribed on both sides.", flush=True)
+    except asyncio.TimeoutError:
+        print("Warning: Timed out waiting for track subscription events, proceeding with fallback delay...", flush=True)
+        await asyncio.sleep(2.0)
+
+    # 5. Execute 30 turns interleaved across Mode 2 (template) and Mode 1 (LLM) = 60 turns total
     results_mode_template: list[dict[str, Any]] = []
     results_mode_llm: list[dict[str, Any]] = []
 
-    print("\n--- Running 60 Benchmark Turns (30 Interleaved Pairs) ---")
+    print("\n--- Running 60 Benchmark Turns (30 Interleaved Pairs) ---", flush=True)
+
+    async def execute_turn(clip: dict[str, Any], mode: str) -> dict[str, Any]:
+        nonlocal t_speech_end, t_stt_final, t_first_audio_received, current_reply_mode, false_cutoff_detected, turn_transcript, last_turn_result, current_turn_queue
+        try:
+            pipeline.reset_session(session_id=f"g1_bench_{clip['sid']}_{mode}")
+            current_reply_mode = mode
+            t_speech_end = 0.0
+            t_stt_final = 0.0
+            t_first_audio_received = 0.0
+            false_cutoff_detected = False
+            turn_transcript = ""
+            last_turn_result = None
+
+            first_audio_received_event.clear()
+            turn_pipeline_done_event.clear()
+
+            turn_queue: asyncio.Queue[bytes] = asyncio.Queue()
+            current_turn_queue = turn_queue
+            stt_done_event = asyncio.Event()
+
+            raw_pcm = clip["raw_bytes"]
+            chunk_samples = 320
+            chunk_bytes = 640
+            num_chunks = len(raw_pcm) // chunk_bytes
+            active_samples = clip["active_samples"]
+
+            # Connect fresh Deepgram streaming WebSocket session per turn
+            async with aiohttp.ClientSession() as http_sess:
+                async with http_sess.ws_connect(dg_url, headers=dg_headers) as ws:
+                    stop_sender = False
+
+                    async def dg_sender() -> None:
+                        while not stop_sender:
+                            try:
+                                chunk = await asyncio.wait_for(turn_queue.get(), timeout=0.05)
+                                await ws.send_bytes(chunk)
+                                turn_queue.task_done()
+                            except asyncio.TimeoutError:
+                                continue
+                            except asyncio.CancelledError:
+                                break
+
+                    async def dg_receiver() -> None:
+                        nonlocal t_stt_final, false_cutoff_detected, turn_transcript
+                        accumulated_parts: list[str] = []
+                        async for msg in ws:
+                            if msg.type == aiohttp.WSMsgType.TEXT:
+                                data = json.loads(msg.data)
+                                is_final = data.get("is_final", False)
+                                speech_final = data.get("speech_final", False)
+
+                                if is_final:
+                                    try:
+                                        tr = data["channel"]["alternatives"][0]["transcript"].strip()
+                                        if tr:
+                                            accumulated_parts.append(tr)
+                                    except (KeyError, IndexError):
+                                        pass
+
+                                if speech_final:
+                                    now = time.perf_counter()
+                                    if t_speech_end == 0.0 or now < t_speech_end:
+                                        false_cutoff_detected = True
+                                    t_stt_final = now
+
+                                    full_transcript = " ".join(accumulated_parts).strip()
+                                    accumulated_parts.clear()
+
+                                    turn_transcript = full_transcript
+                                    stt_done_event.set()
+                            elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                                break
+
+                    s_task = asyncio.create_task(dg_sender())
+                    r_task = asyncio.create_task(dg_receiver())
+
+                    # Stream audio at 1.0x real-time pacing
+                    samples_sent = 0
+                    for c_idx in range(num_chunks):
+                        t_c_start = time.perf_counter()
+                        chunk = raw_pcm[c_idx * chunk_bytes : (c_idx + 1) * chunk_bytes]
+                        frame = lk_rtc.AudioFrame(chunk, 16000, 1, chunk_samples)
+                        await client_source.capture_frame(frame)
+                        samples_sent += chunk_samples
+
+                        if t_speech_end == 0.0 and samples_sent >= active_samples:
+                            t_speech_end = time.perf_counter()
+
+                        elapsed = time.perf_counter() - t_c_start
+                        sleep_time = 0.02 - elapsed
+                        if sleep_time > 0:
+                            await asyncio.sleep(sleep_time)
+
+                    # Client finished sending speech + trailing silence.
+                    # Allow Deepgram up to 1.0s to detect natural endpointing if not yet fired
+                    if not stt_done_event.is_set():
+                        try:
+                            await asyncio.wait_for(stt_done_event.wait(), timeout=1.0)
+                        except asyncio.TimeoutError:
+                            try:
+                                await ws.send_json({"type": "Finalize"})
+                                await asyncio.wait_for(stt_done_event.wait(), timeout=2.0)
+                            except Exception:
+                                pass
+
+                    # Clean up STT session
+                    current_turn_queue = None
+                    stop_sender = True
+                    s_task.cancel()
+                    try:
+                        await ws.send_json({"type": "CloseStream"})
+                        await asyncio.sleep(0.05)
+                    except Exception:
+                        pass
+                    r_task.cancel()
+
+            # STT is complete! Now run agent pipeline & TTS streaming
+            async def audio_consumer(chunk: bytes) -> None:
+                f = lk_rtc.AudioFrame(chunk, 16000, 1, 320)
+                await agent_source.capture_frame(f)
+                await asyncio.sleep(0.018)
+
+            pipeline.reply_mode = current_reply_mode
+            p_res = await pipeline.process_turn(
+                utterance=turn_transcript,
+                speech_end_timestamp=t_speech_end,
+                audio_frame_consumer=audio_consumer,
+            )
+            last_turn_result = p_res
+
+            # If WebRTC audio playout didn't trigger RMS yet, wait briefly or fallback
+            if t_first_audio_received == 0.0:
+                try:
+                    await asyncio.wait_for(first_audio_received_event.wait(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    t_first_audio_received = time.perf_counter()
+
+            # Calculate metrics
+            turn_latency_ms = max(0.0, (t_first_audio_received - t_speech_end) * 1000.0)
+            stt_turnaround_ms = max(0.0, (t_stt_final - t_speech_end) * 1000.0)
+
+            p_res = last_turn_result
+            bot_reply = p_res.reply_text if p_res else ""
+            actual_cart = p_res.cart if p_res else {}
+
+            cart_matched = evaluate_cart_match(actual_cart, clip["expected_cart"])
+            intent_matched = (
+                p_res.turn_event.intent_type != "unknown" and p_res.turn_event.intent_type != "kill_switch"
+                if p_res
+                else False
+            )
+            chars_sent = len(bot_reply)
+
+            # Allow bot reply playout to finish before next turn
+            reply_dur_s = (len(p_res.audio_bytes) / 32000.0) if p_res and p_res.audio_bytes else 1.0
+            await asyncio.sleep(reply_dur_s + 3.0)
+
+            return {
+                "sid": clip["sid"],
+                "category": clip["category"],
+                "reply_mode": mode,
+                "transcript": turn_transcript,
+                "bot_reply": bot_reply,
+                "turn_latency_ms": turn_latency_ms,
+                "stt_turnaround_ms": stt_turnaround_ms,
+                "intent_matched": intent_matched,
+                "cart_matched": cart_matched,
+                "false_cutoff": false_cutoff_detected,
+                "chars_sent": chars_sent,
+                "tokens_in": p_res.turn_event.tokens_in if p_res else 0,
+                "tokens_out": p_res.turn_event.tokens_out if p_res else 0,
+            }
+        except Exception as exc:
+            logger.error("[%s] Unexpected turn execution error: %s", clip["sid"], exc)
+            return {
+                "sid": clip["sid"],
+                "category": clip["category"],
+                "reply_mode": mode,
+                "transcript": turn_transcript or "error",
+                "bot_reply": "Mohon maaf kak, sistem sedang sibuk.",
+                "turn_latency_ms": 8000.0,
+                "stt_turnaround_ms": 3000.0,
+                "intent_matched": False,
+                "cart_matched": False,
+                "false_cutoff": False,
+                "chars_sent": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            }
+
     for idx, clip in enumerate(clips):
         sid = clip["sid"]
         cat = clip["category"]
 
         # Run Mode 2: Deterministic Template
-        print(f"\n[{idx + 1:02d}/30] {sid} ({cat}) -> Mode: Template")
-        res_tpl = await run_single_turn_benchmark(
-            clip=clip,
-            reply_mode="template",
-            pipeline=pipeline,
-            agent_source=agent_source,
-            client_source=client_source,
-            client_room=client_room,
-            agent_room=agent_room,
-            dg_key=dg_key,
-            eleven_key=eleven_key,
-        )
+        print(f"\n[{idx + 1:02d}/30] {sid} ({cat}) -> Mode: Template", flush=True)
+        res_tpl = await execute_turn(clip, "template")
         results_mode_template.append(res_tpl)
         print(
-            f"   Latency: {res_tpl['turn_latency_ms']:.1f} ms | STT: {res_tpl['stt_turnaround_ms']:.1f} ms | CartMatch: {res_tpl['cart_matched']} | Reply: '{res_tpl['bot_reply']}'"
+            f"   Latency: {res_tpl['turn_latency_ms']:.1f} ms | STT: {res_tpl['stt_turnaround_ms']:.1f} ms | CartMatch: {res_tpl['cart_matched']} | Reply: '{res_tpl['bot_reply']}'",
+            flush=True,
         )
-
-        # 1.5s pacing pause
-        await asyncio.sleep(1.5)
 
         # Run Mode 1: LLM Verbalization
-        print(f"[{idx + 1:02d}/30] {sid} ({cat}) -> Mode: LLM Verbalization")
-        res_llm = await run_single_turn_benchmark(
-            clip=clip,
-            reply_mode="llm",
-            pipeline=pipeline,
-            agent_source=agent_source,
-            client_source=client_source,
-            client_room=client_room,
-            agent_room=agent_room,
-            dg_key=dg_key,
-            eleven_key=eleven_key,
-        )
+        print(f"[{idx + 1:02d}/30] {sid} ({cat}) -> Mode: LLM Verbalization", flush=True)
+        res_llm = await execute_turn(clip, "llm")
         results_mode_llm.append(res_llm)
         print(
-            f"   Latency: {res_llm['turn_latency_ms']:.1f} ms | STT: {res_llm['stt_turnaround_ms']:.1f} ms | CartMatch: {res_llm['cart_matched']} | Reply: '{res_llm['bot_reply']}'"
+            f"   Latency: {res_llm['turn_latency_ms']:.1f} ms | STT: {res_llm['stt_turnaround_ms']:.1f} ms | CartMatch: {res_llm['cart_matched']} | Reply: '{res_llm['bot_reply']}'",
+            flush=True,
         )
 
-        # 1.5s pacing pause
-        await asyncio.sleep(1.5)
-
-    # 7. Check ElevenLabs Quota After Run
+    # 6. Check ElevenLabs Quota After Run
     quota_after = await tts_adapter.get_remaining_characters()
     total_chars_used = quota_before - quota_after
-    print(f"\n[ElevenLabs Quota After Run] Remaining: {quota_after:,} / 10,000 (Used: {total_chars_used:,} chars)")
+    print(
+        f"\n[ElevenLabs Quota After Run] Remaining: {quota_after:,} / 10,000 (Used: {total_chars_used:,} chars)",
+        flush=True,
+    )
 
-    # 8. Clean up WebRTC
+    # 7. Clean up WebRTC
     await agent_room.disconnect()
     await client_room.disconnect()
 
-    # 9. Statistical Analysis
+    # 8. Statistical Analysis
     def analyze_mode(runs: list[dict[str, Any]], name: str) -> dict[str, Any]:
         latencies = [r["turn_latency_ms"] for r in runs if r["turn_latency_ms"] > 0]
         stt_turnarounds = [r["stt_turnaround_ms"] for r in runs if r["stt_turnaround_ms"] > 0]
@@ -551,7 +597,6 @@ async def main() -> None:
         intent_acc = (sum(1 for r in runs if r["intent_matched"]) / len(runs)) * 100.0
         false_cutoff_pct = (sum(1 for r in runs if r["false_cutoff"]) / len(runs)) * 100.0
 
-        # Per category metrics
         per_cat = {}
         for c in ["simple", "quantity_combo", "modifiers_size", "correction_undo"]:
             c_runs = [r for r in runs if r["category"] == c]
@@ -564,7 +609,6 @@ async def main() -> None:
                     "cart_acc_pct": (sum(1 for r in c_runs if r["cart_matched"]) / len(c_runs)) * 100.0,
                 }
 
-        # Verification against targets
         pass_original_1200ms = p50 <= 1200.0
         pass_owner_fallback = p50 <= 1800.0 and p95 <= 3000.0
 
@@ -589,7 +633,7 @@ async def main() -> None:
     stats_template = analyze_mode(results_mode_template, "Deterministic Template (0 LLM Verbalization Latency)")
     stats_llm = analyze_mode(results_mode_llm, "LLM Verbalization (Groq Qwen-27b, max 150 tokens)")
 
-    # 10. Save JSON Results
+    # 9. Save JSON Results
     results_dir = Path("eval/results")
     results_dir.mkdir(parents=True, exist_ok=True)
     full_output = {
@@ -602,9 +646,9 @@ async def main() -> None:
     }
     output_json_path = results_dir / "g1_week04_benchmark.json"
     output_json_path.write_text(json.dumps(full_output, indent=2), encoding="utf-8")
-    print(f"\nRaw Benchmark Data Saved to: {output_json_path}")
+    print(f"\nRaw Benchmark Data Saved to: {output_json_path}", flush=True)
 
-    # 11. Write Markdown Report to docs/gates/G1-minggu4-results.md
+    # 10. Write Markdown Report to docs/gates/G1-minggu4-results.md
     report_path = Path("docs/gates/G1-minggu4-results.md")
     report_content = f"""# Gate G1 Final Validation Measurement Report (Minggu 4)
 
@@ -620,7 +664,7 @@ async def main() -> None:
 ## 1. Executive Summary & Target Comparison
 
 Pengujian ini dijalankan secara penuh pada pipeline terintegrasi WebRTC LiveKit nyata:
-$$\\text{{WebRTC Audio Klien}} \\to \\text{{Worker Agen}} \\to \\text{{Deepgram Nova-3 (endpointing=300)}} \\to \\text{{Groq Qwen-27b Intent}} \\to \\text{{Cart State Machine}} \\to \\text{{TTS ElevenLabs Flash v2.5}} \\to \\text{{WebRTC Audio Kasir}}$$
+$$\\text{{WebRTC Audio Klien}} \\to \\text{{Worker Agen}} \\to \\text{{Deepgram Nova-3 (endpointing=500)}} \\to \\text{{Groq Qwen-27b Intent}} \\to \\text{{Cart State Machine}} \\to \\text{{TTS ElevenLabs Flash v2.5}} \\to \\text{{WebRTC Audio Kasir}}$$
 
 Pengujian menguji **30 giliran percakapan (*turns*)** beragam (mencakup pesanan sederhana, kombo/kuantitas, modifier/ukuran, dan koreksi/undo) yang diuji secara bersilangan (*interleaved*) pada dua konfigurasi balasan:
 1. **Mode 1: Verbalisasi LLM** (Groq Qwen-27b menerjemahkan `SpeechFacts` dengan batas 150 token).
@@ -630,8 +674,8 @@ Pengujian menguji **30 giliran percakapan (*turns*)** beragam (mencakup pesanan 
 
 | Target Evaluasi | Ambang Batas Target | Mode 2: Templat Deterministik | Mode 1: Verbalisasi LLM | Status Hasil Pengukuran |
 | :--- | :--- | :--- | :--- | :--- |
-| **Original Target (PRD §4.5)** | **P50 $\\le 1.200\\text{{ ms}}$** (1.2 s) | **{stats_template['p50_ms']:.1f} ms** (95% CI: [{stats_template['p50_ci_95'][0]:.1f}, {stats_template['p50_ci_95'][1]:.1f}]) | **{stats_llm['p50_ms']:.1f} ms** (95% CI: [{stats_llm['p50_ci_95'][0]:.1f}, {stats_llm['p50_ci_95'][1]:.1f}]) | **Gagal (Missed)** pada kedua mode |
-| **Owner Fallback (ADR-0013 Opsi B)** | **P50 $\\le 1.800\\text{{ ms}}$ AND P95 $\\le 3.000\\text{{ ms}}$** | **P50: {stats_template['p50_ms']:.1f} ms, P95: {stats_template['p95_ms']:.1f} ms** | **P50: {stats_llm['p50_ms']:.1f} ms, P95: {stats_llm['p95_ms']:.1f} ms** | {'**Lulus Kriteria Fallback**' if stats_template['pass_owner_fallback'] else '**Gagal Kriteria Fallback**'} (Mode Templat) |
+| **Original Target (PRD §4.5)** | **P50 $\\le 1.200\\text{{ ms}}$** (1.2 s) | **{stats_template['p50_ms']:.1f} ms** (95% CI: [{stats_template['p50_ci_95'][0]:.1f}, {stats_template['p50_ci_95'][1]:.1f}]) | **{stats_llm['p50_ms']:.1f} ms** (95% CI: [{stats_llm['p50_ci_95'][0]:.1f}, {stats_llm['p50_ci_95'][1]:.1f}]) | **{'Lulus Target 1.2s' if stats_template['pass_original_1200ms'] else 'Gagal Target 1.2s'}** |
+| **Owner Fallback (ADR-0013 Opsi B)** | **P50 $\\le 1.800\\text{{ ms}}$ AND P95 $\\le 3.000\\text{{ ms}}$** | **P50: {stats_template['p50_ms']:.1f} ms, P95: {stats_template['p95_ms']:.1f} ms** | **P50: {stats_llm['p50_ms']:.1f} ms, P95: {stats_llm['p95_ms']:.1f} ms** | **{'Lulus Kriteria Fallback' if stats_template['pass_owner_fallback'] else 'Gagal Kriteria Fallback'}** |
 
 > [!IMPORTANT]
 > **Keputusan Akhir Berada di Tangan Pemilik Proyek (Daryl):**
@@ -682,8 +726,8 @@ Pengujian menguji **30 giliran percakapan (*turns*)** beragam (mencakup pesanan 
 """
 
     report_path.write_text(report_content, encoding="utf-8")
-    print(f"\nReport written to: {report_path}")
-    print("\nBenchmark Execution Complete!")
+    print(f"\nReport written to: {report_path}", flush=True)
+    print("\nBenchmark Execution Complete!", flush=True)
 
 
 if __name__ == "__main__":

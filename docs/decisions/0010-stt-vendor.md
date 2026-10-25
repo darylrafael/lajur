@@ -30,3 +30,10 @@ Uji paired bootstrap pada selisih KER per-utterance menghasilkan $\bar{\Delta} =
 ## Konsekuensi & Hal yang Belum Dapat Diputuskan
 - **Akurasi Suara Manusia Nyata:** Masih berstatus *provisional* karena pengujian representatif baru dilakukan pada audio sintetis ($n=30$); pengujian audio manusia nyata baru $n=1$ (hanya latensi, akurasi belum diukur).
 - **Keputusan Arsitektur:** Menunggu keputusan Daryl mengenai apakah sistem akan memprioritaskan latensi pipeline (Groq Whisper Turbo + optimasi VAD) atau memprioritaskan native streaming WebSocket (Deepgram Nova-3).
+
+## Hasil Pengukuran Pipeline Nyata Minggu 4 (docs/gates/G1-minggu4-results.md)
+Pada benchmark pra-registrasi Gate G1 di Minggu 4 yang dijalankan pada pipeline LiveKit WebRTC riil (30 skenario × 2 mode balasan = 60 turns):
+1. **Endpointing & Turnaround STT:** Konfigurasi `endpointing=500` menghasilkan median turnaround STT (diukur dari akhir ucapan fisik skrip hingga `speech_final=True`) sebesar **P50 = 1.393,5 ms**.
+2. **False Cutoff Rate:** Terukur **0,0%** (tidak ada pemotongan ucapan prematur di tengah kalimat).
+3. **Akurasi Pengenalan Intent:** Mencapai **96,7%** (Mode 2: Templat) dan **93,3%** (Mode 1: LLM Verbalization). Akurasi keranjang akhir (*resulting cart*) mencapai 100,0% pada kategori kuantitas/kombo dan 87,5% pada kategori sederhana serta modifier.
+4. **Keandalan Koneksi:** Deepgram WebSocket diinisialisasi per-turn dalam sesi WebRTC, menghasilkan deteksi batas ucapan yang bersih tanpa kebocoran state antar-giliran.

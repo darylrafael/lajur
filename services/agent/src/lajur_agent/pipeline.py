@@ -14,8 +14,9 @@ import datetime
 import logging
 import os
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from lajur_cart.menu_service import MenuService
 from lajur_cart.state_machine import CartSession, SpeechFacts
@@ -88,6 +89,13 @@ class VoiceOrderingPipeline:
             "allowed_item_ids": self._allowed_item_ids,
             "key_aliases": dict(list(aliases_map.items())[:20]),
         }
+
+    def reset_session(self, session_id: str | None = None) -> None:
+        """Reset the cart session and timers for a new customer ordering session."""
+        self.session_id = session_id or f"sess_{int(time.perf_counter())}"
+        self.session = CartSession(self.menu_service)
+        self.turn_counter = 0
+        self.created_at = time.perf_counter()
 
     def _check_kill_switch(self) -> bool:
         """Check kill switch environment flag."""
@@ -380,9 +388,10 @@ class VoiceOrderingPipeline:
         t_tts_first_byte: float | None = None
         t_first_audio: float | None = None
         collected_chunks: list[bytes] = []
-
-        if audio_frame_consumer is not None and hasattr(self.tts_adapter, "stream_audio_chunks"):
-            async for pcm_frame in self.tts_adapter.stream_audio_chunks(reply_text):
+        stream_fn = cast(Any, getattr(self.tts_adapter, "stream_audio_chunks", None))
+        if audio_frame_consumer is not None and callable(stream_fn):
+            stream_iter = cast(AsyncIterator[bytes], stream_fn(reply_text))
+            async for pcm_frame in stream_iter:
                 now = time.perf_counter()
                 if t_tts_first_byte is None:
                     t_tts_first_byte = now
