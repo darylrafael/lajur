@@ -1,17 +1,25 @@
-"""Groq Cloud STT adapter using Whisper Large v3 / Turbo models."""
+"""Groq Cloud STT and LLM adapters using Whisper and Qwen models."""
 
 from __future__ import annotations
 
 import io
+import json
+import logging
 import os
 import time
 import wave
 from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import Any
 
 import aiohttp
+from lajur_cart.intents import IntentEnvelope, UnknownIntent
+from pydantic import ValidationError
 
-from lajur_agent.adapters.base import STTAdapter, TranscriptionEvent
+from lajur_agent.adapters.base import IntentResult, LLMIntentAdapter, STTAdapter, TranscriptionEvent
+from lajur_agent.prompts import load_prompt
+
+logger = logging.getLogger("lajur.agent.groq_llm")
 
 
 class GroqSTTAdapter(STTAdapter):
@@ -120,3 +128,204 @@ class GroqSTTAdapter(STTAdapter):
             confidence=1.0,
             latency_ms=latency_ms,
         )
+
+
+logger = logging.getLogger("lajur.agent.groq_llm")
+
+
+class GroqLLMIntentAdapter(LLMIntentAdapter):
+    """LLM Intent Parser and Reply Generator adapter backed by Groq Cloud."""
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "qwen/qwen3.8-27b",
+        max_tokens: int = 150,
+        temperature: float = 0.1,
+    ) -> None:
+        self._api_key = api_key or os.getenv("GROQ_API_KEY", "")
+        if not self._api_key:
+            raise ValueError("GROQ_API_KEY must be provided or set in environment variables.")
+        self._model = model
+        self._max_tokens = max_tokens
+        self._temperature = temperature
+        self._chat_url = "https://api.groq.com/openai/v1/chat/completions"
+        self._parser_prompt, self._parser_prompt_hash = load_prompt("intent_parser_v1.txt")
+        self._reply_prompt, self._reply_prompt_hash = load_prompt("reply_generator_v1.txt")
+
+    @property
+    def name(self) -> str:
+        return f"groq-llm-{self._model}"
+
+    @property
+    def prompt_hash(self) -> str:
+        return self._parser_prompt_hash
+
+    async def parse_intent(
+        self,
+        transcript: str,
+        history: list[dict[str, str]] | None = None,
+        cart_snapshot: dict[str, Any] | None = None,
+        pending_choice: dict[str, Any] | None = None,
+        menu_context: dict[str, Any] | None = None,
+    ) -> IntentResult:
+        """Parse an utterance into structured intents according to intent-parser-contract."""
+        if not transcript.strip():
+            return IntentResult(
+                intents=[{"type": "unknown", "raw_text": "", "reason": "empty_transcript"}],
+                bot_reply="Bisa diulangi kak?",
+                ttft_ms=0.0,
+                total_latency_ms=0.0,
+                tokens_in=0,
+                tokens_out=0,
+                raw_response="{}",
+                metadata={"prompt_hash": self._parser_prompt_hash, "retries": 0},
+            )
+
+        payload_context = {
+            "utterance": transcript,
+            "cart_snapshot": cart_snapshot or {},
+            "pending_choice": pending_choice,
+            "menu_context": menu_context or {},
+        }
+        user_message = json.dumps(payload_context, ensure_ascii=False)
+
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+        # Bounded retry loop (max 1 retry)
+        retries = 0
+        error_feedback: str | None = None
+
+        while retries <= 1:
+            messages = [{"role": "system", "content": self._parser_prompt}]
+            if history:
+                messages.extend(history[-4:])
+            if error_feedback:
+                messages.append({
+                    "role": "user",
+                    "content": f"{user_message}\n\nPREVIOUS ERROR: {error_feedback}. Please fix and return valid JSON adhering strictly to the schema.",
+                })
+            else:
+                messages.append({"role": "user", "content": user_message})
+
+            body = {
+                "model": self._model,
+                "messages": messages,
+                "response_format": {"type": "json_object"},
+                "temperature": self._temperature,
+                "max_tokens": self._max_tokens,
+            }
+
+            req_start = time.perf_counter()
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    self._chat_url,
+                    headers=headers,
+                    json=body,
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    latency_ms = (time.perf_counter() - req_start) * 1000.0
+                    if resp.status != 200:
+                        err_text = await resp.text()
+                        logger.warning("Groq chat error (%d): %s", resp.status, err_text[:200])
+                        retries += 1
+                        error_feedback = f"HTTP {resp.status}"
+                        continue
+                    data = await resp.json()
+
+            usage = data.get("usage", {})
+            tokens_in = usage.get("prompt_tokens", 0)
+            tokens_out = usage.get("completion_tokens", 0)
+            raw_content = data["choices"][0]["message"]["content"].strip()
+
+            try:
+                parsed_json = json.loads(raw_content)
+                envelope = IntentEnvelope.model_validate(parsed_json)
+                intents_list = [it.model_dump() for it in envelope.intents]
+                suggested_reply = parsed_json.get("suggested_reply", "")
+
+                return IntentResult(
+                    intents=intents_list,
+                    bot_reply=suggested_reply,
+                    ttft_ms=latency_ms,
+                    total_latency_ms=latency_ms,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    raw_response=raw_content,
+                    metadata={
+                        "prompt_hash": self._parser_prompt_hash,
+                        "model_id": self._model,
+                        "retries": retries,
+                    },
+                )
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.info("Intent validation error on attempt %d: %s", retries, e)
+                error_feedback = f"Schema validation error: {str(e)[:200]}"
+                retries += 1
+
+        # Safe fallback after bounded retry exhaustion
+        fallback = UnknownIntent(raw_text=transcript, reason="parse_validation_failed")
+        return IntentResult(
+            intents=[fallback.model_dump()],
+            bot_reply="Mohon maaf kak, bisa diulangi kembali?",
+            ttft_ms=latency_ms,
+            total_latency_ms=latency_ms,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            raw_response="{}",
+            metadata={
+                "prompt_hash": self._parser_prompt_hash,
+                "model_id": self._model,
+                "retries": retries,
+                "fallback": True,
+            },
+        )
+
+    async def verbalize_reply(
+        self,
+        speech_facts: dict[str, Any],
+        cart_snapshot: dict[str, Any],
+    ) -> tuple[str, float, int, int]:
+        """Verbalize speech facts into conversational Indonesian using LLM (Mode 1).
+
+        Returns:
+            tuple of (reply_text, latency_ms, tokens_in, tokens_out)
+        """
+        payload = {
+            "speech_facts": speech_facts,
+            "cart": cart_snapshot,
+        }
+        messages = [
+            {"role": "system", "content": self._reply_prompt},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+        ]
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 150,
+        }
+
+        req_start = time.perf_counter()
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                self._chat_url,
+                headers=headers,
+                json=body,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                latency_ms = (time.perf_counter() - req_start) * 1000.0
+                if resp.status != 200:
+                    return "Baik kak, pesanan sudah dicatat.", latency_ms, 0, 0
+                data = await resp.json()
+
+        usage = data.get("usage", {})
+        reply_text = data["choices"][0]["message"]["content"].strip()
+        return reply_text, latency_ms, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)

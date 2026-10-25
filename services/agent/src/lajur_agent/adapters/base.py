@@ -98,11 +98,22 @@ class LLMIntentAdapter(ABC):
         """Vendor/adapter identifier."""
         ...
 
+    async def verbalize_reply(
+        self,
+        speech_facts: dict[str, Any],
+        cart_snapshot: dict[str, Any],
+    ) -> tuple[str, float, int, int]:
+        """Verbalize speech facts into conversational reply (reply_text, latency_ms, tokens_in, tokens_out)."""
+        return "", 0.0, 0, 0
+
     @abstractmethod
     async def parse_intent(
         self,
         transcript: str,
         history: list[dict[str, str]] | None = None,
+        cart_snapshot: dict[str, Any] | None = None,
+        pending_choice: dict[str, Any] | None = None,
+        menu_context: dict[str, Any] | None = None,
     ) -> IntentResult:
-        """Parse an utterance into structured intents and a conversational reply."""
+        """Parse an utterance into structured intents according to intent-parser-contract."""
         ...
