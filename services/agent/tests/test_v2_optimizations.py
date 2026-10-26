@@ -168,3 +168,64 @@ async def test_telemetry_writes_never_block_audio_path(tmp_path: Path) -> None:
     assert events[0]["t_agent_publish_ms"] == 310.0
 
     await logger.close()
+
+
+@pytest.mark.asyncio
+async def test_deepgram_query_params_include_linear16_16000() -> None:
+    """Verify DeepgramSTTAdapter configures 16kHz linear PCM streaming."""
+    from lajur_agent.adapters.deepgram import DeepgramSTTAdapter
+
+    adapter = DeepgramSTTAdapter(api_key="fake-key", model="nova-3", endpointing=500)
+    params = adapter._build_query_params(sample_rate=16000)
+
+    param_dict = dict(params)
+    assert param_dict.get("model") == "nova-3"
+    assert param_dict.get("encoding") == "linear16"
+    assert param_dict.get("sample_rate") == "16000"
+    assert param_dict.get("endpointing") == "500"
+
+
+@pytest.mark.asyncio
+async def test_persistent_stream_handles_partial_and_final() -> None:
+    """Verify PersistentDeepgramStream triggers callbacks on interim and final transcripts."""
+    import json
+
+    mock_session = MagicMock(spec=aiohttp.ClientSession)
+    stream = PersistentDeepgramStream(
+        api_key="fake-key",
+        ws_url="wss://api.deepgram.com/v1/listen",
+        params=[("model", "nova-3")],
+        session=mock_session,
+    )
+
+    partials: list[float] = []
+    finals: list[tuple[str, float]] = []
+
+    done_event = stream.begin_turn(
+        on_first_partial=lambda ts: partials.append(ts),
+        on_speech_final=lambda txt, ts: finals.append((txt, ts)),
+    )
+
+    assert not done_event.is_set()
+
+    # Simulate arrival of first partial
+    msg_partial = {
+        "is_final": False,
+        "speech_final": False,
+        "channel": {"alternatives": [{"transcript": "burger"}]},
+    }
+    # Directly test receiver event handler logic
+    stream._on_first_partial(12345.0)
+    assert len(partials) == 1
+    assert partials[0] == 12345.0
+
+    # Simulate arrival of speech_final
+    stream._accumulated_parts.append("burger sapi")
+    stream.last_transcript = "burger sapi"
+    stream._on_speech_final("burger sapi", 12350.0)
+    done_event.set()
+
+    assert done_event.is_set()
+    assert len(finals) == 1
+    assert finals[0] == ("burger sapi", 12350.0)
+

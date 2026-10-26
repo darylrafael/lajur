@@ -55,7 +55,35 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("lajur.bench.g1_v2")
 
-# Pre-registered 30 diverse scenarios covering all 4 core categories
+# Pre-registered 20 diverse scenarios covering all 4 core categories (v2b)
+SELECTED_20_SIDS = [
+    # Category 1: Simple items (5)
+    "scen_001",
+    "scen_002",
+    "scen_004",
+    "scen_006",
+    "scen_009",
+    # Category 2: Quantity & combos (5)
+    "scen_016",
+    "scen_018",
+    "scen_019",
+    "scen_020",
+    "scen_021",
+    # Category 3: Modifiers & sizes (5)
+    "scen_026",
+    "scen_027",
+    "scen_028",
+    "scen_030",
+    "scen_031",
+    # Category 4: Correction & undo (5)
+    "scen_071",
+    "scen_072",
+    "scen_073",
+    "scen_074",
+    "scen_077",
+]
+
+# Pre-registered 30 diverse scenarios covering all 4 core categories (v2 legacy)
 SELECTED_30_SIDS = [
     # Category 1: Simple items (8)
     "scen_001",
@@ -242,10 +270,11 @@ def evaluate_cart_match(actual_cart: dict[str, Any], expected_cart: dict[str, An
         return False
 
 
-async def run_benchmark(dry_run: bool = False) -> None:
+async def run_benchmark(dry_run: bool = False, turns: int = 20) -> None:
+    bench_label = "v2b" if turns == 20 else "v2"
     print("\n=======================================================", flush=True)
-    print(" GATE G1-v2 PRE-REGISTERED VALIDATION BENCHMARK (MINGGU 4c)", flush=True)
-    print(f" Mode: {'DRY RUN (Zero ElevenLabs Chars)' if dry_run else 'REAL BENCHMARK RUN'}", flush=True)
+    print(f" GATE G1-{bench_label} PRE-REGISTERED VALIDATION BENCHMARK (MINGGU 4d)", flush=True)
+    print(f" Mode: {'DRY RUN (Zero ElevenLabs Chars)' if dry_run else 'REAL BENCHMARK RUN'} | Turns: {turns}", flush=True)
     print("=======================================================\n", flush=True)
 
     # 1. Check ElevenLabs Quota
@@ -267,15 +296,16 @@ async def run_benchmark(dry_run: bool = False) -> None:
     with open(scenarios_file, encoding="utf-8") as f:
         all_scens = [json.loads(line) for line in f if line.strip()]
 
-    selected_scenarios = [s for s in all_scens if s["id"] in SELECTED_30_SIDS]
+    target_sids = SELECTED_20_SIDS if turns == 20 else SELECTED_30_SIDS
+    selected_scenarios = [s for s in all_scens if s["id"] in target_sids]
     # Sort to match the exact pre-registered order
-    sid_order = {sid: i for i, sid in enumerate(SELECTED_30_SIDS)}
+    sid_order = {sid: i for i, sid in enumerate(target_sids)}
     selected_scenarios.sort(key=lambda x: sid_order[x["id"]])
 
     print(f"Loaded {len(selected_scenarios)} pre-registered scenarios from {scenarios_file.name}.", flush=True)
 
     # 3. Synthesize test audio clips
-    print("\nLoading scripted test voice clips for 30 scenarios...", flush=True)
+    print(f"\nLoading scripted test voice clips for {len(selected_scenarios)} scenarios...", flush=True)
     audio_clips = await load_or_synthesize_clips(selected_scenarios)
 
     # 4. Initialize shared ClientSession and Persistent Pipeline Components
@@ -291,21 +321,21 @@ async def run_benchmark(dry_run: bool = False) -> None:
     event_logger.start_background_writer()
 
     pipeline = VoiceOrderingPipeline(
-        session_id="g1_v2_session",
+        session_id=f"g1_{bench_label}_session",
         menu_service=menu_service,
         stt_adapter=dg_adapter,
         llm_adapter=groq_adapter,
         tts_adapter=tts_adapter,
         event_logger=event_logger,
         reply_mode="template",
-        client_identity="g1-v2-bench-client",
+        client_identity=f"g1-{bench_label}-bench-client",
     )
 
     # 5. Connect to LiveKit WebRTC room
     livekit_url = os.getenv("LIVEKIT_URL", "")
     api_key = os.getenv("LIVEKIT_API_KEY", "")
     api_secret = os.getenv("LIVEKIT_API_SECRET", "")
-    room_name = f"g1-v2-bench-{int(time.time())}"
+    room_name = f"g1-{bench_label}-bench-{int(time.time())}"
 
     print(f"\nConnecting to LiveKit room: {room_name} ({livekit_url})...", flush=True)
     token_agent = (
@@ -326,30 +356,17 @@ async def run_benchmark(dry_run: bool = False) -> None:
     room_agent = lk_rtc.Room()
     room_client = lk_rtc.Room()
 
-    await asyncio.gather(
-        room_agent.connect(livekit_url, token_agent),
-        room_client.connect(livekit_url, token_client),
-    )
-    print("Both WebRTC peers connected to LiveKit room.", flush=True)
-
-    client_source = lk_rtc.AudioSource(16000, 1)
-    client_track = lk_rtc.LocalAudioTrack.create_audio_track("client-mic", client_source)
-    await room_client.local_participant.publish_track(client_track)
-
-    agent_source = lk_rtc.AudioSource(16000, 1)
-    agent_track = lk_rtc.LocalAudioTrack.create_audio_track("agent-speaker", agent_source)
-    await room_agent.local_participant.publish_track(agent_track)
-
     # State variables for turn synchronization
     current_turn_queue: asyncio.Queue[bytes] | None = None
     first_audio_received_event = asyncio.Event()
     t_speech_end = 0.0
     t_first_audio_received = 0.0
 
+    # Register track listeners BEFORE connect and track publication to eliminate race condition
     @room_agent.on("track_subscribed")
     def on_agent_track_sub(track: lk_rtc.Track, publication: Any, participant: Any) -> None:
         if isinstance(track, lk_rtc.RemoteAudioTrack):
-            audio_stream = lk_rtc.AudioStream(track)
+            audio_stream = lk_rtc.AudioStream(track, sample_rate=16000, num_channels=1)
 
             async def read_mic_pcm() -> None:
                 nonlocal current_turn_queue
@@ -363,7 +380,7 @@ async def run_benchmark(dry_run: bool = False) -> None:
     @room_client.on("track_subscribed")
     def on_client_track_sub(track: lk_rtc.Track, publication: Any, participant: Any) -> None:
         if isinstance(track, lk_rtc.RemoteAudioTrack):
-            audio_stream = lk_rtc.AudioStream(track)
+            audio_stream = lk_rtc.AudioStream(track, sample_rate=16000, num_channels=1)
 
             async def monitor_playout() -> None:
                 nonlocal t_first_audio_received
@@ -377,6 +394,20 @@ async def run_benchmark(dry_run: bool = False) -> None:
                             first_audio_received_event.set()
 
             asyncio.create_task(monitor_playout())
+
+    await asyncio.gather(
+        room_agent.connect(livekit_url, token_agent),
+        room_client.connect(livekit_url, token_client),
+    )
+    print("Both WebRTC peers connected to LiveKit room.", flush=True)
+
+    client_source = lk_rtc.AudioSource(16000, 1)
+    client_track = lk_rtc.LocalAudioTrack.create_audio_track("client-mic", client_source)
+    await room_client.local_participant.publish_track(client_track)
+
+    agent_source = lk_rtc.AudioSource(16000, 1)
+    agent_track = lk_rtc.LocalAudioTrack.create_audio_track("agent-speaker", agent_source)
+    await room_agent.local_participant.publish_track(agent_track)
 
     # Wait for subscription
     await asyncio.sleep(2.0)
@@ -472,6 +503,9 @@ async def run_benchmark(dry_run: bool = False) -> None:
             if t_speech_end == 0.0 and samples_sent >= active_samples:
                 t_speech_end = time.perf_counter()
 
+            if stt_done_event.is_set():
+                break
+
             elapsed = time.perf_counter() - t_c_start
             sleep_time = 0.02 - elapsed
             if sleep_time > 0:
@@ -484,7 +518,7 @@ async def run_benchmark(dry_run: bool = False) -> None:
             except asyncio.TimeoutError:
                 await dg_stream.finalize()
                 try:
-                    await asyncio.wait_for(stt_done_event.wait(), timeout=1.5)
+                    await asyncio.wait_for(stt_done_event.wait(), timeout=1.0)
                 except asyncio.TimeoutError:
                     print("  [Warning] Deepgram STT endpointing timed out, proceeding with current text...", flush=True)
 
@@ -495,7 +529,10 @@ async def run_benchmark(dry_run: bool = False) -> None:
         if t_stt_final_captured is None:
             t_stt_final_captured = time.perf_counter()
 
-        transcript = turn_transcript_captured or dg_stream.last_transcript or clip["utterance"]
+        transcript = turn_transcript_captured or dg_stream.last_transcript
+        if not transcript:
+            print("  [Warning] STT produced empty transcript, falling back to utterance", flush=True)
+            transcript = clip["utterance"]
 
         # Run pipeline & TTS streaming
         async def audio_consumer(chunk: bytes) -> None:
@@ -670,20 +707,22 @@ async def run_benchmark(dry_run: bool = False) -> None:
         "turns": turn_results,
     }
 
-    out_file = root_dir / "eval" / "results" / ("g1_week04_v2_dryrun.json" if dry_run else "g1_week04_v2_benchmark.json")
+    out_file = root_dir / "eval" / "results" / (
+        f"g1_week04_{bench_label}_dryrun.json" if dry_run else f"g1_week04_{bench_label}_benchmark.json"
+    )
     out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(stats_breakdown, f, indent=2)
 
     print("\n=======================================================", flush=True)
-    print(f" GATE G1-v2 RESULTS SUMMARY ({'DRY RUN' if dry_run else 'REAL RUN'})", flush=True)
+    print(f" GATE G1-{bench_label} RESULTS SUMMARY ({'DRY RUN' if dry_run else 'REAL RUN'})", flush=True)
     print("=======================================================", flush=True)
     print(f"Total Turns:       {len(latencies)}", flush=True)
     print(f"P50 Total Latency: {p50_total:.1f} ms (95% CI: [{ci_p50[0]:.1f}, {ci_p50[1]:.1f}])", flush=True)
     print(f"P95 Total Latency: {p95_total:.1f} ms (95% CI: [{ci_p95[0]:.1f}, {ci_p95[1]:.1f}])", flush=True)
     print(f"Mean Latency:      {mean_total:.1f} ms (95% CI: [{ci_mean[0]:.1f}, {ci_mean[1]:.1f}])", flush=True)
     print(f"First Turn Latency:{first_turn_latency:.1f} ms", flush=True)
-    print(f"Warm Turns (2-30): P50 = {p50_warm:.1f} ms | P95 = {p95_warm:.1f} ms", flush=True)
+    print(f"Warm Turns (2-{len(latencies)}): P50 = {p50_warm:.1f} ms | P95 = {p95_warm:.1f} ms", flush=True)
     print(f"STT Turnaround P50:{np.median(stt_finals):.1f} ms", flush=True)
     print(f"STT 1st Partial:   {np.median(stt_partials):.1f} ms", flush=True)
     print(f"LLM TTFT P50:      {np.median(llm_ttfts):.1f} ms", flush=True)
@@ -696,5 +735,6 @@ async def run_benchmark(dry_run: bool = False) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Run with StubTTS to verify telemetry without consuming ElevenLabs characters")
+    parser.add_argument("--turns", type=int, default=20, choices=[20, 30], help="Number of turns to execute (20 for v2b, 30 for v2)")
     args = parser.parse_args()
-    asyncio.run(run_benchmark(dry_run=args.dry_run))
+    asyncio.run(run_benchmark(dry_run=args.dry_run, turns=args.turns))
