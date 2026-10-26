@@ -7,7 +7,14 @@
 **Pre-registered Protocol:** [`docs/gates/G1-v2-protocol.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-v2-protocol.md)  
 **Detailed Minggu 4 Analysis:** [`docs/gates/G1-minggu4-analysis.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-minggu4-analysis.md)  
 **Raw Benchmark JSON:** [`eval/results/g1_week04_v2_benchmark.json`](file:///c:/Users/Lenovo/Downloads/drivethru/eval/results/g1_week04_v2_benchmark.json)  
-**Status:** MEASUREMENT COMPLETE — VERDICT: GAGAL TARGET 1.2S & FALLBACK 1.8S  
+**Status:** MEASUREMENT COMPLETE — VERDICT: GAGAL TARGET 1.2S & FALLBACK 1.8S (DIBATALKAN / INVALID PER MINGGU 4d ATURAN 4)  
+**Amendment & Repair:** [`docs/gates/G1-v2-amendment.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-v2-amendment.md) | Hasil Pengukuran Perbaikan: [`docs/gates/G1-v2b-results.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-v2b-results.md)  
+
+---
+
+> [!WARNING]
+> **STATUS PROTOKOL G1-v2: DIBATALKAN / INVALID (Minggu 4d)**  
+> Pengukuran G1-v2 di bawah ini secara resmi dinyatakan **BATAL / TIDAK VALID** berdasarkan audit integritas Minggu 4d (Aturan 4). Cacat resampling WebRTC AudioStream (48kHz vs 16kHz) dan penumpukan jeda timeout 1,5s + 1,5s menyebabkan turnaround STT terperangkap pada ~4.220 ms. Hasil resmi yang valid pasca-perbaikan dicatat pada [`docs/gates/G1-v2b-results.md`](file:///c:/Users/Lenovo/Downloads/drivethru/docs/gates/G1-v2b-results.md). Laporan di bawah ini dipertahankan murni sebagai arsip transparansi historis.
 
 ---
 
@@ -86,7 +93,7 @@ Evaluasi ini membandingkan konfigurasi balasan templat deterministik antara peng
 ## 5. Hal-Hal yang Tidak Diukur (*What is NOT Measured*)
 
 Secara transparan dan objektif, aspek-aspek berikut **TIDAK DIUKUR** dalam benchmark G1-v2 ini:
-1. **Perangkat Fisik Nyata (*Real Device*):** Pengujian dijalankan menggunakan harness WebRTC LiveKit pada laptop developer, bukan aplikasi Expo Go di iPhone fisik pengguna.
+1. **Perangkat Fisik Nyata (*Real Device*):** Pada fase Minggu 4 ini, belum ada pengujian pada perangkat fisik nyata apa pun (belum ada aplikasi mobile/Expo Go yang dibuat; seluruh pengujian tracer bullet berjalan murni di laptop developer via harness WebRTC LiveKit).
 2. **Suara Asli Pemilik Proyek (*Real Human Voice*):** Kalimat uji disintesis menggunakan suara sintetis Edge-TTS Bahasa Indonesia baku, bukan rekaman suara spontan manusia di kotak speaker drive-thru.
 3. **Worker Ter-deploy di Cloud (*Deployed Cloud Worker*):** Worker agen dijalankan di laptop lokal di Jakarta (penyiapan pesimistik dengan jarak jaringan ~180–240 ms ke server API vendor di AS/India), belum dideploy pada server cloud terdekat.
 4. **Mode Balasan Verbalisasi LLM (*LLM-Verbalized Mode*):** Sesuai keputusan pemilik proyek, mode verbalisasi LLM tidak diukur ulang (*not re-measured*) pada putaran ini untuk menghemat kuota dan memfokuskan arsitektur pada mode templat deterministik yang andal.

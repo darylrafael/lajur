@@ -155,7 +155,7 @@ Untuk menjaga integritas teknis tanpa klaim sepihak, setiap data dalam laporan i
    - Karakter ElevenLabs terpakai (1.080) dan durasi LiveKit terpakai (15,0 menit).
    - Audit 5 baris mentah skenario koreksi 1-turn vs multi-turn.
 2. **"User ran it":**
-   - *Tidak ada* (Daryl belum menjalankan pengujian langsung pada iPhone fisik via Expo Go untuk pipeline audio ini).
+   - *Tidak ada* (Pada fase Minggu 4 ini belum ada pengujian pada perangkat fisik nyata apa pun; belum ada aplikasi mobile/Expo Go yang dibuat, seluruh pengujian tracer bullet berjalan di laptop developer via harness WebRTC).
 3. **"Unverified" (Belum Diverifikasi oleh Pemilik Proyek):**
    - Ground truth `gold_intents_v2` (berstatus *agent-authored labels*, verifikasi pemilik masih tertunda).
    - `expected_cart` pada skenario multi-turn `scenarios.jsonl`.
