@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 from collections.abc import AsyncIterator
 
 import aiohttp
 
 from lajur_agent.adapters.base import TTSAdapter, TTSAudioChunk
+
+logger = logging.getLogger("lajur.agent.elevenlabs")
 
 
 class ElevenLabsTTSAdapter(TTSAdapter):
@@ -19,6 +23,7 @@ class ElevenLabsTTSAdapter(TTSAdapter):
         voice_id: str = "EXAVITQu4vr4xnSDxMaL",  # Sarah (warm, friendly)
         model_id: str = "eleven_flash_v2_5",
         output_format: str = "pcm_16000",
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         self._api_key = api_key or os.getenv("ELEVENLABS_API_KEY", "")
         if not self._api_key:
@@ -28,6 +33,32 @@ class ElevenLabsTTSAdapter(TTSAdapter):
         self._output_format = output_format
         self._sample_rate = 16000 if "16000" in output_format else 24000
         self._base_url = f"https://api.elevenlabs.io/v1/text-to-speech/{self._voice_id}/stream"
+        self._session = session
+        self._owns_session = session is None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+            self._owns_session = True
+        return self._session
+
+    async def prewarm(self) -> float:
+        """Pre-warm connection to ElevenLabs API and measure TLS/TCP handshake latency in ms ($0 spend, 0 chars)."""
+        session = await self._get_session()
+        t_start = time.perf_counter()
+        url = "https://api.elevenlabs.io/v1/user/subscription"
+        headers = {"xi-api-key": self._api_key}
+        try:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                await resp.read()
+        except Exception as e:
+            logger.debug("ElevenLabs prewarm error (non-fatal): %s", e)
+        return (time.perf_counter() - t_start) * 1000.0
+
+    async def close(self) -> None:
+        """Close HTTP session if owned by this adapter."""
+        if self._owns_session and self._session and not self._session.closed:
+            await self._session.close()
 
     @property
     def name(self) -> str:
@@ -37,14 +68,14 @@ class ElevenLabsTTSAdapter(TTSAdapter):
         """Query ElevenLabs subscription endpoint for remaining monthly characters."""
         url = "https://api.elevenlabs.io/v1/user/subscription"
         headers = {"xi-api-key": self._api_key}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    char_count = data.get("character_count", 0)
-                    char_limit = data.get("character_limit", 0)
-                    return max(0, char_limit - char_count)
-                raise RuntimeError(f"Failed to fetch subscription quota: {resp.status}")
+        session = await self._get_session()
+        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                char_count = data.get("character_count", 0)
+                char_limit = data.get("character_limit", 0)
+                return max(0, char_limit - char_count)
+            raise RuntimeError(f"Failed to fetch subscription quota: {resp.status}")
 
     async def synthesize_text(self, text: str) -> bytes:
         """Synthesize an entire string into raw audio bytes (PCM or MP3)."""
@@ -65,17 +96,17 @@ class ElevenLabsTTSAdapter(TTSAdapter):
             },
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=15),
-            ) as resp:
-                if resp.status != 200:
-                    err = await resp.text()
-                    raise RuntimeError(f"ElevenLabs synthesis failed ({resp.status}): {err[:300]}")
-                return await resp.read()
+        session = await self._get_session()
+        async with session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            if resp.status != 200:
+                err = await resp.text()
+                raise RuntimeError(f"ElevenLabs synthesis failed ({resp.status}): {err[:300]}")
+            return await resp.read()
 
     async def stream_audio_chunks(
         self, text: str, chunk_size: int = 640
@@ -98,27 +129,27 @@ class ElevenLabsTTSAdapter(TTSAdapter):
             },
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=20),
-            ) as resp:
-                if resp.status != 200:
-                    err = await resp.text()
-                    raise RuntimeError(f"ElevenLabs streaming failed ({resp.status}): {err[:300]}")
+        session = await self._get_session()
+        async with session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=20),
+        ) as resp:
+            if resp.status != 200:
+                err = await resp.text()
+                raise RuntimeError(f"ElevenLabs streaming failed ({resp.status}): {err[:300]}")
 
-                buf = bytearray()
-                async for chunk in resp.content.iter_chunked(2048):
-                    buf.extend(chunk)
-                    while len(buf) >= chunk_size:
-                        frame = bytes(buf[:chunk_size])
-                        del buf[:chunk_size]
-                        yield frame
-                if buf:
-                    buf.extend(b"\x00" * (chunk_size - len(buf)))
-                    yield bytes(buf)
+            buf = bytearray()
+            async for chunk in resp.content.iter_chunked(2048):
+                buf.extend(chunk)
+                while len(buf) >= chunk_size:
+                    frame = bytes(buf[:chunk_size])
+                    del buf[:chunk_size]
+                    yield frame
+            if buf:
+                buf.extend(b"\x00" * (chunk_size - len(buf)))
+                yield bytes(buf)
 
     async def synthesize_stream(
         self,
@@ -149,28 +180,28 @@ class ElevenLabsTTSAdapter(TTSAdapter):
             },
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=20),
-            ) as resp:
-                if resp.status != 200:
-                    err = await resp.text()
-                    raise RuntimeError(f"ElevenLabs streaming failed ({resp.status}): {err[:300]}")
+        session = await self._get_session()
+        async with session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=20),
+        ) as resp:
+            if resp.status != 200:
+                err = await resp.text()
+                raise RuntimeError(f"ElevenLabs streaming failed ({resp.status}): {err[:300]}")
 
-                # Stream out chunks as they arrive from ElevenLabs
-                async for chunk in resp.content.iter_chunked(2048):
-                    if chunk:
-                        yield TTSAudioChunk(
-                            audio_bytes=chunk,
-                            sample_rate=self._sample_rate,
-                            is_final=False,
-                        )
+            # Stream out chunks as they arrive from ElevenLabs
+            async for chunk in resp.content.iter_chunked(2048):
+                if chunk:
+                    yield TTSAudioChunk(
+                        audio_bytes=chunk,
+                        sample_rate=self._sample_rate,
+                        is_final=False,
+                    )
 
-                yield TTSAudioChunk(
-                    audio_bytes=b"",
-                    sample_rate=self._sample_rate,
-                    is_final=True,
-                )
+            yield TTSAudioChunk(
+                audio_bytes=b"",
+                sample_rate=self._sample_rate,
+                is_final=True,
+            )

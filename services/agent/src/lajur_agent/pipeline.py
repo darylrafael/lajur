@@ -149,11 +149,15 @@ class VoiceOrderingPipeline:
         utterance: str,
         speech_end_timestamp: float | None = None,
         audio_frame_consumer: Any = None,
+        stt_final_timestamp: float | None = None,
+        stt_first_partial_timestamp: float | None = None,
+        connect_duration_ms: float = 0.0,
+        agent_publish_timestamp: float | None = None,
     ) -> PipelineTurnResult:
         """Execute one complete dialog turn across the full cascade."""
         self.turn_counter += 1
         t_speech_end = speech_end_timestamp if speech_end_timestamp is not None else time.perf_counter()
-        t_stt_final = time.perf_counter()
+        t_stt_final = stt_final_timestamp if stt_final_timestamp is not None else time.perf_counter()
         state_before = self.session.state
 
         # Guardrail 1: Kill switch
@@ -441,6 +445,9 @@ class VoiceOrderingPipeline:
             prompt_hash=prompt_hash,
             cost_usd=cost,
             mode=self.reply_mode,
+            t_stt_first_partial_ms=(stt_first_partial_timestamp * 1000.0) if stt_first_partial_timestamp else 0.0,
+            t_connect_ms=connect_duration_ms,
+            t_agent_publish_ms=(agent_publish_timestamp * 1000.0) if agent_publish_timestamp else (t_first_audio * 1000.0),
         )
         self.event_logger.log_turn(event)
 

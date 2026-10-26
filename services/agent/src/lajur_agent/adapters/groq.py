@@ -31,6 +31,7 @@ class GroqSTTAdapter(STTAdapter):
         api_key: str | None = None,
         model: str = "whisper-large-v3-turbo",
         language: str = "id",
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         self._api_key = api_key or os.getenv("GROQ_API_KEY", "")
         if not self._api_key:
@@ -38,6 +39,14 @@ class GroqSTTAdapter(STTAdapter):
         self._model = model
         self._language = language
         self._endpoint = "https://api.groq.com/openai/v1/audio/transcriptions"
+        self._session = session
+        self._owns_session = session is None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+            self._owns_session = True
+        return self._session
 
     @property
     def name(self) -> str:
@@ -143,6 +152,7 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
         model: str = "qwen/qwen3.8-27b",
         max_tokens: int = 150,
         temperature: float = 0.1,
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         self._api_key = api_key or os.getenv("GROQ_API_KEY", "")
         if not self._api_key:
@@ -153,6 +163,38 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
         self._chat_url = "https://api.groq.com/openai/v1/chat/completions"
         self._parser_prompt, self._parser_prompt_hash = load_prompt("intent_parser_v1.txt")
         self._reply_prompt, self._reply_prompt_hash = load_prompt("reply_generator_v1.txt")
+        self._session = session
+        self._owns_session = session is None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+            self._owns_session = True
+        return self._session
+
+    async def prewarm(self) -> float:
+        """Pre-warm connection to Groq API and measure TLS/TCP handshake latency in ms ($0 spend)."""
+        session = await self._get_session()
+        t_start = time.perf_counter()
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        try:
+            async with session.get(
+                "https://api.groq.com/openai/v1/models",
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
+                await resp.read()
+        except Exception as e:
+            logger.debug("Groq prewarm error (non-fatal): %s", e)
+        return (time.perf_counter() - t_start) * 1000.0
+
+    async def close(self) -> None:
+        """Close HTTP session if owned by this adapter."""
+        if self._owns_session and self._session and not self._session.closed:
+            await self._session.close()
 
     @property
     def name(self) -> str:
@@ -199,6 +241,9 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
         # Bounded retry loop (max 1 retry)
         retries = 0
         error_feedback: str | None = None
+        latency_ms = 0.0
+        tokens_in = 0
+        tokens_out = 0
 
         while retries <= 1:
             messages = [{"role": "system", "content": self._parser_prompt}]
@@ -220,21 +265,25 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
                 "max_tokens": self._max_tokens,
             }
 
+            session = await self._get_session()
             req_start = time.perf_counter()
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        self._chat_url,
-                        headers=headers,
-                        json=body,
-                        timeout=aiohttp.ClientTimeout(total=15),
-                    ) as resp:
+                async with session.post(
+                    self._chat_url,
+                    headers=headers,
+                    json=body,
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
                         latency_ms = (time.perf_counter() - req_start) * 1000.0
                         if resp.status != 200:
                             err_text = await resp.text()
                             logger.warning("Groq chat error (%d): %s", resp.status, err_text[:200])
                             if resp.status == 429:
-                                await asyncio.sleep(6.0)
+                                try:
+                                    retry_after = float(resp.headers.get("retry-after", "6.0"))
+                                except (ValueError, TypeError):
+                                    retry_after = 6.0
+                                await asyncio.sleep(max(3.0, min(retry_after, 8.0)))
                             retries += 1
                             error_feedback = f"HTTP {resp.status}"
                             continue
@@ -327,15 +376,15 @@ class GroqLLMIntentAdapter(LLMIntentAdapter):
             "max_tokens": 150,
         }
 
+        session = await self._get_session()
         req_start = time.perf_counter()
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    self._chat_url,
-                    headers=headers,
-                    json=body,
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
+            async with session.post(
+                self._chat_url,
+                headers=headers,
+                json=body,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
                     latency_ms = (time.perf_counter() - req_start) * 1000.0
                     if resp.status != 200:
                         return "Baik kak, pesanan sudah dicatat.", latency_ms, 0, 0
