@@ -188,8 +188,6 @@ async def test_deepgram_query_params_include_linear16_16000() -> None:
 @pytest.mark.asyncio
 async def test_persistent_stream_handles_partial_and_final() -> None:
     """Verify PersistentDeepgramStream triggers callbacks on interim and final transcripts."""
-    import json
-
     mock_session = MagicMock(spec=aiohttp.ClientSession)
     stream = PersistentDeepgramStream(
         api_key="fake-key",
@@ -208,13 +206,8 @@ async def test_persistent_stream_handles_partial_and_final() -> None:
 
     assert not done_event.is_set()
 
-    # Simulate arrival of first partial
-    msg_partial = {
-        "is_final": False,
-        "speech_final": False,
-        "channel": {"alternatives": [{"transcript": "burger"}]},
-    }
-    # Directly test receiver event handler logic
+    # Trigger receiver event handler callbacks
+    assert stream._on_first_partial is not None
     stream._on_first_partial(12345.0)
     assert len(partials) == 1
     assert partials[0] == 12345.0
@@ -222,6 +215,7 @@ async def test_persistent_stream_handles_partial_and_final() -> None:
     # Simulate arrival of speech_final
     stream._accumulated_parts.append("burger sapi")
     stream.last_transcript = "burger sapi"
+    assert stream._on_speech_final is not None
     stream._on_speech_final("burger sapi", 12350.0)
     done_event.set()
 
