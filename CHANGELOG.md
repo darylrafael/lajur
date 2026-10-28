@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Minggu 4 — Voice Pipeline Tracer Bullet & Gate G1 Validation)
+- **LiveKit Voice Agent Worker (`services/agent/src/lajur_agent/`):** Full end-to-end voice ordering cascade orchestrator (`pipeline.py`) running WebRTC Audio In $\to$ Deepgram Nova-3 STT $\to$ Groq Qwen-27b Intent Parser $\to$ Cart State Machine (`packages/cart`) $\to$ Cashier Reply Generator $\to$ ElevenLabs Flash v2.5 streaming TTS $\to$ WebRTC Audio Out + Data Channel sync.
+- **Dual Cashier Reply Modes:** Implemented toggleable Mode 1 (LLM verbalization from `SpeechFacts`, max 150 tokens) and Mode 2 (Deterministic template from `SpeechFacts`, 0 tokens, <0.1 ms).
+- **Streaming TTS Adapter (`ElevenLabsTTSAdapter`):** Implemented chunked linear16 PCM frame streaming (`stream_audio_chunks`) directly from ElevenLabs HTTP response chunks into LiveKit WebRTC audio source, enabling real-time playout with low TTFB.
+- **Operational Guardrails:** Enforced emergency stop kill switch (`KILL_SWITCH` / `EMERGENCY_STOP`), 3-minute hard session timeout, 12-turn maximum cap, and 20 items per order limit.
+- **Audit Observability (`TurnEventLogger`):** SQLite persistence logging granular per-stage timestamps ($T_{\text{speech\_end}}$, $T_{\text{stt\_final}}$, $T_{\text{llm}}$, $T_{\text{intent\_valid}}$, $T_{\text{state}}$, $T_{\text{tts}}$, $T_{\text{audio}}$), token counts, estimated costs, and dialog states with zero raw audio persistence (ADR-0005).
+- **Gate G1 Pre-Registered Benchmark (`eval/scripts/spikes/benchmark_week04_g1.py`):** 60 turns evaluated across 30 diverse scenarios with objective speech-end reference timestamp from audio stream timing. 10,000 bootstrap resamples computed. Results: Mode 2 Template P50 = 2,969.8 ms (95% CI: [2,735.2, 3,376.5]), Mode 1 LLM P50 = 3,365.3 ms (95% CI: [2,986.8, 3,616.3]). Reported neutrally in `docs/gates/G1-minggu4-results.md` and raw data saved to `eval/results/g1_week04_benchmark.json`.
+- **Card-Free Quota Discipline:** Managed ElevenLabs Free Tier quota with exactly 1,080 characters used across the 60-turn benchmark; 2,577 characters remaining (usage = 27.1% of remaining quota, strictly below the 60% ceiling).
+- **Physical Device Test Checklist:** Detailed manual testing protocol for owner order verification documented in `docs/demos/week-04-test-checklist.md`.
+
 ### Added (Minggu 3 — Cart State Machine + Intent Schema v1)
 - **Intent Schema v1 (`packages/cart/src/lajur_cart/intents.py` & `intent.schema.json`):** Pydantic discriminated union of 12 structured intents with `ConfigDict(extra="forbid")` and zero financial fields (`price`, `total`, `discount`), rendering price manipulation impossible by construction. Exported official JSON Schema.
 - **Pure Deterministic State Machine (`packages/cart/src/lajur_cart/state_machine.py`):** Pure functional `apply_intent()` transition system with full dialog states (`ordering`, `awaiting_choice`, `confirming`, `done`, `handoff`), deep immutable history, undo capability, pending combo slot / required modifier resolution, and structured rejections.

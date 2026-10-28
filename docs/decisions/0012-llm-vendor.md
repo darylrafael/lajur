@@ -35,3 +35,9 @@ Pada pengukuran ulang G1b (30 skenario representatif) dan addendum G1f (60 skena
 - Model `qwen/qwen3.8-27b` beroperasi dalam mode non-reasoning sehingga menghemat token pemikiran dan merespons dalam < 420 ms.
 - Keputusan definitif performa pipeline end-to-end akan diuji pada real pipeline di Minggu 4 sesuai pra-registrasi `docs/gates/G1-minggu4-measurement.md`.
 
+## Hasil Pengukuran Pipeline Nyata Minggu 4 (docs/gates/G1-minggu4-results.md)
+Pada pengujian pipeline nyata di Minggu 4:
+1. **Performa Parsing Intent:** Groq Qwen-27b berhasil memetakan ucapan pelanggan menjadi intent tervalidasi dengan akurasi 96,7% (Mode 2) dan 93,3% (Mode 1).
+2. **Efisiensi Token Prompt:** Pengurangan konteks menu menjadi alias yang relevan dengan ucapan (<20 alias) berhasil menjaga payload inferensi di bawah 600 token per request, menghindari rate limit ITPM 7.000 Groq Free Tier.
+3. **Beban Verbalisasi LLM (Mode 1):** Mode verbalisasi menghasilkan tambahan latensi rata-rata +395,5 ms dibandingkan templat deterministik (P50 3.365,3 ms vs 2.969,8 ms) dan menghasilkan balasan kasir percakapan alami yang ringkas tanpa mendeteksi halusinasi menu yang tidak terdapat dalam `SpeechFacts`.
+

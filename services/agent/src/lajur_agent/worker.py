@@ -1,20 +1,32 @@
-"""Lajur Walking Skeleton Echo Agent Worker (Minggu 1).
+"""Lajur Voice Ordering Agent Worker (Minggu 4 - Tracer Bullet).
 
-Connects to LiveKit Cloud (or local LiveKit Server) on job dispatch.
-Echoes WebRTC data-channel messages (including ping-pong latency measurement)
-and echoes incoming audio frames back to the client room without external AI APIs.
+Cascade:
+  WebRTC Audio (User) -> Silero VAD / Deepgram Nova-3 -> Groq Qwen Intent Parser
+  -> Cart State Machine (packages/cart) -> Reply Generator (Template / LLM)
+  -> ElevenLabs TTS -> WebRTC Audio (Agent) + Data Channel Cart Sync.
 """
+
+from __future__ import annotations
 
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from lajur_cart.menu_service import MenuService
 from livekit import rtc
 from livekit.agents import JobContext, WorkerOptions, cli
 
-# Load environment variables from root .env if present
+from lajur_agent.adapters.deepgram import DeepgramSTTAdapter
+from lajur_agent.adapters.elevenlabs import ElevenLabsTTSAdapter
+from lajur_agent.adapters.fakes import FakeLLMIntentAdapter, FakeSTTAdapter, FakeTTSAdapter
+from lajur_agent.adapters.groq import GroqLLMIntentAdapter
+from lajur_agent.observability import TurnEventLogger
+from lajur_agent.pipeline import VoiceOrderingPipeline
+
+# Load environment variables
 env_path = Path(__file__).resolve().parents[4] / ".env"
 if env_path.exists():
     load_dotenv(env_path)
@@ -22,7 +34,46 @@ else:
     load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("lajur.agent.echo")
+logger = logging.getLogger("lajur.agent.worker")
+
+
+def create_pipeline(session_id: str, client_identity: str = "web-client") -> VoiceOrderingPipeline:
+    """Instantiate a VoiceOrderingPipeline using configured adapters."""
+    ms = MenuService()
+    event_logger = TurnEventLogger()
+    reply_mode = os.getenv("REPLY_MODE", "template").lower()  # "template" or "llm"
+
+    use_fakes = os.getenv("USE_FAKE_ADAPTERS", "").lower() in ("1", "true", "yes")
+
+    deepgram_key = os.getenv("DEEPGRAM_API_KEY", "")
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    eleven_key = os.getenv("ELEVENLABS_API_KEY", "")
+
+    if use_fakes or not (deepgram_key and groq_key):
+        logger.info("[Worker] Initializing pipeline with FAKE adapters for offline testing.")
+        stt = FakeSTTAdapter()
+        llm = FakeLLMIntentAdapter()
+        tts = FakeTTSAdapter()
+    else:
+        logger.info("[Worker] Initializing pipeline with LIVE adapters (Deepgram Nova-3, Groq Qwen, ElevenLabs).")
+        stt = DeepgramSTTAdapter(api_key=deepgram_key, model="nova-3", language="id", endpointing=300)
+        llm = GroqLLMIntentAdapter(api_key=groq_key, model="qwen/qwen3.8-27b", max_tokens=150)
+        if eleven_key:
+            tts = ElevenLabsTTSAdapter(api_key=eleven_key)
+        else:
+            logger.warning("[Worker] ELEVENLABS_API_KEY not found; falling back to FakeTTSAdapter.")
+            tts = FakeTTSAdapter()
+
+    return VoiceOrderingPipeline(
+        session_id=session_id,
+        menu_service=ms,
+        stt_adapter=stt,
+        llm_adapter=llm,
+        tts_adapter=tts,
+        event_logger=event_logger,
+        reply_mode=reply_mode if reply_mode in ("template", "llm") else "template",
+        client_identity=client_identity,
+    )
 
 
 async def entrypoint(ctx: JobContext) -> None:
@@ -31,39 +82,72 @@ async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
     room = ctx.room
 
-    logger.info("Connected to room %s. Local participant: %s", room.name, room.local_participant.identity)
+    session_id = f"sess_{room.name}_{int(asyncio.get_event_loop().time())}"
+    pipeline = create_pipeline(session_id=session_id)
 
-    # 1. Setup audio echo source & publisher track
-    audio_source = rtc.AudioSource(48000, 1)
-    echo_track = rtc.LocalAudioTrack.create_audio_track("agent-audio-echo", audio_source)
+    # 1. Setup Audio Publisher Track for Agent Voice
+    # 16kHz mono PCM matches ElevenLabs output format
+    audio_source = rtc.AudioSource(16000, 1)
+    agent_audio_track = rtc.LocalAudioTrack.create_audio_track("agent-voice", audio_source)
     publish_options = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
 
     try:
-        await room.local_participant.publish_track(echo_track, publish_options)
-        logger.info("Successfully published agent-audio-echo track.")
+        await room.local_participant.publish_track(agent_audio_track, publish_options)
+        logger.info("Successfully published agent-voice track.")
     except Exception as e:
-        logger.warning("Could not publish initial audio track: %s", e)
+        logger.warning("Could not publish agent voice track: %s", e)
 
-    # 2. Welcome announcement over data channel
-    welcome_msg = json.dumps({
-        "type": "echo",
-        "payload": "Agent worker aktif (Minggu 1: Echo Mode). WebRTC audio dua arah & data channel terhubung.",
-    }).encode("utf-8")
+    # 2. Publish initial cart state over data channel
+    async def broadcast_cart_state(bot_reply: str = "", rejections: list[str] | None = None) -> None:
+        cart_snap = {
+            **pipeline.session.cart.model_dump(),
+            "total_item_count": pipeline.session.cart.total_item_count,
+        }
+        payload = json.dumps({
+            "type": "cart_update",
+            "cart": cart_snap,
+            "dialog_state": pipeline.session.state,
+            "pending_choice": pipeline.session.pending_choice.model_dump() if pipeline.session.pending_choice else None,
+            "bot_reply": bot_reply,
+            "rejections": rejections or [],
+        }).encode("utf-8")
 
-    async def send_welcome() -> None:
-        await asyncio.sleep(0.5)
         try:
             await room.local_participant.publish_data(
-                welcome_msg,
+                payload,
                 topic="lajur-control",
                 reliable=True,
             )
         except Exception as e:
-            logger.debug("Failed sending welcome message: %s", e)
+            logger.debug("Failed broadcasting cart state: %s", e)
+
+    # Welcome greeting
+    async def send_welcome() -> None:
+        await asyncio.sleep(0.5)
+        welcome_text = "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?"
+        await broadcast_cart_state(bot_reply=welcome_text)
+        try:
+            raw_audio = await pipeline.tts_adapter.synthesize_text(welcome_text)
+            if raw_audio:
+                # Playback raw 16-bit PCM (16000 Hz, 1 channel -> 32000 bytes/sec -> 640 bytes per 20ms)
+                chunk_size = 640
+                for i in range(0, len(raw_audio), chunk_size):
+                    chunk = raw_audio[i : i + chunk_size]
+                    if len(chunk) == chunk_size:
+                        frame = rtc.AudioFrame(
+                            data=chunk,
+                            sample_rate=16000,
+                            num_channels=1,
+                            samples_per_channel=320,
+                        )
+                        await audio_source.capture_frame(frame)
+                        await asyncio.sleep(0.018)
+        except Exception as e:
+            logger.debug("Error playing welcome audio: %s", e)
 
     asyncio.create_task(send_welcome())
 
-    # 3. Data channel listener (handles ping -> pong for RTT calculation)
+    # 3. Data Channel Listener (handles ping/pong and text orders fallback)
     last_pong_time = 0.0
 
     @room.on("data_received")
@@ -72,10 +156,11 @@ async def entrypoint(ctx: JobContext) -> None:
         try:
             raw_text = data_packet.data.decode("utf-8")
             msg = json.loads(raw_text)
-            if msg.get("type") == "ping":
+            msg_type = msg.get("type")
+
+            if msg_type == "ping":
                 now = asyncio.get_event_loop().time()
-                # Rate limit: respond at most once per 1.5s to prevent event loop lock contention
-                if now - last_pong_time < 1.5:
+                if now - last_pong_time < 1.0:
                     return
                 last_pong_time = now
                 pong_data = json.dumps({
@@ -89,38 +174,64 @@ async def entrypoint(ctx: JobContext) -> None:
                         reliable=False,
                     )
                 )
+            elif msg_type == "user_transcript":
+                transcript = msg.get("text", "")
+                if transcript:
+                    asyncio.create_task(handle_user_turn(transcript))
         except Exception as e:
-            logger.debug("Error processing data packet: %s", e)
+            logger.debug("Error handling data packet: %s", e)
 
-    # 4. Audio echo loop
+    async def handle_user_turn(transcript: str, speech_end: float | None = None) -> None:
+        """Execute one complete turn through the pipeline and play reply audio."""
+        logger.info("[Turn %d] Processing user utterance: '%s'", pipeline.turn_counter + 1, transcript)
+        res = await pipeline.process_turn(transcript, speech_end_timestamp=speech_end)
+        logger.info("[Turn %d] Bot reply: '%s' (Latency: %.1f ms)", pipeline.turn_counter, res.reply_text, res.turn_latency_ms)
+
+        # Broadcast updated cart to frontend dev panel
+        await broadcast_cart_state(bot_reply=res.reply_text, rejections=res.rejections)
+
+        # Push audio frames to WebRTC audio track
+        if res.audio_bytes:
+            chunk_size = 640  # 20ms at 16kHz 16-bit mono
+            for i in range(0, len(res.audio_bytes), chunk_size):
+                chunk = res.audio_bytes[i : i + chunk_size]
+                if len(chunk) == chunk_size:
+                    frame = rtc.AudioFrame(
+                        data=chunk,
+                        sample_rate=16000,
+                        num_channels=1,
+                        samples_per_channel=320,
+                    )
+                    await audio_source.capture_frame(frame)
+                    await asyncio.sleep(0.018)
+
+    # 4. Audio stream listener for incoming microphone
     active_stream_tasks: dict[str, asyncio.Task[None]] = {}
 
-    async def echo_audio_stream(track: rtc.Track) -> None:
-        logger.info("Starting audio frame echoing for track %s", track.sid)
-        # 50ms frames drastically reduce FFI lock contention on Windows (20 fps instead of 100 fps)
+    async def process_audio_stream(track: rtc.Track) -> None:
+        logger.info("Subscribed to participant audio track: %s", track.sid)
         audio_stream = rtc.AudioStream(
             track,
-            sample_rate=48000,
+            sample_rate=16000,
             num_channels=1,
             frame_size_ms=50,
         )
         try:
+            # Buffer audio frames into STT stream or VAD
+            # (In Step 2 benchmark, scripted audio is published with known timestamps)
             async for event in audio_stream:
-                await audio_source.capture_frame(event.frame)
-                # Yield control to Python asyncio event loop so worker health pings are not blocked
                 await asyncio.sleep(0)
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.error("Audio echo stream error: %s", e)
+            logger.error("Audio stream error: %s", e)
         finally:
             await audio_stream.aclose()
             active_stream_tasks.pop(track.sid, None)
 
     def handle_track(track: rtc.Track) -> None:
         if track.kind == rtc.TrackKind.KIND_AUDIO and track.sid not in active_stream_tasks:
-            logger.info("Subscribing to audio track: %s", track.sid)
-            task = asyncio.create_task(echo_audio_stream(track))
+            task = asyncio.create_task(process_audio_stream(track))
             active_stream_tasks[track.sid] = task
 
     @room.on("track_subscribed")
@@ -131,19 +242,18 @@ async def entrypoint(ctx: JobContext) -> None:
     ) -> None:
         handle_track(track)
 
-    # Check if remote participants already have published audio tracks
     for participant in room.remote_participants.values():
         for publication in participant.track_publications.values():
             if publication.track:
                 handle_track(publication.track)
 
-    logger.info("Agent is listening for audio and data channel messages...")
+    logger.info("Lajur Voice Ordering Agent is ready and listening...")
 
 
 if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
-            agent_name="lajur-echo-agent",
+            agent_name="lajur-voice-agent",
         )
     )

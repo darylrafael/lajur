@@ -137,6 +137,9 @@ class FakeLLMIntentAdapter(LLMIntentAdapter):
         self,
         transcript: str,
         history: list[dict[str, str]] | None = None,
+        cart_snapshot: dict[str, Any] | None = None,
+        pending_choice: dict[str, Any] | None = None,
+        menu_context: dict[str, Any] | None = None,
     ) -> IntentResult:
         start_time = time.perf_counter()
         if self._ttft_s > 0:
@@ -151,15 +154,23 @@ class FakeLLMIntentAdapter(LLMIntentAdapter):
             intents = [
                 {
                     "type": "add_item",
+                    "item_id": "kentang_goreng",
+                    "quantity": 1,
+                    "size": "regular",
                     "params": {"item_id": "kentang_goreng", "quantity": 1, "size": "size_regular"},
                 }
             ]
         elif "batal" in transcript.lower() or "tidak jadi" in transcript.lower():
-            intents = [{"type": "undo", "params": {"steps": 1}}]
+            intents = [{"type": "undo_last"}]
+        elif "konfirmasi" in transcript.lower() or "selesai" in transcript.lower() or "sudah" in transcript.lower():
+            intents = [{"type": "confirm", "payment_method": None}]
         else:
             intents = [
                 {
                     "type": "add_item",
+                    "item_id": "burger_sapi_tunggal",
+                    "quantity": 1,
+                    "size": "regular",
                     "params": {"item_id": "burger_sapi_tunggal", "quantity": 1, "size": "size_regular"},
                 }
             ]
@@ -177,3 +188,12 @@ class FakeLLMIntentAdapter(LLMIntentAdapter):
             raw_response="{\"intents\": [...] }",
             metadata={"model": "fake-llm-v1"},
         )
+
+    async def verbalize_reply(
+        self,
+        speech_facts: dict[str, Any],
+        cart_snapshot: dict[str, Any],
+    ) -> tuple[str, float, int, int]:
+        if self._ttft_s > 0:
+            await asyncio.sleep(self._ttft_s)
+        return "Siap kak, pesanan sudah dicatat.", self._ttft_s * 1000.0, 80, 20

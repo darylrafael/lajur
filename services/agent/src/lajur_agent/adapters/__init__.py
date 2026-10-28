@@ -10,13 +10,14 @@ from lajur_agent.adapters.base import (
 )
 from lajur_agent.adapters.deepgram import DeepgramSTTAdapter
 from lajur_agent.adapters.edge_tts import EdgeTTSAdapter
+from lajur_agent.adapters.elevenlabs import ElevenLabsTTSAdapter
 from lajur_agent.adapters.fakes import (
     FakeLLMIntentAdapter,
     FakeSTTAdapter,
     FakeTTSAdapter,
 )
 from lajur_agent.adapters.gemini import GeminiLLMAdapter
-from lajur_agent.adapters.groq import GroqSTTAdapter
+from lajur_agent.adapters.groq import GroqLLMIntentAdapter, GroqSTTAdapter
 
 __all__ = [
     "TranscriptionEvent",
@@ -30,6 +31,8 @@ __all__ = [
     "FakeLLMIntentAdapter",
     "DeepgramSTTAdapter",
     "GroqSTTAdapter",
+    "GroqLLMIntentAdapter",
     "GeminiLLMAdapter",
     "EdgeTTSAdapter",
+    "ElevenLabsTTSAdapter",
 ]
