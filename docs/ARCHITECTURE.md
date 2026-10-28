@@ -173,3 +173,48 @@ WebRTC Audio Client (Mic)
 2. **Koneksi STT Per-Turn:** Setiap giliran ucapan menggunakan koneksi streaming WebSocket Deepgram independen dengan `endpointing=500`, menjamin 0% false cutoff dan mengisolasi konteks VAD antar-skenario.
 3. **Sinkronisasi Layar Klien:** State keranjang mutakhir dan status dialog disiarkan secara real-time via data channel WebRTC `lajur-control`.
 4. **Audit Observabilitas Tanpa Penyimpanan Suara:** Setiap giliran percakapan mencatat jejak timestamp objektif ke `data/turn_events.sqlite3` tanpa menyimpan raw audio (mematuhi ADR-0005).
+
+
+---
+
+## 8. Arsitektur Simulator Web & Web Protocol v1 (Minggu 5)
+
+Pada Minggu 5, antarmuka visual (`apps/web`) diintegrasikan dengan pipeline suara melalui **Web Protocol v1** (`docs/design/web-protocol.md`, `packages/cart/web-protocol.schema.json`). Simulator web beroperasi dalam dua mode yang berbagi komponen UI dan logika penanganan event yang identik:
+
+```text
+[Mode 1: Live WebRTC Mode (Worker Laptop)]
+Browser (Mic Input) ──WebRTC Audio──► LiveKit Cloud ──WebRTC Audio──► Agent Worker (Laptop)
+                                                                           │
+                                                                 (Event Serializer)
+                                                                           │
+Browser (React UI) ◄──DataChannel ("lajur-control")────────────────────────┘
+  ├─ Live Partial Transcript (NFR-07)
+  ├─ Real-Time Cart Update (NFR-07)
+  └─ Bot Speaking Visualizer & State Controls
+
+[Mode 2: Offline Replay Mode (Zero Backend / Static / Showcase)]
+Browser (Next.js) ──Local Timer Loop──► Event Dispatcher (useSimulator hook)
+  ├─ Fixtures: 5 Gold Replay Scenarios (packages/cart state machine generated)
+  └─ Komponen UI memproses event yang identik dengan Mode Live (tanpa WebRTC/Vendor)
+```
+
+### Karakteristik & Invarian Utama:
+1. **Web Protocol v1 Strict Schema:**
+   - Seluruh pesan antara worker dan antarmuka web divalidasi terhadap JSON Schema (`packages/cart/web-protocol.schema.json`).
+   - Tipe event resmi:
+     - `partial_transcript`: Transkrip sementara saat pengguna masih berbicara (NFR-07).
+     - `final_transcript`: Transkrip final setelah endpointing STT.
+     - `intent_applied`: Pembaruan keranjang belanja langsung setelah state machine memvalidasi intent (NFR-07).
+     - `pending_question`: Pertanyaan slot paket hemat atau modifikasi yang memerlukan jawaban pengguna.
+     - `handoff`: Eskalasi ke staf/kru manusia bila terjadi permintaan khusus atau anomali dialog.
+     - `bot_reply_text`: Teks ucapan kasir yang sedang/akan diucapkan oleh TTS.
+     - `bot_speaking_start` & `bot_speaking_end`: Indikator sinkronisasi visual animasi kasir berbicara.
+     - `session_limits`: Pembaruan sisa waktu sesi (hitung mundur 3 menit) dan sisa giliran (maksimal 12 turn).
+     - `error`: Notifikasi kegagalan terstruktur.
+2. **Kepatuhan Privasi Data (ADR-0005):**
+   - Transkrip hanya disimpan di memori komponen browser selama tab sesi aktif.
+   - Tidak ada payload audio yang dikirim melalui data channel.
+3. **Aksesibilitas & UI Respon Cepat (WCAG AA & NFR-07):**
+   - Panel transkrip menggunakan atribut `role="log"` dan `aria-live="polite"` sehingga pembaca layar membaca pembaruan secara alami.
+   - Seluruh kontainer yang dapat di-scroll memiliki `tabIndex={0}` untuk navigasi keyboard penuh.
+   - Keranjang menampilkan lencana visual (*"Keranjang Diperbarui"*) secara instan ketika intent diterapkan, mengompensasi latensi audio bot.

@@ -1,0 +1,2297 @@
+{
+  "simple": {
+    "id": "simple",
+    "title_id": "Pesanan Sederhana (Burger & Es Teh)",
+    "title_en": "Simple Order (Burger & Iced Tea)",
+    "total_duration_ms": 16720.0,
+    "turns_count": 3,
+    "events": [
+      {
+        "delay_ms": 400,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "welcome",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 400.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?",
+          "timestamp_ms": 500.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 0,
+          "max_turns": 12,
+          "time_elapsed_seconds": 0.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 550.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 650.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 2450.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Pesan burger sapi tunggal",
+          "is_final": false,
+          "timestamp_ms": 3300.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Pesan burger sapi tunggal satu sama es teh manis satu",
+          "is_final": true,
+          "timestamp_ms": 4500.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "burger_sapi_tunggal",
+                "name_id": "Burger Sapi Tunggal",
+                "name_en": "Single Beef Burger",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 22000,
+                "price": 22000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 22000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [
+              {
+                "item_id": "burger_sapi_tunggal",
+                "quantity": 1,
+                "size": "regular",
+                "modifiers": []
+              }
+            ],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 22000,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 4950.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Baik kak, 1 Burger Sapi Tunggal dicatat.",
+          "timestamp_ms": 5050.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 1,
+          "max_turns": 12,
+          "time_elapsed_seconds": 5.0,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 5100.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 5200.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 7000.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Sama es teh",
+          "is_final": false,
+          "timestamp_ms": 7800.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Sama es teh manis satu ya",
+          "is_final": true,
+          "timestamp_ms": 9000.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "burger_sapi_tunggal",
+                "name_id": "Burger Sapi Tunggal",
+                "name_en": "Single Beef Burger",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 22000,
+                "price": 22000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 22000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [
+              {
+                "code": "UNKNOWN_ITEM",
+                "message": "Menu dengan ID 'teh_manis' tidak ditemukan.",
+                "details": {
+                  "item_id": "teh_manis"
+                }
+              }
+            ],
+            "cart_item_count": 1,
+            "cart_total_price": 22000,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 9450.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Menu dengan ID 'teh_manis' tidak ditemukan.",
+          "timestamp_ms": 9550.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 2,
+          "max_turns": 12,
+          "time_elapsed_seconds": 9.4,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 9600.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 9700.0
+        }
+      },
+      {
+        "delay_ms": 2655,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 12355.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Sudah itu",
+          "is_final": false,
+          "timestamp_ms": 13155.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Sudah itu saja kak",
+          "is_final": true,
+          "timestamp_ms": 14355.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "done",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "burger_sapi_tunggal",
+                "name_id": "Burger Sapi Tunggal",
+                "name_en": "Single Beef Burger",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 22000,
+                "price": 22000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 22000,
+            "total_item_count": 1,
+            "status": "confirmed"
+          },
+          "speech_facts": {
+            "intent_handled": "confirm",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 22000,
+            "dialog_state": "done",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 14805.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Pesanan dikonfirmasi! Total Rp22.000.",
+          "timestamp_ms": 14905.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 3,
+          "max_turns": 12,
+          "time_elapsed_seconds": 14.8,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 14955.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 15055.0
+        }
+      },
+      {
+        "delay_ms": 1665,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 16720.0
+        }
+      }
+    ]
+  },
+  "combo": {
+    "id": "combo",
+    "title_id": "Paket Combo & Pilihan Minuman (Awaiting Choice)",
+    "title_en": "Combo Meal & Drink Selection (Awaiting Choice)",
+    "total_duration_ms": 27385.0,
+    "turns_count": 5,
+    "events": [
+      {
+        "delay_ms": 400,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "welcome",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 400.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?",
+          "timestamp_ms": 500.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 0,
+          "max_turns": 12,
+          "time_elapsed_seconds": 0.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 550.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 650.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 2450.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Saya mau pesan paket hemat",
+          "is_final": false,
+          "timestamp_ms": 3300.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Saya mau pesan paket hemat burger tunggal satu",
+          "is_final": true,
+          "timestamp_ms": 4500.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "awaiting_choice",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "paket_hemat_burger_tunggal",
+                "name_id": "Paket Hemat Burger Sapi",
+                "name_en": "Single Beef Burger Combo",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 39000,
+                "price": 39000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 39000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [
+              {
+                "item_id": "paket_hemat_burger_tunggal",
+                "quantity": 1,
+                "size": "regular",
+                "modifiers": []
+              }
+            ],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": {
+              "type": "combo_slot",
+              "target_line_id": "line_1",
+              "slot_id": "main",
+              "prompt": "Pilihan untuk Pilihan Utama apa kak?",
+              "allowed_choices": [
+                "burger_sapi_tunggal",
+                "burger_sapi_keju"
+              ]
+            },
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 39000,
+            "dialog_state": "awaiting_choice",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 4950.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "pending_question",
+          "kind": "combo_slot",
+          "prompt": "Pilihan untuk Pilihan Utama apa kak?",
+          "target_line_id": "line_1",
+          "slot_id": "main",
+          "allowed_choices": [
+            "burger_sapi_tunggal",
+            "burger_sapi_keju"
+          ],
+          "choices": [
+            {
+              "id": "burger_sapi_tunggal",
+              "name_id": "Burger Sapi Tunggal",
+              "name_en": "Single Beef Burger",
+              "price_delta": 0
+            },
+            {
+              "id": "burger_sapi_keju",
+              "name_id": "Burger Sapi Keju",
+              "name_en": "Cheeseburger",
+              "price_delta": 0
+            }
+          ],
+          "timestamp_ms": 5000.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Pilihan untuk Pilihan Utama apa kak?",
+          "timestamp_ms": 5050.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 1,
+          "max_turns": 12,
+          "time_elapsed_seconds": 5.0,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 5100.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 5200.0
+        }
+      },
+      {
+        "delay_ms": 1620,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 6820.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Pilihan utamanya burger",
+          "is_final": false,
+          "timestamp_ms": 7620.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Pilihan utamanya burger sapi tunggal",
+          "is_final": true,
+          "timestamp_ms": 8820.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "awaiting_choice",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "paket_hemat_burger_tunggal",
+                "name_id": "Paket Hemat Burger Sapi",
+                "name_en": "Single Beef Burger Combo",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 39000,
+                "price": 39000,
+                "modifiers": [],
+                "slots": {
+                  "main": "burger_sapi_tunggal"
+                },
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 39000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "answer_choice",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": {
+              "type": "combo_slot",
+              "target_line_id": "line_1",
+              "slot_id": "side",
+              "prompt": "Pilihan untuk Pilihan Pendamping apa kak?",
+              "allowed_choices": [
+                "kentang_goreng",
+                "nasi_putih",
+                "jagung_manis"
+              ]
+            },
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 39000,
+            "dialog_state": "awaiting_choice",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 9270.0,
+          "state_from": "awaiting_choice"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "pending_question",
+          "kind": "combo_slot",
+          "prompt": "Pilihan untuk Pilihan Pendamping apa kak?",
+          "target_line_id": "line_1",
+          "slot_id": "side",
+          "allowed_choices": [
+            "kentang_goreng",
+            "nasi_putih",
+            "jagung_manis"
+          ],
+          "choices": [
+            {
+              "id": "kentang_goreng",
+              "name_id": "Kentang Goreng",
+              "name_en": "French Fries",
+              "price_delta": 0
+            },
+            {
+              "id": "nasi_putih",
+              "name_id": "Nasi Putih Hangat",
+              "name_en": "Steamed White Rice",
+              "price_delta": 0
+            },
+            {
+              "id": "jagung_manis",
+              "name_id": "Jagung Manis Cup",
+              "name_en": "Sweet Corn Cup",
+              "price_delta": 0
+            }
+          ],
+          "timestamp_ms": 9320.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Pilihan untuk Pilihan Pendamping apa kak?",
+          "timestamp_ms": 9370.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 2,
+          "max_turns": 12,
+          "time_elapsed_seconds": 9.3,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 9420.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 9520.0
+        }
+      },
+      {
+        "delay_ms": 1845,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 11365.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Pendampingnya kentang",
+          "is_final": false,
+          "timestamp_ms": 12165.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Pendampingnya kentang goreng",
+          "is_final": true,
+          "timestamp_ms": 13365.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "awaiting_choice",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "paket_hemat_burger_tunggal",
+                "name_id": "Paket Hemat Burger Sapi",
+                "name_en": "Single Beef Burger Combo",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 39000,
+                "price": 39000,
+                "modifiers": [],
+                "slots": {
+                  "main": "burger_sapi_tunggal",
+                  "side": "kentang_goreng"
+                },
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 39000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "answer_choice",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": {
+              "type": "combo_slot",
+              "target_line_id": "line_1",
+              "slot_id": "drink",
+              "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+              "allowed_choices": [
+                "es_teh_manis",
+                "soda_kola",
+                "soda_lemon",
+                "air_mineral"
+              ]
+            },
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 39000,
+            "dialog_state": "awaiting_choice",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 13815.0,
+          "state_from": "awaiting_choice"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "pending_question",
+          "kind": "combo_slot",
+          "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+          "target_line_id": "line_1",
+          "slot_id": "drink",
+          "allowed_choices": [
+            "es_teh_manis",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ],
+          "choices": [
+            {
+              "id": "es_teh_manis",
+              "name_id": "Es Teh Manis",
+              "name_en": "Sweet Iced Tea",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_kola",
+              "name_id": "Minuman Soda Kola",
+              "name_en": "Cola Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_lemon",
+              "name_id": "Minuman Soda Lemon",
+              "name_en": "Lemon Lime Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "air_mineral",
+              "name_id": "Air Mineral Botol 600ml",
+              "name_en": "Bottled Mineral Water",
+              "price_delta": 0
+            }
+          ],
+          "timestamp_ms": 13865.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Pilihan untuk Pilihan Minuman apa kak?",
+          "timestamp_ms": 13915.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 3,
+          "max_turns": 12,
+          "time_elapsed_seconds": 13.8,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 13965.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 14065.0
+        }
+      },
+      {
+        "delay_ms": 1710,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 15775.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Minumnya coca",
+          "is_final": false,
+          "timestamp_ms": 16575.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Minumnya coca cola ya",
+          "is_final": true,
+          "timestamp_ms": 17775.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "awaiting_choice",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "paket_hemat_burger_tunggal",
+                "name_id": "Paket Hemat Burger Sapi",
+                "name_en": "Single Beef Burger Combo",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 39000,
+                "price": 39000,
+                "modifiers": [],
+                "slots": {
+                  "main": "burger_sapi_tunggal",
+                  "side": "kentang_goreng"
+                },
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 39000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "answer_choice",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": {
+              "type": "combo_slot",
+              "target_line_id": "line_1",
+              "slot_id": "drink",
+              "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+              "allowed_choices": [
+                "es_teh_manis",
+                "soda_kola",
+                "soda_lemon",
+                "air_mineral"
+              ]
+            },
+            "rejections": [
+              {
+                "code": "INVALID_CHOICE",
+                "message": "Pilihan 'cola' tidak valid untuk slot ini.",
+                "details": {
+                  "allowed": [
+                    "es_teh_manis",
+                    "soda_kola",
+                    "soda_lemon",
+                    "air_mineral"
+                  ]
+                }
+              }
+            ],
+            "cart_item_count": 1,
+            "cart_total_price": 39000,
+            "dialog_state": "awaiting_choice",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 18225.0,
+          "state_from": "awaiting_choice"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "pending_question",
+          "kind": "combo_slot",
+          "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+          "target_line_id": "line_1",
+          "slot_id": "drink",
+          "allowed_choices": [
+            "es_teh_manis",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ],
+          "choices": [
+            {
+              "id": "es_teh_manis",
+              "name_id": "Es Teh Manis",
+              "name_en": "Sweet Iced Tea",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_kola",
+              "name_id": "Minuman Soda Kola",
+              "name_en": "Cola Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_lemon",
+              "name_id": "Minuman Soda Lemon",
+              "name_en": "Lemon Lime Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "air_mineral",
+              "name_id": "Air Mineral Botol 600ml",
+              "name_en": "Bottled Mineral Water",
+              "price_delta": 0
+            }
+          ],
+          "timestamp_ms": 18275.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Pilihan 'cola' tidak valid untuk slot ini.",
+          "timestamp_ms": 18325.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 4,
+          "max_turns": 12,
+          "time_elapsed_seconds": 18.2,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 18375.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 18475.0
+        }
+      },
+      {
+        "delay_ms": 2610,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 21085.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Udah itu",
+          "is_final": false,
+          "timestamp_ms": 21885.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Udah itu aja",
+          "is_final": true,
+          "timestamp_ms": 23085.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "awaiting_choice",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "paket_hemat_burger_tunggal",
+                "name_id": "Paket Hemat Burger Sapi",
+                "name_en": "Single Beef Burger Combo",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 39000,
+                "price": 39000,
+                "modifiers": [],
+                "slots": {
+                  "main": "burger_sapi_tunggal",
+                  "side": "kentang_goreng"
+                },
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 39000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "confirm",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": {
+              "type": "combo_slot",
+              "target_line_id": "line_1",
+              "slot_id": "drink",
+              "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+              "allowed_choices": [
+                "es_teh_manis",
+                "soda_kola",
+                "soda_lemon",
+                "air_mineral"
+              ]
+            },
+            "rejections": [
+              {
+                "code": "CHOICE_REQUIRED",
+                "message": "Silakan selesaikan pilihan yang sedang ditunggu terlebih dahulu.",
+                "details": {
+                  "pending_prompt": {
+                    "type": "combo_slot",
+                    "target_line_id": "line_1",
+                    "slot_id": "drink",
+                    "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+                    "allowed_choices": [
+                      "es_teh_manis",
+                      "soda_kola",
+                      "soda_lemon",
+                      "air_mineral"
+                    ]
+                  }
+                }
+              }
+            ],
+            "cart_item_count": 1,
+            "cart_total_price": 39000,
+            "dialog_state": "awaiting_choice",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 23535.0,
+          "state_from": "awaiting_choice"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "pending_question",
+          "kind": "combo_slot",
+          "prompt": "Pilihan untuk Pilihan Minuman apa kak?",
+          "target_line_id": "line_1",
+          "slot_id": "drink",
+          "allowed_choices": [
+            "es_teh_manis",
+            "soda_kola",
+            "soda_lemon",
+            "air_mineral"
+          ],
+          "choices": [
+            {
+              "id": "es_teh_manis",
+              "name_id": "Es Teh Manis",
+              "name_en": "Sweet Iced Tea",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_kola",
+              "name_id": "Minuman Soda Kola",
+              "name_en": "Cola Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "soda_lemon",
+              "name_id": "Minuman Soda Lemon",
+              "name_en": "Lemon Lime Soda",
+              "price_delta": 0
+            },
+            {
+              "id": "air_mineral",
+              "name_id": "Air Mineral Botol 600ml",
+              "name_en": "Bottled Mineral Water",
+              "price_delta": 0
+            }
+          ],
+          "timestamp_ms": 23585.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Silakan selesaikan pilihan yang sedang ditunggu terlebih dahulu.",
+          "timestamp_ms": 23635.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 5,
+          "max_turns": 12,
+          "time_elapsed_seconds": 23.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 23685.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 23785.0
+        }
+      },
+      {
+        "delay_ms": 3600,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 27385.0
+        }
+      }
+    ]
+  },
+  "correction": {
+    "id": "correction",
+    "title_id": "Koreksi Pesanan & Ganti Item (Undo / Swap)",
+    "title_en": "Order Correction & Item Swap (Undo / Replace)",
+    "total_duration_ms": 15325.0,
+    "turns_count": 3,
+    "events": [
+      {
+        "delay_ms": 400,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "welcome",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 400.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?",
+          "timestamp_ms": 500.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 0,
+          "max_turns": 12,
+          "time_elapsed_seconds": 0.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 550.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 650.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 2450.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Minta kentang",
+          "is_final": false,
+          "timestamp_ms": 3300.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Minta kentang goreng satu",
+          "is_final": true,
+          "timestamp_ms": 4500.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "kentang_goreng",
+                "name_id": "Kentang Goreng",
+                "name_en": "French Fries",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 16000,
+                "price": 16000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 16000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [
+              {
+                "item_id": "kentang_goreng",
+                "quantity": 1,
+                "size": "regular",
+                "modifiers": []
+              }
+            ],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 16000,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 4950.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Baik kak, 1 Kentang Goreng dicatat.",
+          "timestamp_ms": 5050.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 1,
+          "max_turns": 12,
+          "time_elapsed_seconds": 5.0,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 5100.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 5200.0
+        }
+      },
+      {
+        "delay_ms": 1575,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 6775.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Eh gak jadi kentang",
+          "is_final": false,
+          "timestamp_ms": 7575.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Eh gak jadi kentang, ganti nasi hangat aja",
+          "is_final": true,
+          "timestamp_ms": 8775.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "nasi_putih",
+                "name_id": "Nasi Putih Hangat",
+                "name_en": "Steamed White Rice",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 8000,
+                "price": 8000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 8000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "replace_item",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [
+              {
+                "target": "kentang_goreng",
+                "replacement": "nasi_putih"
+              }
+            ],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 8000,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 9225.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Siap kak, sudah diganti item baru.",
+          "timestamp_ms": 9325.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 2,
+          "max_turns": 12,
+          "time_elapsed_seconds": 9.2,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 9375.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 9475.0
+        }
+      },
+      {
+        "delay_ms": 1530,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 11005.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Selesai",
+          "is_final": false,
+          "timestamp_ms": 11805.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Selesai kak",
+          "is_final": true,
+          "timestamp_ms": 13005.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "done",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "nasi_putih",
+                "name_id": "Nasi Putih Hangat",
+                "name_en": "Steamed White Rice",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 8000,
+                "price": 8000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 8000,
+            "total_item_count": 1,
+            "status": "confirmed"
+          },
+          "speech_facts": {
+            "intent_handled": "confirm",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 8000,
+            "dialog_state": "done",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 13455.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Pesanan dikonfirmasi! Total Rp8.000.",
+          "timestamp_ms": 13555.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 3,
+          "max_turns": 12,
+          "time_elapsed_seconds": 13.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 13605.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 13705.0
+        }
+      },
+      {
+        "delay_ms": 1620,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 15325.0
+        }
+      }
+    ]
+  },
+  "out_of_stock": {
+    "id": "out_of_stock",
+    "title_id": "Stok Habis & Penolakan Ramah (86'd Item)",
+    "title_en": "Out of Stock Handling (86'd Item)",
+    "total_duration_ms": 19735.0,
+    "turns_count": 3,
+    "events": [
+      {
+        "delay_ms": 400,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "welcome",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 400.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?",
+          "timestamp_ms": 500.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 0,
+          "max_turns": 12,
+          "time_elapsed_seconds": 0.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 550.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 650.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 2450.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Mau pesan es krim vanila",
+          "is_final": false,
+          "timestamp_ms": 3300.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Mau pesan es krim vanila dua dong",
+          "is_final": true,
+          "timestamp_ms": 4500.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "rejected"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [
+              {
+                "code": "OUT_OF_STOCK",
+                "message": "Item 'Es Krim Cone Vanila' saat ini sedang habis.",
+                "details": {
+                  "item_id": "es_krim_vanila"
+                }
+              }
+            ],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 4950.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Item 'Es Krim Cone Vanila' saat ini sedang habis.",
+          "timestamp_ms": 5050.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 1,
+          "max_turns": 12,
+          "time_elapsed_seconds": 5.0,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 5100.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 5200.0
+        }
+      },
+      {
+        "delay_ms": 2925,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 8125.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Kalau gitu ganti es krim cokelat",
+          "is_final": false,
+          "timestamp_ms": 8925.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Kalau gitu ganti es krim cokelat satu aja",
+          "is_final": true,
+          "timestamp_ms": 10125.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "rejected"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [
+              {
+                "code": "OUT_OF_STOCK",
+                "message": "Item 'Es Krim Sundae Cokelat' saat ini sedang habis.",
+                "details": {
+                  "item_id": "es_krim_cokelat"
+                }
+              }
+            ],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 10575.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Item 'Es Krim Sundae Cokelat' saat ini sedang habis.",
+          "timestamp_ms": 10675.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 2,
+          "max_turns": 12,
+          "time_elapsed_seconds": 10.6,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 10725.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 10825.0
+        }
+      },
+      {
+        "delay_ms": 3060,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 13885.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Udah cukup",
+          "is_final": false,
+          "timestamp_ms": 14685.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Udah cukup",
+          "is_final": true,
+          "timestamp_ms": 15885.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "rejected"
+          },
+          "speech_facts": {
+            "intent_handled": "confirm",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [
+              {
+                "code": "EMPTY_CART_CONFIRM",
+                "message": "Keranjang belanja masih kosong, belum bisa konfirmasi.",
+                "details": {}
+              }
+            ],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 16335.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Mohon maaf kak, Keranjang belanja masih kosong, belum bisa konfirmasi.",
+          "timestamp_ms": 16435.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 3,
+          "max_turns": 12,
+          "time_elapsed_seconds": 16.3,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 16485.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 16585.0
+        }
+      },
+      {
+        "delay_ms": 3150,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 19735.0
+        }
+      }
+    ]
+  },
+  "handoff": {
+    "id": "handoff",
+    "title_id": "Eskalasi ke Kru Kasir Manusia (Handoff)",
+    "title_en": "Escalation to Human Crew (Handoff)",
+    "total_duration_ms": 11455.0,
+    "turns_count": 2,
+    "events": [
+      {
+        "delay_ms": 400,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [],
+            "total_price": 0,
+            "total_item_count": 0,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "welcome",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 0,
+            "cart_total_price": 0,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 400.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?",
+          "timestamp_ms": 500.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 0,
+          "max_turns": 12,
+          "time_elapsed_seconds": 0.5,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 550.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 650.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 2450.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Pesan burger ayam",
+          "is_final": false,
+          "timestamp_ms": 3300.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Pesan burger ayam satu",
+          "is_final": true,
+          "timestamp_ms": 4500.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "ordering",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "burger_ayam_crispy",
+                "name_id": "Burger Ayam Renyah",
+                "name_en": "Crispy Chicken Burger",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 26000,
+                "price": 26000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 26000,
+            "total_item_count": 1,
+            "status": "in_progress"
+          },
+          "speech_facts": {
+            "intent_handled": "add_item",
+            "items_added": [
+              {
+                "item_id": "burger_ayam_crispy",
+                "quantity": 1,
+                "size": "regular",
+                "modifiers": []
+              }
+            ],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 26000,
+            "dialog_state": "ordering",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 4950.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Baik kak, 1 Burger Ayam Renyah dicatat.",
+          "timestamp_ms": 5050.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 1,
+          "max_turns": 12,
+          "time_elapsed_seconds": 5.0,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 5100.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 5200.0
+        }
+      },
+      {
+        "delay_ms": 1755,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 6955.0
+        }
+      },
+      {
+        "delay_ms": 800,
+        "event": {
+          "version": "v1",
+          "type": "partial_transcript",
+          "text": "Mbak saya mau ngomong",
+          "is_final": false,
+          "timestamp_ms": 7755.0
+        }
+      },
+      {
+        "delay_ms": 1200,
+        "event": {
+          "version": "v1",
+          "type": "final_transcript",
+          "text": "Mbak saya mau ngomong langsung sama kasirnya bisa?",
+          "is_final": true,
+          "timestamp_ms": 8955.0
+        }
+      },
+      {
+        "delay_ms": 450,
+        "event": {
+          "version": "v1",
+          "type": "intent_applied",
+          "state": "handoff",
+          "cart": {
+            "items": [
+              {
+                "line_id": "line_1",
+                "item_id": "burger_ayam_crispy",
+                "name_id": "Burger Ayam Renyah",
+                "name_en": "Crispy Chicken Burger",
+                "quantity": 1,
+                "size": "regular",
+                "unit_price": 26000,
+                "price": 26000,
+                "modifiers": [],
+                "slots": {},
+                "upsell_rules": []
+              }
+            ],
+            "total_price": 26000,
+            "total_item_count": 1,
+            "status": "handoff"
+          },
+          "speech_facts": {
+            "intent_handled": "handoff",
+            "items_added": [],
+            "items_removed": [],
+            "items_modified": [],
+            "items_replaced": [],
+            "pending_prompt": null,
+            "rejections": [],
+            "cart_item_count": 1,
+            "cart_total_price": 26000,
+            "dialog_state": "handoff",
+            "requires_confirmation": false
+          },
+          "timestamp_ms": 9405.0,
+          "state_from": "ordering"
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "handoff",
+          "reason": "customer_request",
+          "crew_message": "Mohon tunggu sebentar ya kak, kasir manusia kami akan segera melayani Anda.",
+          "timestamp_ms": 9455.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "bot_reply_text",
+          "text": "Baik kak, pesanan dialihkan ke kasir ya.",
+          "timestamp_ms": 9505.0
+        }
+      },
+      {
+        "delay_ms": 50,
+        "event": {
+          "version": "v1",
+          "type": "session_limits",
+          "turns_used": 2,
+          "max_turns": 12,
+          "time_elapsed_seconds": 9.4,
+          "time_limit_seconds": 180.0,
+          "timestamp_ms": 9555.0
+        }
+      },
+      {
+        "delay_ms": 100,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_start",
+          "timestamp_ms": 9655.0
+        }
+      },
+      {
+        "delay_ms": 1800,
+        "event": {
+          "version": "v1",
+          "type": "bot_speaking_end",
+          "timestamp_ms": 11455.0
+        }
+      }
+    ]
+  }
+}

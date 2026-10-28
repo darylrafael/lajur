@@ -45,7 +45,7 @@ def create_final_transcript_event(text: str, timestamp_ms: float | None = None) 
 def create_intent_applied_event(
     state: DialogState,
     cart: Cart,
-    speech_facts: SpeechFacts,
+    speech_facts: SpeechFacts | dict[str, Any],
     menu_service: MenuService | None = None,
     state_from: DialogState | None = None,
     timestamp_ms: float | None = None,
@@ -95,7 +95,7 @@ def create_intent_applied_event(
         "type": "intent_applied",
         "state": state,
         "cart": cart_dict,
-        "speech_facts": speech_facts.model_dump(),
+        "speech_facts": speech_facts if isinstance(speech_facts, dict) else speech_facts.model_dump(),
         "timestamp_ms": timestamp_ms
         if timestamp_ms is not None
         else round(time.time() * 1000.0, 1),

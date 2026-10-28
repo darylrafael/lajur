@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -10,189 +11,398 @@ import {
   useLocalParticipant,
 } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
-import { Mic, MicOff, PhoneOff, Radio, Activity, Volume2, ShieldAlert } from "lucide-react";
+import { ShieldAlert, AlertTriangle, Radio } from "lucide-react";
 
-interface TokenResponse {
-  token: string;
-  url: string;
-  roomName: string;
-  participantIdentity: string;
-  error?: string;
-  hint?: string;
+import { I18nProvider, useI18n } from "../lib/i18n";
+import { useSimulator, SimulatorMode } from "../hooks/useSimulator";
+import { Header } from "../components/Header";
+import { LiveTranscript } from "../components/LiveTranscript";
+import { CartPanel } from "../components/CartPanel";
+import { MenuBoard } from "../components/MenuBoard";
+import { BotReplyCard } from "../components/BotReplyCard";
+import { StatusControls } from "../components/StatusControls";
+import { ReplayController } from "../components/ReplayController";
+import { HandoffBanner } from "../components/HandoffBanner";
+import { WebProtocolEvent } from "../types/protocol";
+
+export default function Page() {
+  return (
+    <I18nProvider>
+      <Suspense fallback={<SimulatorLoading />}>
+        <SimulatorApp />
+      </Suspense>
+    </I18nProvider>
+  );
 }
 
-export default function HomePage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [livekitUrl, setLivekitUrl] = useState<string | null>(null);
-  const [roomName, setRoomName] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+function SimulatorLoading() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-4">
+      <div className="flex items-center gap-3">
+        <Radio className="w-6 h-6 text-emerald-400 animate-pulse" />
+        <span className="text-sm font-medium">Memuat Lajur Simulator...</span>
+      </div>
+    </div>
+  );
+}
 
-  const startSession = async () => {
-    setLoading(true);
+function SimulatorApp() {
+  const searchParams = useSearchParams();
+  const replayParam = searchParams.get("replay");
+  const modeParam = searchParams.get("mode");
+
+  const initialMode: SimulatorMode = replayParam || modeParam === "replay" ? "replay" : "replay"; // Default to safe replay for public preview
+  const initialScenario = replayParam || "simple";
+
+  const {
+    mode,
+    setMode,
+    status,
+    setStatus,
+    dialogState,
+    cart,
+    partialTranscript,
+    finalTranscript,
+    transcriptHistory,
+    botReply,
+    pendingQuestion,
+    handoffData,
+    errorMessage,
+    setErrorMessage,
+    sessionLimits,
+    cartUpdatedCue,
+    processEvent,
+    resetState,
+    selectedScenario,
+    setSelectedScenario,
+    isReplaying,
+    startReplay,
+    pauseReplay,
+    restartReplay,
+  } = useSimulator(initialMode, initialScenario);
+
+  const { t } = useI18n();
+
+  // Mobile navigation tabs
+  const [mobileTab, setMobileTab] = useState<"menu" | "transcript" | "cart">("transcript");
+
+  // LiveKit connection state
+  const [liveToken, setLiveToken] = useState<string | null>(null);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [isConnectingLive, setIsConnectingLive] = useState<boolean>(false);
+
+  // Set scenario if replay param is set
+  useEffect(() => {
+    if (replayParam) {
+      setMode("replay");
+      setSelectedScenario(replayParam);
+    }
+  }, [replayParam, setMode, setSelectedScenario]);
+
+  const handleStartLiveSession = async () => {
+    setIsConnectingLive(true);
     setErrorMessage(null);
+    resetState();
+    setStatus("connecting");
+
     try {
       const res = await fetch("/api/token");
-      const data: TokenResponse = await res.json();
+      const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error || "Gagal memperoleh token LiveKit.");
+        throw new Error(data.error || "Gagal memperoleh token LiveKit dari server.");
       }
-      setToken(data.token);
-      setLivekitUrl(data.url);
-      setRoomName(data.roomName);
+      setLiveToken(data.token);
+      setLiveUrl(data.url);
+      setStatus("listening");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan koneksi";
       setErrorMessage(msg);
+      setStatus("error");
     } finally {
-      setLoading(false);
+      setIsConnectingLive(false);
     }
   };
 
-  const endSession = () => {
-    setToken(null);
-    setLivekitUrl(null);
-    setRoomName("");
+  const handleEndLiveSession = () => {
+    setLiveToken(null);
+    setLiveUrl(null);
+    resetState();
+  };
+
+  const handleSelectPendingChoice = (choiceId: string) => {
+    if (mode === "live") {
+      // In live mode, user can also speak or click choice
+      processEvent({
+        version: "v1",
+        type: "partial_transcript",
+        text: choiceId.replace(/_/g, " "),
+        is_final: false,
+      });
+    }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 md:p-8">
-      {/* Header */}
-      <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-6 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Radio className="text-emerald-400 w-6 h-6 animate-pulse" />
-            Lajur Voice Ordering
-          </h1>
-          <p className="text-xs md:text-sm text-slate-400">
-            Demo WebRTC Drive-thru Assistant (Minggu 1: Walking Skeleton Echo)
-          </p>
-        </div>
-        <div className="text-right">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950 text-emerald-400 border border-emerald-800">
-            Preview v0.1.0
-          </span>
-        </div>
-      </header>
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-3 md:p-6 font-sans">
+      <div className="max-w-7xl w-full mx-auto space-y-4">
+        {/* Header */}
+        <Header
+          mode={mode}
+          onModeChange={(newMode) => {
+            if (newMode !== mode) {
+              if (mode === "live") handleEndLiveSession();
+              if (mode === "replay") pauseReplay();
+              setMode(newMode);
+            }
+          }}
+        />
 
-      {/* Main Container */}
-      <div className="max-w-2xl w-full mx-auto my-auto py-8">
-        {errorMessage && (
-          <div className="mb-6 p-4 rounded-lg bg-rose-950/50 border border-rose-800 text-rose-200 flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold">{errorMessage}</p>
-              <p className="text-xs text-rose-300 mt-1">
-                Pastikan kredensial LIVEKIT_URL, LIVEKIT_API_KEY, dan LIVEKIT_API_SECRET telah disetel di environment server.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!token || !livekitUrl ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center shadow-xl">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400">
-              <Mic className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">Siap untuk Memulai Sesi Suara</h2>
-            <p className="text-slate-400 text-sm max-w-md mx-auto mb-8">
-              Klik tombol di bawah untuk membuka koneksi audio WebRTC dua arah langsung dengan agent worker.
-              Di fase Minggu 1 ini, worker akan memantulkan pesan data dan audio echo.
-            </p>
-            <button
-              onClick={startSession}
-              disabled={loading}
-              className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition duration-200 shadow-lg shadow-emerald-900/30 disabled:opacity-50"
-            >
-              {loading ? "Menyiapkan Sesi..." : "Mulai Sesi (Start Session)"}
-            </button>
-          </div>
-        ) : (
-          <LiveKitRoom
-            token={token}
-            serverUrl={livekitUrl}
-            audio={true}
-            video={false}
-            onDisconnected={endSession}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-6"
+        {/* Public Notice Banner if Live Mode */}
+        {mode === "live" && !liveToken && (
+          <div
+            role="note"
+            className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-start gap-3"
           >
-            <SessionController roomName={roomName} onEndSession={endSession} />
-            <RoomAudioRenderer />
-            <StartAudio label="Klik untuk mengizinkan audio speaker" className="w-full py-2 bg-sky-950/60 border border-sky-800 text-sky-300 text-xs rounded-xl hover:bg-sky-900 transition" />
-          </LiveKitRoom>
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-amber-300 block mb-0.5">
+                {t.liveNoticeTitle}
+              </span>
+              <p className="text-slate-400">{t.liveNoticeDesc}</p>
+            </div>
+          </div>
         )}
+
+        {/* Replay Controller Banner if Replay Mode */}
+        {mode === "replay" && (
+          <ReplayController
+            selectedScenario={selectedScenario}
+            isReplaying={isReplaying}
+            onSelectScenario={(scId) => {
+              setSelectedScenario(scId);
+              startReplay(scId);
+            }}
+            onPlay={() => startReplay(selectedScenario)}
+            onPause={pauseReplay}
+            onRestart={restartReplay}
+          />
+        )}
+
+        {/* Handoff Banner if Active */}
+        <HandoffBanner handoffData={handoffData} />
+
+        {/* Mobile Tab Selector (Visible only on small viewports) */}
+        <div className="flex md:hidden items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setMobileTab("menu")}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
+              mobileTab === "menu" ? "bg-slate-800 text-white" : "text-slate-400"
+            }`}
+          >
+            {t.tabMenu}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("transcript")}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
+              mobileTab === "transcript" ? "bg-slate-800 text-white" : "text-slate-400"
+            }`}
+          >
+            {t.tabTranscript}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("cart")}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1 ${
+              mobileTab === "cart" ? "bg-slate-800 text-white" : "text-slate-400"
+            }`}
+          >
+            <span>{t.tabCart}</span>
+            {cart.total_item_count > 0 && (
+              <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-bold flex items-center justify-center">
+                {cart.total_item_count}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Main Grid: Responsive 3 Columns on Desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Column 1: Menu Board */}
+          <div
+            className={`md:col-span-4 ${
+              mobileTab !== "menu" ? "hidden md:block" : "block"
+            }`}
+          >
+            <MenuBoard />
+          </div>
+
+          {/* Column 2: Live Transcript & Bot Reply */}
+          <div
+            className={`md:col-span-4 space-y-4 ${
+              mobileTab !== "transcript" ? "hidden md:block" : "block"
+            }`}
+          >
+            <BotReplyCard
+              botReply={botReply}
+              isSpeaking={status === "speaking"}
+            />
+            <LiveTranscript
+              partialTranscript={partialTranscript}
+              finalTranscript={finalTranscript}
+              transcriptHistory={transcriptHistory}
+              isListening={status === "listening"}
+            />
+          </div>
+
+          {/* Column 3: Cart Confirmation & Controls */}
+          <div
+            className={`md:col-span-4 space-y-4 ${
+              mobileTab !== "cart" ? "hidden md:block" : "block"
+            }`}
+          >
+            <CartPanel
+              cart={cart}
+              dialogState={dialogState}
+              pendingQuestion={pendingQuestion}
+              cartUpdatedCue={cartUpdatedCue}
+              onSelectPendingChoice={handleSelectPendingChoice}
+            />
+
+            {/* Live Mode Controls vs Replay Mode Controls */}
+            {mode === "live" ? (
+              liveToken && liveUrl ? (
+                <LiveKitRoom
+                  token={liveToken}
+                  serverUrl={liveUrl}
+                  audio={true}
+                  video={false}
+                  onDisconnected={handleEndLiveSession}
+                  className="contents"
+                >
+                  <LiveRoomDataBridge
+                    onEvent={processEvent}
+                    status={status}
+                    turnsUsed={sessionLimits.turns_used}
+                    maxTurns={sessionLimits.max_turns}
+                    timeElapsedSeconds={sessionLimits.time_elapsed_seconds}
+                    timeLimitSeconds={sessionLimits.time_limit_seconds}
+                    errorMessage={errorMessage}
+                    onEndSession={handleEndLiveSession}
+                    onStartOver={resetState}
+                  />
+                  <RoomAudioRenderer />
+                  <StartAudio
+                    label={t.allowAudio}
+                    className="w-full py-2 bg-sky-950/60 border border-sky-800 text-sky-300 text-xs rounded-xl hover:bg-sky-900 transition mt-2 font-medium"
+                  />
+                </LiveKitRoom>
+              ) : (
+                <StatusControls
+                  status={status}
+                  isActive={false}
+                  turnsUsed={sessionLimits.turns_used}
+                  maxTurns={sessionLimits.max_turns}
+                  timeElapsedSeconds={sessionLimits.time_elapsed_seconds}
+                  timeLimitSeconds={sessionLimits.time_limit_seconds}
+                  errorMessage={errorMessage}
+                  onStart={handleStartLiveSession}
+                  onEnd={handleEndLiveSession}
+                  onStartOver={resetState}
+                />
+              )
+            ) : (
+              <StatusControls
+                status={status}
+                isActive={isReplaying}
+                turnsUsed={sessionLimits.turns_used}
+                maxTurns={sessionLimits.max_turns}
+                timeElapsedSeconds={sessionLimits.time_elapsed_seconds}
+                timeLimitSeconds={sessionLimits.time_limit_seconds}
+                errorMessage={errorMessage}
+                onStart={() => startReplay(selectedScenario)}
+                onEnd={pauseReplay}
+                onStartOver={restartReplay}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Footer / Telemetry Indicator */}
-      <footer className="max-w-4xl w-full mx-auto pt-6 border-t border-slate-900 text-center text-xs text-slate-500">
-        Lajur Portfolio Project · Arsitektur Cascade Streaming Pipeline · Zero Audio Persistence (ADR-0005)
+      {/* Footer */}
+      <footer className="max-w-7xl w-full mx-auto pt-6 pb-2 border-t border-slate-900 text-center text-[11px] text-slate-500">
+        {t.footerNote}
       </footer>
     </main>
   );
 }
 
-function SessionController({
-  roomName,
-  onEndSession,
-}: {
-  roomName: string;
+interface LiveRoomDataBridgeProps {
+  onEvent: (event: WebProtocolEvent) => void;
+  status: any;
+  turnsUsed: number;
+  maxTurns: number;
+  timeElapsedSeconds: number;
+  timeLimitSeconds: number;
+  errorMessage?: string | null;
   onEndSession: () => void;
-}) {
-  const connectionState = useConnectionState();
-  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
-  const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [echoMessage, setEchoMessage] = useState<string>("Menunggu respons agent...");
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  onStartOver: () => void;
+}
 
-  // Data channel for real application ping-pong roundtrip latency
+function LiveRoomDataBridge({
+  onEvent,
+  status,
+  turnsUsed,
+  maxTurns,
+  timeElapsedSeconds,
+  timeLimitSeconds,
+  errorMessage,
+  onEndSession,
+  onStartOver,
+}: LiveRoomDataBridgeProps) {
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+
+  // WebRTC Data Channel receiver
   const { send } = useDataChannel("lajur-control", (msg) => {
     try {
-      const str = new TextDecoder().decode(msg.payload);
-      const data = JSON.parse(str);
-      if (data.type === "pong" && data.client_time) {
-        const rtt = Math.round(performance.now() - data.client_time);
-        setLatencyMs(rtt);
-      } else if (data.type === "echo") {
-        setEchoMessage(data.payload || str);
+      const text = new TextDecoder().decode(msg.payload);
+      const parsed = JSON.parse(text);
+
+      // Handle Web Protocol v1 events
+      if (parsed.version === "v1" && parsed.type) {
+        onEvent(parsed as WebProtocolEvent);
+      } else if (parsed.type === "cart_update") {
+        // Backwards compatibility with legacy messages
+        onEvent({
+          version: "v1",
+          type: "intent_applied",
+          state: parsed.dialog_state || "ordering",
+          cart: parsed.cart,
+          speech_facts: {
+            intent_handled: "legacy_update",
+            items_added: [],
+            items_removed: [],
+            items_modified: [],
+            items_replaced: [],
+            rejections: parsed.rejections || [],
+            cart_item_count: parsed.cart?.total_item_count || 0,
+            cart_total_price: parsed.cart?.total_price || 0,
+            dialog_state: parsed.dialog_state || "ordering",
+            requires_confirmation: false,
+          },
+        });
+        if (parsed.bot_reply) {
+          onEvent({
+            version: "v1",
+            type: "bot_reply_text",
+            text: parsed.bot_reply,
+          });
+        }
       }
     } catch {
       // Non-json payload
     }
   });
-
-  const sendRef = useRef(send);
-  useEffect(() => {
-    sendRef.current = send;
-  }, [send]);
-
-  // Clean interval: sends a ping once every 3 seconds while connected
-  useEffect(() => {
-    if (connectionState !== ConnectionState.Connected) {
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-        pingIntervalRef.current = null;
-      }
-      return;
-    }
-
-    const triggerPing = () => {
-      if (sendRef.current) {
-        const payload = JSON.stringify({
-          type: "ping",
-          client_time: performance.now(),
-        });
-        sendRef.current(new TextEncoder().encode(payload), { reliable: false });
-      }
-    };
-
-    // Initial ping after connection settles
-    const initialTimer = setTimeout(triggerPing, 1000);
-    const intervalTimer = setInterval(triggerPing, 3000);
-
-    return () => {
-      clearTimeout(initialTimer);
-      clearInterval(intervalTimer);
-    };
-  }, [connectionState]);
 
   const toggleMic = async () => {
     if (localParticipant) {
@@ -200,106 +410,28 @@ function SessionController({
     }
   };
 
-  const getStatusBadge = () => {
-    switch (connectionState) {
-      case ConnectionState.Connected:
-        return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            Connected
-          </span>
-        );
-      case ConnectionState.Connecting:
-        return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            Connecting...
-          </span>
-        );
-      default:
-        return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-            Disconnected
-          </span>
-        );
+  const handleReset = () => {
+    if (send) {
+      const payload = JSON.stringify({ type: "reset_session" });
+      send(new TextEncoder().encode(payload), { reliable: true });
     }
+    onStartOver();
   };
 
   return (
-    <div className="space-y-6">
-      {/* Status Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-        <div>
-          <span className="text-xs text-slate-400 block mb-1">Status Koneksi</span>
-          {getStatusBadge()}
-        </div>
-        <div className="text-right">
-          <span className="text-xs text-slate-400 block mb-1">Round-Trip Latency (RTT)</span>
-          <div className="flex items-center justify-end gap-1.5 text-sm font-mono font-medium">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            {latencyMs !== null ? (
-              <span className={latencyMs < 150 ? "text-emerald-400" : "text-amber-400"}>
-                {latencyMs} ms
-              </span>
-            ) : (
-              <span className="text-slate-500">Mengukur...</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Room Details & Echo Feed */}
-      <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800 text-xs font-mono space-y-2">
-        <div className="flex justify-between text-slate-400">
-          <span>Active Room:</span>
-          <span className="text-slate-200">{roomName}</span>
-        </div>
-        <div className="flex justify-between text-slate-400">
-          <span>Microphone State:</span>
-          <span className={isMicrophoneEnabled ? "text-emerald-400" : "text-rose-400"}>
-            {isMicrophoneEnabled ? "Aktif (Unmuted)" : "Muted"}
-          </span>
-        </div>
-        <div className="pt-2 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-            <Volume2 className="w-3.5 h-3.5 text-sky-400" />
-            <span>Agent Data Channel Feedback:</span>
-          </div>
-          <p className="text-slate-300 italic">{echoMessage}</p>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4 pt-2">
-        <button
-          onClick={toggleMic}
-          className={`px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 border transition ${
-            isMicrophoneEnabled
-              ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
-              : "bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border-rose-800"
-          }`}
-        >
-          {isMicrophoneEnabled ? (
-            <>
-              <Mic className="w-4 h-4 text-emerald-400" />
-              Mute Mic
-            </>
-          ) : (
-            <>
-              <MicOff className="w-4 h-4 text-rose-400" />
-              Unmute Mic
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={onEndSession}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-2 transition shadow-lg shadow-rose-950/50"
-        >
-          <PhoneOff className="w-4 h-4" />
-          Akhiri Sesi
-        </button>
-      </div>
-    </div>
+    <StatusControls
+      status={status}
+      isActive={true}
+      isMicMuted={!isMicrophoneEnabled}
+      turnsUsed={turnsUsed}
+      maxTurns={maxTurns}
+      timeElapsedSeconds={timeElapsedSeconds}
+      timeLimitSeconds={timeLimitSeconds}
+      errorMessage={errorMessage}
+      onStart={() => {}}
+      onEnd={onEndSession}
+      onStartOver={handleReset}
+      onToggleMic={toggleMic}
+    />
   );
 }

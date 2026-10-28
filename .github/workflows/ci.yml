@@ -103,6 +103,11 @@ jobs:
         run: |
           npm run typecheck
 
+      - name: ESLint Check
+        working-directory: apps/web
+        run: |
+          npm run lint
+
       - name: Next.js Production Build
         working-directory: apps/web
         env:
@@ -112,3 +117,18 @@ jobs:
           NEXT_PUBLIC_LIVEKIT_URL: "wss://placeholder.livekit.cloud"
         run: |
           npm run build
+
+      - name: Install Playwright Browsers
+        working-directory: apps/web
+        run: |
+          npx playwright install --with-deps chromium
+
+      - name: Playwright E2E & A11y Tests
+        working-directory: apps/web
+        env:
+          LIVEKIT_URL: "wss://placeholder.livekit.cloud"
+          LIVEKIT_API_KEY: "devkey"
+          LIVEKIT_API_SECRET: "secretsecretsecretsecretsecretsecret32"
+          NEXT_PUBLIC_LIVEKIT_URL: "wss://placeholder.livekit.cloud"
+        run: |
+          npm run test:e2e

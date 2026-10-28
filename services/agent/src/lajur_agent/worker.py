@@ -20,6 +20,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from lajur_cart.menu_service import MenuService
+from lajur_cart.state_machine import SpeechFacts
 from livekit import rtc
 from livekit.agents import JobContext, WorkerOptions, cli
 
@@ -164,11 +165,17 @@ async def entrypoint(ctx: JobContext) -> None:
         welcome_text = "Halo kak, selamat datang di Lajur drive-thru! Mau pesan apa hari ini?"
 
         # Web Protocol v1 Events
+        initial_facts = SpeechFacts(
+            intent_handled="welcome",
+            cart_item_count=0,
+            cart_total_price=0,
+            dialog_state="ordering",
+        )
         await publish_protocol_event(
             create_intent_applied_event(
                 state=pipeline.session.state,
                 cart=pipeline.session.cart,
-                speech_facts=pipeline.session.speech_facts,
+                speech_facts=initial_facts,
                 menu_service=pipeline.menu_service,
             )
         )
@@ -256,7 +263,7 @@ async def entrypoint(ctx: JobContext) -> None:
                 create_intent_applied_event(
                     state=pipeline.session.state,
                     cart=pipeline.session.cart,
-                    speech_facts=pipeline.session.speech_facts,
+                    speech_facts=res.speech_facts,
                     menu_service=pipeline.menu_service,
                     state_from=state_before,
                 )
