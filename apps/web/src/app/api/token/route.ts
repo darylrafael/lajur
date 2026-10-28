@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
   // Explicitly dispatch the agent worker to this room
   at.roomConfig = new RoomConfiguration({
-    agents: [new RoomAgentDispatch({ agentName: "lajur-echo-agent" })],
+    agents: [new RoomAgentDispatch({ agentName: "lajur-voice-agent" })],
   });
 
   const token = await at.toJwt();
