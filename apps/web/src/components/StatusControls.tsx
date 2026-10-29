@@ -21,6 +21,7 @@ interface StatusControlsProps {
   status: SimulatorStatus;
   isActive: boolean;
   isMicMuted?: boolean;
+  isLiveModeDisabled?: boolean;
   turnsUsed: number;
   maxTurns: number;
   timeElapsedSeconds: number;
@@ -36,6 +37,7 @@ export function StatusControls({
   status,
   isActive,
   isMicMuted = false,
+  isLiveModeDisabled = false,
   turnsUsed,
   maxTurns,
   timeElapsedSeconds,
@@ -106,7 +108,7 @@ export function StatusControls({
         );
       default:
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
             <span className="w-2 h-2 rounded-full bg-slate-500" />
             {t.statusIdle}
           </span>
@@ -115,8 +117,8 @@ export function StatusControls({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
-      {/* Top Status & Limits Row */}
+    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-3">
+      {/* Top Status Bar: Badge & Turns / Timer */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">
@@ -163,17 +165,41 @@ export function StatusControls({
         </div>
       )}
 
+      {/* Live mode disabled notice */}
+      {isLiveModeDisabled && !isActive && (
+        <div
+          role="note"
+          data-testid="live-disabled-notice"
+          className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5"
+        >
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="font-medium leading-relaxed">{t.liveModeDisabledNotice}</p>
+        </div>
+      )}
+
       {/* Buttons Controls */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         {!isActive ? (
-          <button
-            type="button"
-            onClick={onStart}
-            className="flex-1 min-w-[160px] py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
-          >
-            <Mic className="w-4 h-4" />
-            {t.startSession}
-          </button>
+          isLiveModeDisabled ? (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="flex-1 min-w-[160px] py-3 px-6 bg-slate-800 text-slate-500 font-semibold text-sm rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-slate-700/50"
+            >
+              <MicOff className="w-4 h-4" />
+              {t.startSession}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onStart}
+              className="flex-1 min-w-[160px] py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
+            >
+              <Mic className="w-4 h-4" />
+              {t.startSession}
+            </button>
+          )
         ) : (
           <>
             {onToggleMic && (

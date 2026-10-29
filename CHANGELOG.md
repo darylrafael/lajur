@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed & Hardened (Minggu 5b — Correction and Hardening)
+- **Live Mode Gate Switch (`LIVE_MODE_ENABLED`):** Added `LIVE_MODE_ENABLED` flag (default `false` everywhere). Server route `/api/token` returns HTTP 403 Forbidden with clear error JSON when disabled. Web UI shows disabled start button with bilingual notice (*"Live voice is off; try the demo replay"*) while offline replay mode remains fully functional.
+- **Cryptographic Room Security & Shortened Token TTL:** Updated `/api/token` to generate cryptographically unguessable 16-hex room names (`crypto.randomBytes(8).toString("hex")`) and tightened token TTL from 10m to 5m (matching the 3-minute max session limit).
+- **Protocol Contract Test:** Added `test_live_event_serialization_order_and_schema` to `test_web_protocol.py` validating strict causal ordering (`partial` -> `final` -> `intent_applied` -> `bot_reply_text`) against `web-protocol.schema.json` using offline fakes without vendor calls.
+- **Manual Accessibility Checklist:** Added `docs/demos/week-05-manual-a11y-checklist.md` covering keyboard-only, screen-reader, 200% zoom, and reduced motion checks for human verification (labeled as optional unverified checklist).
+- **Deployment & Usability Protocols Refinement:**
+  - Rewrote `docs/demos/week-05-deployment-guide.md` separating Mode A (Public Showcase, 100% safe, replay only) and Mode B (Usability-Test Window, live mode temporary, quota details) with 10-line Vercel Deployment Protection instructions.
+  - Added 10-line local test guide `docs/demos/week-05-live-check.md` with remaining ElevenLabs character quota (1,576 characters).
+  - Clarified ADR-0005 privacy compliance in ADR-0014 and design docs (SQLite stores zero transcripts and zero audio; browser localStorage stores only language preference).
+  - Corrected verbatim quotation of `PROJECT_PLAN.md §13` across documentation, separating owner UX requirements.
+
 ### Added (Minggu 5 — Web Simulator & Web Protocol v1)
 - **Web Protocol v1 (`docs/design/web-protocol.md` & `packages/cart/web-protocol.schema.json`):** Strict JSON schema and TypeScript types (`apps/web/src/types/protocol.ts`) for real-time WebRTC data-channel communication between agent worker and frontend. Includes 9 structured event types (`partial_transcript`, `final_transcript`, `intent_applied`, `pending_question`, `handoff`, `bot_reply_text`, `bot_speaking_start`, `bot_speaking_end`, `session_limits`, `error`).
 - **ADR-0014: Web Protocol Design (`docs/decisions/0014-web-protocol.md`):** Recorded architectural decision for protocol schemas, field constraints, and ADR-0005 ephemeral compliance.

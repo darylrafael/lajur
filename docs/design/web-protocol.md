@@ -12,18 +12,20 @@
 
 ### 1.1 Target Minggu 5 (PROJECT_PLAN.md §13 Verbatim)
 
-> **Minggu 5 — Simulator Web**  
+> **Minggu 5 — Simulator Web (PROJECT_PLAN.md §13 Verbatim)**  
 > - Menu board, layar konfirmasi live, transkrip, toggle ID/EN, status mic.  
-> - **Persyaratan UX Owner:** Web UI wajib menampilkan transkrip langsung saat pengguna berbicara (*live transcript while the user speaks*) dan memperbarui keranjang secara *real-time* saat intent diterapkan (*update cart when the intent is applied*).  
 > - Orang non-teknis memesan tanpa panduan (uji 3 orang).  
 > - **Target:** 3 orang awam menyelesaikan order di perangkat sendiri.  
+
+**Persyaratan Tambahan Pemilik Proyek (Owner Requirement — Keputusan Minggu 4):**
+- Web UI wajib menampilkan transkrip langsung saat pengguna berbicara (*live transcript while the user speaks*) dan memperbarui keranjang secara *real-time* saat intent diterapkan (*update cart when the intent is applied*).
 
 ### 1.2 Invarian Non-Fungsional & Kepatuhan Privasi (NFR-02, NFR-07, ADR-0005)
 
 1. **Transkrip Teks Langsung Selalu Tampil (NFR-07):** Partial transcript wajib dikirimkan secara langsung saat pengguna sedang berbicara ke mikrofon, diikuti oleh transkrip final. Hal ini memberikan umpan balik visual instan (*immediate perceptual confirmation*) bahwa sistem mendengar ucapan pengguna, mengimbangi latensi cloud cascade.
 2. **Kepatuhan Privasi Ketat (ADR-0005 & NFR-02):**
    - **Zero Audio Persistence:** File suara pengguna sama sekali tidak disimpan. Aliran suara WebRTC hanya berada dalam memori volatil (RAM) untuk STT lalu dibuang.
-   - **Apa yang Disimpan Agen:** Hanya transkrip teks anonim, intent JSON yang dihasilkan, state keranjang, dan metrik latensi per tahapan yang dicatat ke basis data event log lokal (`data/turn_events.sqlite3`) dengan retensi maksimal 30 hari. Tidak ada PII atau voiceprint yang disimpan.
+   - **Apa yang Disimpan Agen:** Basis data telemetri SQLite (`data/turn_events.sqlite3`) hanya mencatat metrik latensi teknis per tahapan, token usage, perkiraan biaya, dan tipe mutasi state machine. Teks transkrip ucapan pengguna dan raw audio SAMA SEKALI TIDAK DISIMPAN ke dalam SQLite. Transkrip teks hanya diproses in-memory dan disiarkan via data channel. Browser juga tidak menyimpan transkrip di localStorage/cookies (hanya menyimpan preferensi bahasa `lajur_locale`).
 3. **Pemisahan Otoritas Mutasi Keranjang:** State keranjang hanya dimutasi oleh `packages/cart` deterministik. Pesan protokol hanya mengirimkan representasi *snapshot* keranjang yang telah tervalidasi.
 
 ---

@@ -51,7 +51,7 @@ function SimulatorApp() {
   const replayParam = searchParams.get("replay");
   const modeParam = searchParams.get("mode");
 
-  const initialMode: SimulatorMode = replayParam || modeParam === "replay" ? "replay" : "replay"; // Default to safe replay for public preview
+  const initialMode: SimulatorMode = modeParam === "live" ? "live" : "replay"; // Default to safe replay for public preview
   const initialScenario = replayParam || "simple";
 
   const {
@@ -90,14 +90,19 @@ function SimulatorApp() {
   const [liveToken, setLiveToken] = useState<string | null>(null);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [isConnectingLive, setIsConnectingLive] = useState<boolean>(false);
+  const isLiveModeEnabled = process.env.LIVE_MODE_ENABLED === "true";
 
-  // Set scenario if replay param is set
+  // Set mode / scenario from search params
   useEffect(() => {
-    if (replayParam) {
+    if (modeParam === "live") {
+      setMode("live");
+    } else if (modeParam === "replay" || replayParam) {
       setMode("replay");
+    }
+    if (replayParam) {
       setSelectedScenario(replayParam);
     }
-  }, [replayParam, setMode, setSelectedScenario]);
+  }, [modeParam, replayParam, setMode, setSelectedScenario]);
 
   const handleStartLiveSession = async () => {
     setIsConnectingLive(true);
@@ -109,7 +114,7 @@ function SimulatorApp() {
       const res = await fetch("/api/token");
       const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error || "Gagal memperoleh token LiveKit dari server.");
+        throw new Error(data.message || data.error || "Gagal memperoleh token LiveKit dari server.");
       }
       setLiveToken(data.token);
       setLiveUrl(data.url);
@@ -301,6 +306,7 @@ function SimulatorApp() {
                 <StatusControls
                   status={status}
                   isActive={false}
+                  isLiveModeDisabled={!isLiveModeEnabled}
                   turnsUsed={sessionLimits.turns_used}
                   maxTurns={sessionLimits.max_turns}
                   timeElapsedSeconds={sessionLimits.time_elapsed_seconds}

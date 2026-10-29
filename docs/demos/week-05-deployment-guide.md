@@ -1,61 +1,46 @@
-# Panduan Deployment Vercel Preview — Minggu 5
+# Panduan Deployment Vercel — Minggu 5
 
 **Dokumen:** `docs/demos/week-05-deployment-guide.md`  
 **Milestone:** Minggu 5 (Web Simulator Preview Deployment)  
-**Terkait:** ADR-0009 (*Opsi Hosting Frontend dan Agent Worker*), ADR-0014 (*Web Protocol v1*)  
-**Status Tindakan:** **PANDUAN LANGKAH MANUAL UNTUK DARYL [HUMAN]**
+**Terkait:** ADR-0009 (*Hosting Frontend & Worker*), ADR-0014 (*Web Protocol v1*)  
+**Status Panduan:** **PANDUAN LANGKAH MANUAL UNTUK DARYL [HUMAN]**
 
 ---
 
-## 1. Konteks Keamanan & Pembagian Status Lingkungan
+## 1. Dua Mode Operasional yang Terpisah Jelas
 
-Sesuai ADR-0009 dan batasan rilis Minggu 5:
+Aplikasi web simulator dirancang dengan sakelar lingkungan `LIVE_MODE_ENABLED` (default `false` di semua lingkungan):
 
-| Aspek / Rute | Status Perlindungan di Minggu 5 | Rekomendasi Operasional |
-| :--- | :--- | :--- |
-| **Replay Mode (`?mode=replay`)** | **100% Bebas Risiko & Terisolasi** | **Mode default yang direkomendasikan untuk uji publik/portofolio.** Berjalan sepenuhnya di sisi klien tanpa memanggil rute token LiveKit maupun kuota vendor berbayar. |
-| **Live Token API (`/api/token`)** | **Terbuka (Belum ada Captcha / Rate Limit)** | Pengerasan keamanan (*Cloudflare Turnstile*, *IP rate-limiting*, *anti-bot*) baru dijadwalkan pada **Minggu 9**. Jangan membagikan URL live ke forum publik terbuka tanpa pengawasan. |
-| **LiveKit Agent Worker** | **Berjalan di Laptop Pengembang** | Worker Python (`services/agent/src/lajur_agent/worker.py`) berjalan secara lokal di laptop Daryl dan terhubung via WebSocket ke LiveKit Cloud. Jika laptop mati atau worker tidak aktif, browser klien akan menampilkan banner *Agent Offline*. |
-| **Vercel Deployment Protection** | **Wajib Dinonaktifkan (Public)** | Jika Deployment Protection aktif, browser ponsel (Safari/Chrome) akan dihalangi layar autentikasi Vercel SSO, sehingga pengujian perangkat nyata gagal. |
+### Mode A: Public Showcase (Rekomendasi Utama — 100% Aman)
+- **Konfigurasi:** `LIVE_MODE_ENABLED=false` (Default).
+- **Perilaku:**
+  - Rute `/api/token` mengembalikan HTTP `403 Forbidden` jika diakses.
+  - Antarmuka web menampilkan banner pemberitahuan *"Live voice is off; try the demo replay"* dan tombol mulai live dinonaktifkan.
+  - Mode Demo Replay (`?mode=replay`) berjalan penuh di peramban dengan 5 skenario baku.
+- **Tingkat Risiko & Biaya:** **$0.00 (Nol Risiko).** Tidak ada kuota vendor yang tersentuh, tidak memerlukan laptop worker yang menyala, dan aman dibagikan ke publik atau portfolio reviewer kapan saja.
 
----
-
-## 2. Langkah-Langkah di Vercel Dashboard (Daryl [HUMAN])
-
-Ikuti langkah-langkah ringkas berikut pada antarmuka dashboard Vercel:
-
-1. **Buka Proyek di Vercel:**
-   - Masuk ke dashboard [vercel.com](https://vercel.com) menggunakan akun GitHub Anda.
-   - Pilih proyek `lajur` (atau impor repositori `darylrafael/lajur` jika belum terhubung).
-
-2. **Atur Konfigurasi Direktori & Framework:**
-   - **Root Directory:** `apps/web` (Pastikan bukan root repositori).
-   - **Framework Preset:** `Next.js`.
-   - **Build Command:** `npm run build` (atau biarkan default).
-   - **Output Directory:** `.next` (default).
-   - **Node.js Version:** `20.x`.
-
-3. **Masukkan Environment Variables (Khusus Live Mode):**
-   Pada menu *Settings* &rarr; *Environment Variables*, tambahkan 4 kunci berikut untuk target *Preview* dan *Production*:
-   - `LIVEKIT_URL` = `wss://<your-project>.livekit.cloud`
-   - `LIVEKIT_API_KEY` = `<your-livekit-api-key>`
-   - `LIVEKIT_API_SECRET` = `<your-livekit-api-secret>`
-   - `NEXT_PUBLIC_LIVEKIT_URL` = `wss://<your-project>.livekit.cloud`
-
-4. **Nonaktifkan Deployment Protection (PENTING untuk Akses Mobile):**
-   - Buka menu *Settings* &rarr; *Deployment Protection*.
-   - Pada bagian *Vercel Authentication*, pastikan statusnya **Disabled** (atau tambahkan bypass rule untuk preview link).
-   - *Alasan:* Memungkinkan partisipan uji ketergunaan membuka URL preview langsung dari peramban ponsel mereka tanpa perlu login akun Vercel.
-
-5. **Deploy & Salin URL:**
-   - Setelah branch `feat/minggu-5-web-simulator` di-push, Vercel akan otomatis membangun preview build.
-   - Salin URL preview yang dihasilkan (misal: `https://lajur-web-git-feat-minggu-5-web-simulator-....vercel.app`).
+### Mode B: Usability-Test Window (Jendela Uji Keterbatasan)
+- **Konfigurasi:** `LIVE_MODE_ENABLED=true` diatur **hanya selama sesi uji berlangsung**.
+- **Prasyarat Operasional:** Laptop Daryl harus menyala dan menjalankan agent worker secara lokal (`uv run python -m lajur_agent.worker dev`).
+- **Paparan Risiko Selama Jendela Aktif:** Siapapun yang memiliki URL preview dapat memulai sesi suara WebRTC langsung yang mengonsumsi kuota gratis vendor pihak ketiga:
+  - **ElevenLabs Free Tier:** Sisa kuota terukur **1.576 karakter** (dari batas 10.000). Setiap giliran balasan templat kasir mengonsumsi ~18 karakter. Cadangan aman untuk ~80 giliran percakapan.
+  - **LiveKit Cloud Build Tier:** Batas 1.000 menit agent/bulan. Setiap sesi dibatasi hard cap 3 menit (180 detik).
+  - **Groq Free Tier (Qwen-2.5-32b):** Batas 14.400 permintaan/hari dan 6.000 token/menit. Konsumsi aktual terukur dari audit: ~120–150 token input dan ~30–50 token output per giliran (~170 token total/turn).
+- **Prosedur Penutupan:** Segera setelah 3 sesi uji selesai, ubah kembali `LIVE_MODE_ENABLED=false` di Vercel Dashboard dan *Redeploy* untuk menutup akses API token.
 
 ---
 
-## 3. Verifikasi Checklist Setelah Deployment
+## 2. Pengaturan Vercel Deployment Protection & Akses Ponsel
 
-Lakukan pengecekan cepat menggunakan ponsel fisik Anda:
-- [ ] Buka URL dengan parameter `?mode=replay`: Halaman simulator termuat, menu board terlihat, dan skenario replay dapat diputar tanpa error console.
-- [ ] Buka URL dalam mode Live: Tekan tombol *"Mulai Pesan"*, periksa apakah pop-up izin mikrofon muncul di peramban seluler.
-- [ ] Jalankan worker di laptop (`uv run python -m lajur_agent.worker dev`): Pastikan status pada antarmuka web berubah menjadi *"Terhubung"* atau *"Kasir Siap"*.
+Secara default, Vercel mengaktifkan *Deployment Protection* (Vercel Authentication) pada Preview Deployments. **Pengaturan ini sebaiknya TETAP AKTIF (*stay ON*)** guna mencegah publik mengakses preview build secara liar.
+
+Jika Deployment Protection aktif, partisipan yang membuka link di ponsel mereka akan dihalangi oleh layar login Vercel SSO. Berikut panduan singkat (maksimal 10 baris) untuk Daryl:
+
+1. Buka dashboard Vercel &rarr; Proyek `lajur` &rarr; tab *Deployments*.
+2. Pilih deployment preview aktif dari branch `feat/minggu-5-web-simulator`.
+3. Klik tombol **Share** di pojok kanan atas, lalu aktifkan **Shareable Link** (membuat tautan khusus bertoken bypass proteksi).
+4. Bagikan *Shareable Link* tersebut kepada partisipan agar mereka dapat membuka simulator di ponsel tanpa login Vercel.
+5. Atau (opsional): buka *Project Settings* &rarr; *Deployment Protection*, ubah *Vercel Authentication* menjadi *Disabled* HANYA selama durasi 3 sesi uji usability.
+6. Masukkan Environment Variables di Vercel: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL`, dan `LIVE_MODE_ENABLED` (`false` untuk Mode A, `true` sementara untuk Mode B).
+7. Simpan pengaturan dan picu *Redeploy*.
+8. Jika tadi menonaktifkan Deployment Protection, segera kembalikan ke *Enabled* setelah sesi uji selesai.

@@ -67,6 +67,7 @@ export interface Translations {
   permissionDenied: string;
   unsupportedBrowser: string;
   footerNote: string;
+  liveModeDisabledNotice: string;
 }
 
 const idTranslations: Translations = {
@@ -131,6 +132,7 @@ const idTranslations: Translations = {
   liveNoticeDesc: "Endpoint token LiveKit belum dilengkapi captcha dan rate limit (dijadwalkan Minggu 9). Mode Replay direkomendasikan untuk uji coba publik.",
   permissionDenied: "Izin akses mikrofon ditolak oleh browser. Mohon izinkan mikrofon untuk menggunakan fitur suara.",
   unsupportedBrowser: "Browser Anda tidak mendukung WebRTC atau perekaman audio. Gunakan Chrome atau Safari versi terbaru.",
+  liveModeDisabledNotice: "Suara langsung dinonaktifkan; silakan coba demo replay",
   footerNote: "Lajur Portfolio Project · Arsitektur Cascade Streaming Pipeline · Zero Audio Persistence (ADR-0005)",
 };
 
@@ -196,6 +198,7 @@ const enTranslations: Translations = {
   liveNoticeDesc: "Live token route currently has no captcha or rate limiting (scheduled for Week 9). Replay Mode is recommended for public evaluation.",
   permissionDenied: "Microphone permission was denied by your browser. Please grant microphone access to use voice.",
   unsupportedBrowser: "Your browser does not support WebRTC audio. Please use the latest Chrome or Safari.",
+  liveModeDisabledNotice: "Live voice is off; try the demo replay",
   footerNote: "Lajur Portfolio Project · Cascading Streaming Pipeline Architecture · Zero Audio Persistence (ADR-0005)",
 };
 

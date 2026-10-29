@@ -32,9 +32,16 @@ Sistem mendefinisikan dan menerapkan **Web Protocol v1**:
    - `handoff`: eskalasi ke staf manusia dengan pesan kru.
    - `error`: notifikasi kesalahan sistem/jaringan dengan flag `recoverable`.
    - `session_limits`: pemantauan giliran terpakai (maks 12) dan durasi sesi (maks 180 detik).
-4. **Kepatuhan Privasi (ADR-0005):**
-   - Protokol tidak pernah mentransmisikan rekaman audio biner melalui data channel (audio mengalir melalui WebRTC AudioTrack standar).
-   - Server tidak menyimpan audio ke disk; hanya transkrip teks dan event log metrik yang dicatat di SQLite lokal selama maksimal 30 hari.
+4. **Kepatuhan Privasi & Penyimpanan Data (ADR-0005):**
+   - **Zero Audio Persistence:** File suara pengguna sama sekali tidak pernah disimpan ke disk atau media persisten manapun. Aliran audio WebRTC diproses secara in-memory lalu dibuang.
+   - **Penyimpanan Sisi Agen (Worker):**
+     - Basis data telemetri SQLite (`data/turn_events.sqlite3`) hanya mencatat metrik latensi teknis per tahapan, jumlah token, perkiraan biaya, dan tipe mutasi state machine (`intent_type`). **Teks transkrip ucapan pengguna SAMA SEKALI TIDAK DISIMPAN ke dalam SQLite.**
+     - Teks transkrip ucapan pengguna hanya berada dalam memori volatil saat diproses menjadi intent JSON dan disiarkan via data channel. Pada log terminal standar worker (`stdout`), ucapan dicetak via `logger.info` untuk observabilitas proses lokal.
+     - Retensi data event log dibatasi maksimal 30 hari.
+   - **Penyimpanan Sisi Peramban (Browser):**
+     - Browser **TIDAK PERNAH** menyimpan transkrip, keranjang, audio, atau riwayat percakapan ke dalam `localStorage`, `sessionStorage`, maupun cookies.
+     - Satu-satunya data persisten di `localStorage` adalah preferensi bahasa antarmuka (`lajur_locale` bernilai `"id"` atau `"en"`).
+     - Seluruh transkrip langsung dan riwayat percakapan bersifat efemeral (*in-memory React state*) dan terhapus total begitu tab peramban dimuat ulang (*refresh*) atau ditutup.
 
 ---
 

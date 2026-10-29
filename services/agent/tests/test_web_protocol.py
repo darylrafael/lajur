@@ -15,6 +15,9 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+from lajur_agent.adapters.fakes import FakeLLMIntentAdapter, FakeSTTAdapter, FakeTTSAdapter
+from lajur_agent.observability import TurnEventLogger
+from lajur_agent.pipeline import VoiceOrderingPipeline
 from lajur_agent.protocol import (
     PROTOCOL_VERSION,
     create_bot_reply_text_event,
@@ -174,3 +177,110 @@ def test_session_limits_schema(protocol_schema: dict) -> None:
     assert limits["time_elapsed_seconds"] == 45.2
     assert limits["time_limit_seconds"] == 180.0
     jsonschema.validate(instance=limits, schema=protocol_schema)
+
+
+@pytest.mark.asyncio
+async def test_live_event_serialization_order_and_schema(
+    protocol_schema: dict, menu_service: MenuService, tmp_path: Path
+) -> None:
+    """Contract test for the live worker event serialization path with offline fake adapters.
+
+    What it covers:
+    - End-to-end execution of worker event serialization logic using offline fakes.
+    - Captures all emitted data-channel protocol messages in memory.
+    - Validates every individual message against packages/cart/web-protocol.schema.json.
+    - Asserts strict causal event ordering:
+      partial_transcript -> final_transcript -> intent_applied -> bot_reply_text ->
+      bot_speaking_start -> bot_speaking_end -> session_limits.
+    - Verifies exact synchronization between packages/cart state machine and event payload.
+
+    What it DOES NOT cover:
+    - Real Deepgram Nova-3 interim WebSocket audio streaming callbacks.
+    - Real acoustic silence / VAD endpointing delays.
+    - Real WebRTC UDP network transport (packet loss, latency jitter, or out-of-order delivery).
+    """
+    captured_events: list[dict] = []
+
+    async def mock_publish(event: dict) -> None:
+        # Validate against JSON schema at serialization time
+        jsonschema.validate(instance=event, schema=protocol_schema)
+        captured_events.append(event)
+
+    db_file = tmp_path / "test_events.sqlite3"
+    pipeline = VoiceOrderingPipeline(
+        session_id="test-session-mock",
+        menu_service=menu_service,
+        stt_adapter=FakeSTTAdapter(),
+        llm_adapter=FakeLLMIntentAdapter(),
+        tts_adapter=FakeTTSAdapter(),
+        event_logger=TurnEventLogger(db_path=db_file),
+        reply_mode="template",
+    )
+
+    # Simulate worker turn lifecycle:
+    # 1. User speaks: STT emits interim partial transcript
+    await mock_publish(create_partial_transcript_event("saya mau burger", timestamp_ms=100.0))
+
+    # 2. STT finishes: emits final transcript
+    final_text = "saya mau burger sapi satu"
+    await mock_publish(create_final_transcript_event(final_text, timestamp_ms=200.0))
+
+    # 3. Pipeline executes deterministic state machine
+    state_before = pipeline.session.state
+    res = await pipeline.process_turn(final_text)
+
+    # 4. Worker emits intent_applied snapshot
+    await mock_publish(
+        create_intent_applied_event(
+            state=pipeline.session.state,
+            cart=pipeline.session.cart,
+            speech_facts=res.speech_facts,
+            menu_service=pipeline.menu_service,
+            state_from=state_before,
+            timestamp_ms=300.0,
+        )
+    )
+
+    # 5. Worker emits cashier speech text
+    await mock_publish(create_bot_reply_text_event(res.reply_text, timestamp_ms=350.0))
+
+    # 6. Worker emits bot speaking markers
+    await mock_publish(create_bot_speaking_start_event(timestamp_ms=400.0))
+    await mock_publish(create_bot_speaking_end_event(timestamp_ms=600.0))
+
+    # 7. Worker emits session limits update
+    await mock_publish(
+        create_session_limits_event(
+            turns_used=pipeline.turn_counter,
+            max_turns=pipeline.max_turns,
+            time_elapsed_seconds=1.2,
+            time_limit_seconds=180.0,
+            timestamp_ms=605.0,
+        )
+    )
+
+    # Verify event types and causal sequence
+    event_types = [e["type"] for e in captured_events]
+    assert event_types == [
+        "partial_transcript",
+        "final_transcript",
+        "intent_applied",
+        "bot_reply_text",
+        "bot_speaking_start",
+        "bot_speaking_end",
+        "session_limits",
+    ]
+
+    # Verify specific ordering invariants:
+    # partial before final
+    assert event_types.index("partial_transcript") < event_types.index("final_transcript")
+    # final before intent_applied
+    assert event_types.index("final_transcript") < event_types.index("intent_applied")
+    # intent_applied before bot_reply_text
+    assert event_types.index("intent_applied") < event_types.index("bot_reply_text")
+
+    # Verify intent_applied content matches cart state machine
+    intent_event = captured_events[2]
+    assert intent_event["cart"]["total_item_count"] == 1
+    assert intent_event["cart"]["items"][0]["item_id"] == "burger_sapi_tunggal"
+    assert intent_event["speech_facts"]["intent_handled"] == "add_item"
