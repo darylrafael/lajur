@@ -9,7 +9,7 @@
 
 ## 1. Dua Mode Operasional yang Terpisah Jelas
 
-Aplikasi web simulator dirancang dengan sakelar lingkungan `LIVE_MODE_ENABLED` (default `false` di semua lingkungan):
+Aplikasi web simulator dirancang dengan sakelar lingkungan `LIVE_MODE_ENABLED` (default `false` di seluruh lingkungan):
 
 ### Mode A: Public Showcase (Rekomendasi Utama — 100% Aman)
 - **Konfigurasi:** `LIVE_MODE_ENABLED=false` (Default pada file `.env.example` dan `apps/web/.env.example`).
@@ -26,63 +26,70 @@ Aplikasi web simulator dirancang dengan sakelar lingkungan `LIVE_MODE_ENABLED` (
 - **Prasyarat Operasional:** Laptop Daryl harus menyala dan menjalankan agent worker secara lokal:
   `uv run python -m lajur_agent.worker dev`  
   *(atau: `uv run python services/agent/src/lajur_agent/worker.py dev`)*
-- **Paparan Risiko Selama Jendela Aktif:** Siapapun yang memiliki akses URL preview dapat memulai sesi suara WebRTC langsung yang mengonsumsi kuota gratis vendor:
-  - **ElevenLabs Free Tier:** Sisa kuota terukur **1.576 karakter** (dari batas 10.000, dicek via query API *read-only*).
-    - Konsumsi teks templat: salam pembuka 69 karakter, rata-rata balasan kasir ~45 karakter (rentang 32–60 karakter).
-    - Anggaran 3 partisipan @ 8 turn: 3 salam pembuka (207 char) + 24 turn (~1.080 char) = ~1.287 karakter (batas atas ~1.527 karakter).
-    - Evaluasi kapasitas: Kuota 1.576 karakter **mencukupi secara ketat** (*tight fit*, sisa margin 49–289 karakter). Jika partisipan banyak mengulang ucapan atau memicu pesan bantuan panjang, kuota dapat habis sebelum turn ke-24.
-    - Catatan kode: Saat ini belum ada mode balasan teks-saja (*text-only reply mode*) di dalam worker; jika kuota TTS habis, worker memunculkan error TTS. Diusulkan penambahan `TTS_MODE="none"` atau `NoOpTTSAdapter` pada iterasi mendatang bila diperlukan.
-  - **Groq Free Tier (Qwen-2.5-32b / Qwen3.8-27b):**
-    - Batas resmi dokumentasi Groq ([console.groq.com/docs/rate-limits](https://console.groq.com/docs/rate-limits), verifikasi Oktober 2026): **200.000 tokens/day (TPD)**, 1.000 requests/day (RPD), 8.000 tokens/minute (TPM), 30 requests/minute (RPM).
-    - Konsumsi aktual terukur dari audit: rata-rata **~1.499 prompt tokens + ~105 completion tokens (~1.604 token total per turn)**. *(Klaim lama "~170 tokens/turn" telah ditarik dan dikoreksi)*.
-    - Kapasitas harian: $200.000 / 1.604 \approx 124$ turn/hari. Anggaran 24 turn untuk 3 partisipan mengonsumsi ~38.496 token (~19% dari kuota harian), sangat aman.
-  - **LiveKit Cloud Build Tier:** Batas 1.000 menit agent/bulan. Setiap sesi dibatasi *hard cap* 3 menit (180 detik) dan 12 turn.
-- **Prosedur Penutupan:** Segera setelah 3 sesi uji selesai, matikan worker lokal (`Ctrl+C`), ubah kembali `LIVE_MODE_ENABLED=false` di Vercel Dashboard, dan picu *Redeploy* untuk menutup akses API token.
 
 ---
 
-## 2. Status Vercel Deployment Protection pada Paket Hobby
+## 2. Tabel Konsolidasi Kuota Vendor & Batasan Teknis
+
+> [!IMPORTANT]
+> **Aturan Pengujian Wajib:** Seluruh sesi pengujian 3 orang awam **WAJIB DILAKUKAN SATU PER SATU (*STRICTLY TESTED ONE AT A TIME*)**. Pengujian simultan (2 atau 3 orang berbicara bersamaan) dipastikan memicu kegagalan HTTP 429 pada Groq LLM karena batas ketat *Tokens Per Minute (TPM)*.
+
+| Vendor / Layanan | Model ID / Spesifikasi | Batas Free Tier Resmi | Konsumsi per Turn Terukur | Anggaran 3 Partisipan (1 per 1, @ 8 turn = 24 turn) | Status & Evaluasi Risiko |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ElevenLabs TTS** | `eleven_flash_v2_5` | **1.576 karakter tersisa** (dari limit 10.000, dicek via API *read-only*) | Salam pembuka 69 char, balasan kasir ~45 char (rentang 32–60 char) | 3 salam (207 char) + 24 turn (~1.080 char) = **~1.287 char** (rentang atas ~1.527 char) | **Tight Fit (Margin Sisa 49–289 char)**. Partisipan tidak boleh diajak mengobrol di luar skrip. Kuota habis jika turn > 24. |
+| **Groq LLM (TPM)** | `qwen/qwen3.8-27b` | **8.000 tokens/minute (TPM)** ([console.groq.com/docs/rate-limits](https://console.groq.com/docs/rate-limits), Okt 2026) | ~1.604 token/turn (1.499 prompt + 105 completion) | 1 turn mengonsumsi 20% TPM. Maksimum kapasitas: **~4,98 turn/menit (~4 turn/min)** | **Bottleneck Kritis**. Jika 3 orang berbicara simultan, kebutuhan token mencapai >9.600 TPM (melebihi 8.000) &rarr; **HTTP 429**. |
+| **Groq LLM (TPD)** | `qwen/qwen3.8-27b` | **200.000 tokens/day (TPD)** & 1.000 requests/day | ~1.604 token/turn | 24 turn = **~38.496 token** (19,2% kuota harian) | **Aman**. Kapasitas harian mencukupi hingga ~124 turn/hari. |
+| **LiveKit Cloud** | SFU WebRTC Agent | **1.000 menit/bulan** | Hard cap 3 menit (180 detik) per sesi | 3 sesi $\times$ 3 menit = **9 menit total** | **Sangat Aman** (< 1% kuota bulanan terpakai). |
+
+---
+
+## 3. Persyaratan Secure Context Mikrofon (MDN)
+
+Berdasarkan dokumentasi resmi MDN Web Docs ([MediaDevices.getUserMedia()](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia), verifikasi Oktober 2026):
+- Metode `navigator.mediaDevices.getUserMedia()` adalah fitur berprivasi tinggi yang **HANYA TERSEDIA PADA SECURE CONTEXT (`isSecureContext === true`)**.
+- Konteks yang diakui aman oleh peramban hanyalah:
+  1. Protokol HTTPS (`https://`)
+  2. Alamat lokal pengembang (`http://localhost` atau `http://127.0.0.1`)
+- **Peringatan Kritis Akses Ponsel:** Alamat IP lokal seperti `http://192.168.x.x:3000` yang dibuka melalui peramban ponsel (Chrome Android atau Safari iOS) **DITOLAK SEBAGAI INSECURE CONTEXT**. Pada kondisi ini, properti `navigator.mediaDevices` bernilai `undefined`, tombol mic gagal berfungsi, dan izin mikrofon sama sekali tidak dapat diminta.
+- Oleh karena itu, pengujian pada perangkat ponsel **WAJIB menggunakan URL berprotokol HTTPS**.
+
+---
+
+## 4. Status Vercel Deployment Protection & Shareable Links (Hobby Plan)
 
 Berdasarkan dokumentasi resmi Vercel ([vercel.com/docs/security/deployment-protection](https://vercel.com/docs/security/deployment-protection), verifikasi Oktober 2026):
-- **Password Protection (Kata Sandi Standar):** **TIDAK TERSEDIA pada paket Hobby gratis**. Fitur ini memerlukan paket berbayar Pro ($20/bulan per proyek) atau Enterprise. Oleh karena itu, opsi Password Protection ditiadakan dari panduan ini.
-- **Vercel Authentication (SSO Login):** Tersedia gratis pada paket Hobby. Namun, fitur ini mewajibkan setiap pengunjung untuk login menggunakan akun Vercel dan meminta akses (*Request Access*) ke pemilik proyek.
-- **Pengalaman Partisipan Tanpa Akun Vercel:** Jika Vercel Authentication aktif, partisipan yang membuka tautan preview di ponsel akan melihat layar login Vercel (*"Log in to Vercel"*). Partisipan yang bukan developer dan tidak memiliki akun Vercel **SAMA SEKALI TIDAK BISA MEMBUKA APLIKASI**.
+- **Password Protection (Sandi Masuk Standar):** **TIDAK TERSEDIA pada paket Hobby gratis**. Memerlukan add-on Pro berbayar ($20/bulan per proyek) atau Enterprise.
+- **Vercel Authentication (SSO Login):** Tersedia gratis pada paket Hobby. Namun, pengunjung yang membuka tautan preview wajib login dengan akun Vercel dan meminta izin akses. Partisipan awam tanpa akun Vercel akan terblokir oleh layar login SSO Vercel dan tidak dapat membuka simulator.
+- **Shareable Links pada Hobby Plan:**
+  - *Ketersediaan:* **Tersedia pada paket Hobby gratis**, namun **dibatasi ketat maksimal 1 link aktif per akun** (pada Pro/Enterprise tidak terbatas).
+  - *Pengalaman Partisipan:* Partisipan yang membuka Shareable Link (memuat parameter token bypass `?_vercel_share=...`) **dapat langsung mengakses aplikasi web simulator tanpa login akun Vercel**. Pengunjung akan melihat Vercel Toolbar kecil di bagian bawah layar.
 
 ---
 
-## 3. Opsi Pelaksanaan Jendela Uji Usability (Deskripsi Objektif)
+## 5. Pilihan Solusi HTTPS untuk Pengujian Usability (Tanpa Memilih / Tanpa Mengimplementasikan)
 
-Untuk memfasilitasi 3 partisipan non-teknis tanpa kartu kredit dan tanpa biaya tambahan, berikut opsi yang dapat dipilih Daryl:
+Berikut adalah opsi-opsi yang memenuhi persyaratan HTTPS untuk mikrofon ponsel partisipan:
 
-### Opsi A: Deployment Protection Dinonaktifkan Sementara (Jendela Sesi Uji)
-- **Cara Kerja:**
-  1. Masuk ke Vercel Dashboard &rarr; Proyek `lajur` &rarr; Settings &rarr; Deployment Protection.
-  2. Ubah *Vercel Authentication* menjadi **Disabled** hanya selama durasi 3 sesi pengujian.
-  3. Set Environment Variable pada Preview: `LIVE_MODE_ENABLED=true`.
-  4. Bagikan URL deployment unik (misal: `https://lajur-xxx-daryl.vercel.app/?mode=live`) secara privat hanya kepada 3 partisipan via chat WhatsApp.
-  5. Daryl menyalakan worker di laptop (`uv run python -m lajur_agent.worker dev`).
-  6. Setelah 3 sesi selesai, set `LIVE_MODE_ENABLED=false`, redeploy, dan aktifkan kembali *Vercel Authentication*.
-- **Tingkat Paparan & Kuota:**
-  URL preview dapat diakses siapa saja di internet publik selama jendela waktu tersebut. Namun, risiko dibatasi oleh:
-  - Worker hanya aktif saat laptop Daryl terhubung ke LiveKit Cloud.
-  - Token API LiveKit dibatasi TTL 5 menit dan room suffix acak 16-heksadesimal tak tertebak.
-  - Hard cap sesi 3 menit dan 12 turn per koneksi.
-  - ElevenLabs memiliki sisa 1.576 karakter dan Groq 200.000 token/hari.
+### Opsi 1: Deployed Vercel Preview dengan Shareable Link (Bypass Resmi)
+- **Cara Kerja:** Biarkan *Vercel Authentication* tetap aktif di Settings. Masuk ke Vercel Dashboard &rarr; Deployments &rarr; pilih preview aktif branch `feat/minggu-5-web-simulator` &rarr; klik **Share** &rarr; aktifkan **Shareable Link**. Salin tautan ber-token bypass tersebut dan bagikan ke partisipan satu per satu. Set `LIVE_MODE_ENABLED=true` pada preview.
+- **Syarat Akun / Biaya:** Akun Vercel Hobby gratis milik Daryl, tanpa kartu kredit ($0).
+- **Paparan:** Terbatas pada pemegang tautan bertoken bypass (maksimal 1 link aktif).
+- **Penutupan:** Hapus link share atau ubah `LIVE_MODE_ENABLED=false` setelah 3 sesi selesai.
 
-### Opsi B: Menggunakan Shareable Link Bypass (Jika Tersedia di Preview)
-- **Cara Kerja:**
-  1. Biarkan *Vercel Authentication* tetap aktif (*Enabled*).
-  2. Di tab *Deployments*, pilih deployment preview aktif dari branch `feat/minggu-5-web-simulator`.
-  3. Klik menu **Share** &rarr; aktifkan **Shareable Link** (menghasilkan tautan dengan token bypass parameter URL).
-  4. Bagikan *Shareable Link* tersebut kepada 3 partisipan.
-- **Tingkat Paparan:**
-  Hanya pihak yang memegang tautan bertoken bypass yang dapat mengakses preview tanpa login Vercel.
+### Opsi 2: Deployed Vercel Preview dengan Protection Disabled Sementara
+- **Cara Kerja:** Di Vercel Dashboard &rarr; Settings &rarr; Deployment Protection, nonaktifkan *Vercel Authentication* (*Disabled*) sementara selama sesi uji coba. Bagikan URL preview unik `https://lajur-xxx-daryl.vercel.app/?mode=live` ke partisipan secara bergantian.
+- **Syarat Akun / Biaya:** Gratis tanpa kartu kredit ($0).
+- **Paparan:** Siapa saja di internet publik yang memegang URL dapat membuka halaman.
+- **Mitigasi:** Worker hanya menyala di laptop Daryl; dilindungi hard cap token 5 menit dan batas sesi 180s. Setelah 3 sesi selesai, aktifkan kembali *Vercel Authentication* dan set `LIVE_MODE_ENABLED=false`.
 
-### Opsi C: Pengujian Menggunakan Jaringan Wi-Fi Lokal (Nol Paparan Internet Publik)
-- **Cara Kerja:**
-  1. Jika pengujian dilakukan bersama teman/keluarga yang berada di lokasi fisik yang sama (satu jaringan Wi-Fi rumah/kantor):
-  2. Jalankan aplikasi web lokal: `$env:LIVE_MODE_ENABLED="true"; npm run dev --prefix apps/web -- -H 0.0.0.0`
-  3. Jalankan worker: `uv run python -m lajur_agent.worker dev`
-  4. Minta partisipan membuka browser ponsel di alamat IP lokal laptop Daryl (misal: `http://192.168.1.xxx:3000/?mode=live`).
-- **Tingkat Paparan & Risiko:**
-  **0% Paparan ke Internet Publik.** Tidak ada URL publik yang terekspos ke crawler, tidak memerlukan Vercel deployment, dan 100% aman dari pihak luar.
+### Opsi 3: HTTPS Tunnel dari Laptop (Cloudflare Quick Tunnel / TryCloudflare)
+- **Cara Kerja:** Menjalankan web lokal di laptop (`npm run dev --prefix apps/web`) lalu mengeksposnya ke HTTPS via perintah resmi:
+  `cloudflared tunnel --url http://localhost:3000`
+- **Syarat Akun / Biaya:** **100% Tanpa Akun dan Tanpa Kartu Kredit**. Cloudflare Quick Tunnel menghasilkan URL acak `https://<random>.trycloudflare.com` secara instan.
+- **Ketentuan Layanan:** Ditujukan untuk pengujian dan evaluasi lokal sementara.
+- **Paparan:** URL HTTPS acak di internet publik selama proses tunnel berjalan. Matikan terminal `cloudflared` begitu pengujian selesai.
+
+### Opsi 4: Alternatif HTTPS Tunnel Lainnya (Localtunnel / Pinggy)
+- **Localtunnel:** `npx localtunnel --port 3000` (Gratis, tanpa akun, tanpa kartu kredit; namun menampilkan halaman konfirmasi IP pengembang pada kunjungan pertama di ponsel).
+- **Pinggy.io:** `ssh -p 443 -R0:localhost:3000 a.pinggy.io` (Gratis, tanpa akun, tanpa kartu kredit; dibatasi durasi koneksi maksimal 60 menit per sesi).
+- **Ngrok:** Memerlukan pendaftaran akun dan konfigurasi *auth token* personal (meskipun tier gratis tidak membutuhkan kartu kredit).
