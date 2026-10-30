@@ -54,6 +54,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("lajur.agent.worker")
 
 
+def should_log_transcripts() -> bool:
+    """Return True if transcript text logging is explicitly enabled via LOG_TRANSCRIPTS."""
+    return os.getenv("LOG_TRANSCRIPTS", "false").lower() in ("true", "1", "yes")
+
+
+def format_user_turn_log(turn_id: int, transcript: str, log_transcripts: bool = False) -> str:
+    """Format user turn log message conforming to privacy and LOG_TRANSCRIPTS configuration."""
+    if log_transcripts:
+        return f"[Turn {turn_id}] User utterance: '{transcript}'"
+    return f"[Turn {turn_id}] User utterance event: event_type=final_transcript, length={len(transcript)}"
+
+
+def format_bot_reply_log(
+    turn_id: int, reply_text: str, latency_ms: float, log_transcripts: bool = False
+) -> str:
+    """Format bot reply log message conforming to privacy and LOG_TRANSCRIPTS configuration."""
+    if log_transcripts:
+        return f"[Turn {turn_id}] Bot reply: '{reply_text}' (Latency: {latency_ms:.1f} ms)"
+    return f"[Turn {turn_id}] Bot reply event: event_type=bot_reply_text, length={len(reply_text)}, latency={latency_ms:.1f} ms"
+
+
 def create_pipeline(session_id: str, client_identity: str = "web-client") -> VoiceOrderingPipeline:
     """Instantiate a VoiceOrderingPipeline using configured adapters."""
     ms = MenuService()
@@ -232,7 +253,12 @@ async def entrypoint(ctx: JobContext) -> None:
             return
 
         async with turn_lock:
-            logger.info("[Turn %d] User utterance: '%s'", pipeline.turn_counter + 1, transcript)
+            log_transcripts = should_log_transcripts()
+            logger.info(
+                format_user_turn_log(
+                    pipeline.turn_counter + 1, transcript, log_transcripts=log_transcripts
+                )
+            )
 
             # 1. Emit confirmed final transcript
             await publish_protocol_event(create_final_transcript_event(transcript))
@@ -252,10 +278,12 @@ async def entrypoint(ctx: JobContext) -> None:
                 return
 
             logger.info(
-                "[Turn %d] Bot reply: '%s' (Latency: %.1f ms)",
-                pipeline.turn_counter,
-                res.reply_text,
-                res.turn_latency_ms,
+                format_bot_reply_log(
+                    pipeline.turn_counter,
+                    res.reply_text,
+                    res.turn_latency_ms,
+                    log_transcripts=log_transcripts,
+                )
             )
 
             # 2. Emit intent_applied with cart snapshot & speech facts

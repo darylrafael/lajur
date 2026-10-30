@@ -36,7 +36,7 @@ Sistem mendefinisikan dan menerapkan **Web Protocol v1**:
    - **Zero Audio Persistence:** File suara pengguna sama sekali tidak pernah disimpan ke disk atau media persisten manapun. Aliran audio WebRTC diproses secara in-memory lalu dibuang.
    - **Penyimpanan Sisi Agen (Worker):**
      - Basis data telemetri SQLite (`data/turn_events.sqlite3`) hanya mencatat metrik latensi teknis per tahapan, jumlah token, perkiraan biaya, dan tipe mutasi state machine (`intent_type`). **Teks transkrip ucapan pengguna SAMA SEKALI TIDAK DISIMPAN ke dalam SQLite.**
-     - Teks transkrip ucapan pengguna hanya berada dalam memori volatil saat diproses menjadi intent JSON dan disiarkan via data channel. Pada log terminal standar worker (`stdout`), ucapan dicetak via `logger.info` untuk observabilitas proses lokal.
+     - Teks transkrip ucapan pengguna hanya berada dalam memori volatil saat diproses menjadi intent JSON dan disiarkan via data channel. Pada log terminal standar worker (`stdout`), teks transkrip **TIDAK DICETAK** pada level `INFO` secara default. Dikendalikan oleh flag lingkungan `LOG_TRANSCRIPTS` (default `false`); bila `false`, log hanya mencatat nomor turn, panjang teks (`length`), dan tipe event (`event_type=final_transcript`, `event_type=bot_reply_text`) tanpa membocorkan isi teks ucapan maupun balasan bot. Teks transkrip hanya dicetak jika `LOG_TRANSCRIPTS=true` disetel secara sadar untuk debugging lokal.
      - Retensi data event log dibatasi maksimal 30 hari.
    - **Penyimpanan Sisi Peramban (Browser):**
      - Browser **TIDAK PERNAH** menyimpan transkrip, keranjang, audio, atau riwayat percakapan ke dalam `localStorage`, `sessionStorage`, maupun cookies.
@@ -65,3 +65,13 @@ Sistem mendefinisikan dan menerapkan **Web Protocol v1**:
 
 ### Negatif / Mitigasi
 - Overhead penguraian JSON pada perangkat low-end. *Mitigasi:* Ukuran payload setiap event dijaga sangat ringkas (< 2 KB).
+
+
+---
+
+## Keputusan yang Memerlukan Persetujuan Pemilik Proyek (Daryl)
+
+1. **Transport WebRTC Data Channel Tunggal (`lajur-control`):** Penolakan WebSocket/SSE terpisah demi menyederhanakan arsitektur dan menghindari port baru.
+2. **Katalog Event Protokol (8 tipe):** Definisi pesan `partial_transcript`, `final_transcript`, `intent_applied`, `bot_reply_text`, `bot_speaking_start/end`, `pending_question`, `handoff`, `session_limits`.
+3. **Kepatuhan Privasi ADR-0005 & Logging Guard:** Penerapan `LOG_TRANSCRIPTS=false` (hanya mencatat id/length/event_type, nol teks ucapan/balasan di stdout level info) serta nol transkrip/audio di SQLite.
+4. **Offline Replay Mode:** Penggunaan file rekaman baku JSON di browser tanpa server untuk demonstrasi portofolio.
