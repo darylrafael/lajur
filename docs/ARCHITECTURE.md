@@ -1,6 +1,6 @@
 # Arsitektur Sistem — Lajur
 
-**Status:** v1.1 · **Terkait:** ADR-0001 s/d ADR-0009
+**Status:** v1.2 · **Terkait:** ADR-0001 s/d ADR-0015
 
 ---
 
@@ -218,3 +218,30 @@ Browser (Next.js) ──Local Timer Loop──► Event Dispatcher (useSimulator
    - Panel transkrip menggunakan atribut `role="log"` dan `aria-live="polite"` sehingga pembaca layar membaca pembaruan secara alami.
    - Seluruh kontainer yang dapat di-scroll memiliki `tabIndex={0}` untuk navigasi keyboard penuh.
    - Keranjang menampilkan lencana visual (*"Keranjang Diperbarui"*) secara instan ketika intent diterapkan, mengompensasi latensi audio bot.
+
+
+---
+
+## 7. Arsitektur Ketahanan & Interaksi Full-Duplex (Minggu 6)
+
+Pada Minggu 6, pipeline suara ditingkatkan untuk menangani ketidaksempurnaan komunikasi manusia dan kondisi lingkungan nyata:
+
+### 7.1 Turn Detection Adaptif (	urn_detection.py)
+- Mempertahankan Deepgram base endpointing 300 ms.
+- Menambahkan deteksi heuristik partikel gantung (*hesitation fillers*, konjungsi gantung, kata kerja/kuantitas tanpa objek) pada transkrip interim.
+- Menerapkan penundaan terikat (+500 ms) saat jeda ragu terdeteksi, menurunkan false-cutoff pada jeda 300 ms menjadi 0,0%.
+- Menjamin 0,0 ms latensi tambahan pada kalimat bersih (terukur 0,10 ms, 95% CI: [0,03, 0,23] ms).
+
+### 7.2 Barge-in Controller & Echo-Bleed Guard (arge_in.py)
+- **Interupsi Cepat:** Membatalkan pengiriman frame audio PCM bot dan task generasi in-flight secara seketika saat pengguna berbicara.
+- **Echo-Bleed Guard (R15):** Mengharuskan suara pengguna bertahan $\ge 150$ ms sebelum memicu interupsi, mencegah pantulan suara speaker memotong bot secara keliru (*false barge-in rate: 0,0%*).
+- **Konsistensi Keranjang:** Status keranjang bersifat transaksional deterministik sehingga tidak terjadi mutasi parsial (*half-applied intents*).
+
+### 7.3 Handoff Kru (FR-09) & Upsell Kontekstual (FR-10)
+- **Handoff:** Dipicu oleh permintaan eksplisit pengguna (HandoffIntent), kegagalan pemahaman berulang ($\ge 3$ consecutive unknown intents), atau batas waktu/turn. Keranjang dipertahankan utuh dan event handoff dikirim ke UI.
+- **Upsell:** Didorong oleh upsell_rules pada menu combo, dibatasi maksimal 1 penawaran per order, tidak pernah diulang setelah penolakan, dan bersifat non-blocking.
+
+### 7.4 Penanganan Kegagalan Vendor & Simulasi Kebisingan Klien
+- **Degradasi TTS:** Fallback otomatis ke mode teks (	ts_degraded=True) saat kuota habis atau error vendor; balasan kasir tetap tampil di UI tanpa crash.
+- **Groq 429:** Membaca header Retry-After dengan backoff terikat dan pesan penanganan yang ramah.
+- **Preset Noise Web Audio API:** 4 preset simulasi (clean, motor idle, rain traffic, helmet) diolah di sisi browser pada mode live sebelum WebRTC encode (CC0 / MUSAN / FSD50K compatible).

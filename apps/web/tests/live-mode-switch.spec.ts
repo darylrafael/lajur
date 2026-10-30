@@ -27,7 +27,7 @@ test.describe("Live Mode Gate Switch & UI Verification", () => {
     await expect(startButton).toBeDisabled();
 
     // Toggle to English
-    await page.getByRole("button", { name: "EN" }).click();
+    await page.getByRole("button", { name: "EN", exact: true }).click();
 
     // Notice should switch to English
     await expect(notice).toContainText("Live voice is off; try the demo replay");

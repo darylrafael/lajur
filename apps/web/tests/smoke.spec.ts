@@ -29,7 +29,7 @@ test.describe("Lajur Web Simulator Smoke Tests", () => {
     await expect(page.getByText(/Papan Menu Drive-thru/i)).toBeVisible();
 
     // Click EN button
-    await page.getByRole("button", { name: "EN" }).click();
+    await page.getByRole("button", { name: "EN", exact: true }).click();
 
     // Expect English strings
     await expect(page.getByRole("button", { name: /Play Replay/i })).toBeVisible();
@@ -37,7 +37,7 @@ test.describe("Lajur Web Simulator Smoke Tests", () => {
     await expect(page.getByRole("heading", { name: /Order Cart Summary/i })).toBeVisible();
 
     // Click ID button
-    await page.getByRole("button", { name: "ID" }).click();
+    await page.getByRole("button", { name: "ID", exact: true }).click();
     await expect(page.getByRole("button", { name: /Putar Replay/i })).toBeVisible();
   });
 

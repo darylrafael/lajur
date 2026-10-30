@@ -18,6 +18,7 @@ import os
 import time
 from pathlib import Path
 
+import numpy as np
 from dotenv import load_dotenv
 from lajur_cart.menu_service import MenuService
 from lajur_cart.state_machine import SpeechFacts
@@ -28,6 +29,7 @@ from lajur_agent.adapters.deepgram import DeepgramSTTAdapter, PersistentDeepgram
 from lajur_agent.adapters.elevenlabs import ElevenLabsTTSAdapter
 from lajur_agent.adapters.fakes import FakeLLMIntentAdapter, FakeSTTAdapter, FakeTTSAdapter
 from lajur_agent.adapters.groq import GroqLLMIntentAdapter
+from lajur_agent.barge_in import BargeInController
 from lajur_agent.observability import TurnEventLogger
 from lajur_agent.pipeline import VoiceOrderingPipeline
 from lajur_agent.protocol import (
@@ -42,6 +44,7 @@ from lajur_agent.protocol import (
     create_pending_question_event,
     create_session_limits_event,
 )
+from lajur_agent.turn_detection import AdaptiveEndpointingHandler
 
 # Load environment variables
 env_path = Path(__file__).resolve().parents[4] / ".env"
@@ -126,6 +129,17 @@ async def entrypoint(ctx: JobContext) -> None:
 
     session_id = f"sess_{room.name}_{int(asyncio.get_event_loop().time())}"
     pipeline = create_pipeline(session_id=session_id)
+
+    # Initialize barge-in controller and adaptive turn detector
+    barge_in = BargeInController()
+
+    async def on_turn_finalized(final_text: str, speech_end: float) -> None:
+        await handle_user_turn(final_text, speech_end=speech_end)
+
+    endpointing_handler = AdaptiveEndpointingHandler(
+        on_finalize=on_turn_finalized,
+        base_endpointing_ms=300.0,
+    )
 
     # 1. Setup Audio Publisher Track for Agent Voice
     # 16kHz mono PCM matches ElevenLabs output format
@@ -214,9 +228,13 @@ async def entrypoint(ctx: JobContext) -> None:
         try:
             raw_audio = await pipeline.tts_adapter.synthesize_text(welcome_text)
             if raw_audio:
+                cancel_evt = barge_in.start_bot_speaking()
                 await publish_protocol_event(create_bot_speaking_start_event())
                 chunk_size = 640  # 20ms at 16kHz 16-bit mono
                 for i in range(0, len(raw_audio), chunk_size):
+                    if cancel_evt.is_set():
+                        logger.info("[Worker] Welcome audio interrupted by user barge-in.")
+                        break
                     chunk = raw_audio[i : i + chunk_size]
                     if len(chunk) == chunk_size:
                         frame = rtc.AudioFrame(
@@ -227,8 +245,10 @@ async def entrypoint(ctx: JobContext) -> None:
                         )
                         await audio_source.capture_frame(frame)
                         await asyncio.sleep(0.018)
+                barge_in.finish_bot_speaking()
                 await publish_protocol_event(create_bot_speaking_end_event())
         except Exception as e:
+            barge_in.finish_bot_speaking()
             logger.debug("Error playing welcome audio: %s", e)
 
     asyncio.create_task(send_welcome())
@@ -331,11 +351,25 @@ async def entrypoint(ctx: JobContext) -> None:
             # 7. Legacy cart broadcast
             await broadcast_legacy_cart_state(bot_reply=res.reply_text, rejections=res.rejections)
 
-            # 8. Push audio frames to WebRTC audio track with speaking markers
+            # 8. Emit TTS degraded notification if text-only fallback was activated
+            if getattr(res, "tts_degraded", False):
+                await publish_protocol_event(
+                    create_error_event(
+                        code="TTS_DEGRADED",
+                        message="Mode teks aktif: audio suara tidak tersedia saat ini.",
+                        recoverable=True,
+                    )
+                )
+
+            # 9. Push audio frames to WebRTC audio track with speaking markers and barge-in support
             if res.audio_bytes:
+                cancel_evt = barge_in.start_bot_speaking()
                 await publish_protocol_event(create_bot_speaking_start_event())
                 chunk_size = 640  # 20ms at 16kHz 16-bit mono
                 for i in range(0, len(res.audio_bytes), chunk_size):
+                    if cancel_evt.is_set():
+                        logger.info("[Worker] Turn %d bot audio interrupted by barge-in.", pipeline.turn_counter)
+                        break
                     chunk = res.audio_bytes[i : i + chunk_size]
                     if len(chunk) == chunk_size:
                         frame = rtc.AudioFrame(
@@ -346,6 +380,7 @@ async def entrypoint(ctx: JobContext) -> None:
                         )
                         await audio_source.capture_frame(frame)
                         await asyncio.sleep(0.018)
+                barge_in.finish_bot_speaking()
                 await publish_protocol_event(create_bot_speaking_end_event())
 
     # 3. Data Channel Listener (handles ping/pong, text orders fallback, reset)
@@ -402,13 +437,15 @@ async def entrypoint(ctx: JobContext) -> None:
 
         def on_partial(text: str) -> None:
             if text.strip():
+                barge_in.on_user_speech_frame(has_voice=True)
+                endpointing_handler.feed_partial(text)
                 asyncio.create_task(
                     publish_protocol_event(create_partial_transcript_event(text), reliable=False)
                 )
 
         def on_speech_final(final_text: str, ts: float) -> None:
             if final_text.strip():
-                asyncio.create_task(handle_user_turn(final_text, speech_end=ts))
+                endpointing_handler.on_speech_final(final_text, ts)
 
         if dg_stream:
             dg_stream.begin_turn(
@@ -419,9 +456,22 @@ async def entrypoint(ctx: JobContext) -> None:
 
         try:
             async for event in audio_stream:
-                if dg_stream and dg_stream.is_connected:
-                    chunk = event.frame.data.tobytes()
-                    await dg_stream.send_audio_chunk(chunk)
+                chunk = event.frame.data.tobytes()
+                # Compute RMS to detect voice presence for echo-bleed guard
+                if len(chunk) >= 4:
+                    samples = np.frombuffer(chunk, dtype=np.int16)
+                    rms = float(np.sqrt(np.mean(samples.astype(np.float32)**2)))
+                    has_voice = rms > 300.0
+                    barge_in.on_user_speech_frame(has_voice=has_voice)
+
+                if dg_stream:
+                    if not dg_stream.is_connected:
+                        try:
+                            await dg_stream.reconnect()
+                        except Exception as rec_err:
+                            logger.warning("[Worker] Deepgram reconnect failed: %s", rec_err)
+                    if dg_stream.is_connected:
+                        await dg_stream.send_audio_chunk(chunk)
         except asyncio.CancelledError:
             pass
         except Exception as e:

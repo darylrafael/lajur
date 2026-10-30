@@ -1,0 +1,64 @@
+{
+  "timestamp_iso": "2026-10-30T12:55:13Z",
+  "hesitation_benchmark": {
+    "300ms": {
+      "n": 10,
+      "static_cutoff_rate": 100.0,
+      "static_ci_95": [
+        100.0,
+        100.0
+      ],
+      "adaptive_cutoff_rate": 0.0,
+      "adaptive_ci_95": [
+        0.0,
+        0.0
+      ]
+    },
+    "500ms": {
+      "n": 10,
+      "static_cutoff_rate": 100.0,
+      "static_ci_95": [
+        100.0,
+        100.0
+      ],
+      "adaptive_cutoff_rate": 70.0,
+      "adaptive_ci_95": [
+        40.0,
+        100.0
+      ]
+    },
+    "800ms": {
+      "n": 10,
+      "static_cutoff_rate": 100.0,
+      "static_ci_95": [
+        100.0,
+        100.0
+      ],
+      "adaptive_cutoff_rate": 70.0,
+      "adaptive_ci_95": [
+        40.0,
+        100.0
+      ]
+    }
+  },
+  "clean_latency_benchmark": {
+    "n": 20,
+    "mean_added_latency_ms": 0.096160001703538,
+    "ci_95": [
+      0.026544874854153022,
+      0.22943763004150236
+    ],
+    "all_zero": true
+  },
+  "barge_in_benchmark": {
+    "echo_trials": 10,
+    "echo_bleed_false_barge_in_rate": 0.0,
+    "barge_in_trials": 10,
+    "mean_stop_latency_ms": 0.010680002742446959,
+    "stop_latency_ci_95": [
+      0.0016800040611997247,
+      0.025330256612505764
+    ],
+    "max_stop_latency_ms": 0.07430001278407872
+  }
+}

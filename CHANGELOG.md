@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Minggu 6 — Robustness, Noise Presets & Mom Test Materials)
+- **Owner-Delegated Defaults (Claude/Owner Decision):**
+  - Exception to README rule 3: Minggu 6 begins while two human-only items remain pending (real-device voice order test from Minggu 4 and 3-person usability test from Minggu 5). Usability test rescheduled to the end of Minggu 6 after the ElevenLabs quota reset on 20 November 2026. Both remain marked PENDING, never claimed passed.
+  - Invariant preserved: No direct edits made to `PROJECT_PLAN.md`.
+- **Adaptive Endpointing & Turn Detection (`services/agent/src/lajur_agent/turn_detection.py`):**
+  - Heuristic classifier identifying mid-thought hesitation particles, dangling conjunctions, and dangling verbs.
+  - Configurable bounded extension window (+500 ms) while Deepgram base endpointing remains unchanged at 300 ms.
+  - Benchmark result (model-based simulation): False-cutoff rate on 300 ms pause dropped from 100.0% (static baseline true by construction) to 0.0% for detected hesitation phrases. The 0.10 ms figure reflects heuristic CPU evaluation time; added wait on hesitation turns is bounded at +500 ms, with a false-extension rate on non-hesitation dataset turns of 0.72% (1/139 turns).
+- **Barge-in & Echo-Bleed Guard (`services/agent/src/lajur_agent/barge_in.py`):**
+  - Immediate audio output cancellation and in-flight generation task abort on user speech.
+  - Minimum speech duration guard (150 ms) filters transient bursts < 150 ms (0.0% false barge-in by construction on isolated test bursts; sustained acoustic echo from bot speech into mic remains active risk R15 at score 16).
+  - Controller stop decision time measured at 0.01 ms (95% CI: [0.00, 0.03] ms) in tests with fakes; queued audio in LiveKit and browser playout buffers was not measured. Cart consistency verified 100% intact without half-applied intents.
+  - Architecture and browser AEC limitations documented in `docs/design/barge-in-and-aec.md` citing W3C standards and mobile hardware caveats.
+- **Corrections & Undo Full Pipeline Evaluation (`test_corrections_pipeline.py`):**
+  - Evaluated all 11 pre-registered correction and undo scenarios (`scen_071`–`scen_080`, `scen_134`) by replaying agent-authored gold intents through the state machine with fakes (11/11 passed, 100%). Does not test the LLM's handling of corrections with the cart snapshot.
+- **FR-09 Crew Handoff, FR-10 Contextual Upsell, and Graceful Degradation:**
+  - FR-09: Handoff triggered on explicit customer request (`HandoffIntent`), repeated failures (>= 3 consecutive unknown intents), or timeout/max turns. Cart preserved; emits `handoff` event with crew message.
+  - FR-10: Contextual upsell driven by combo `upsell_rules` (max 1 offer per order, never repeated after customer decline, non-blocking).
+  - Degradation: TTS quota exhaustion or failure automatically falls back to text-only mode (`tts_degraded=True`) without crashing; Groq 429 retry-after hint handling with polite message fallback.
+- **Client-Side Noise Presets (Web Audio API):**
+  - 4 presets (Clean, Motor Idle, Rain & Traffic, Helmet Muffled) with 0–100% volume slider rendered in web simulator (`NoisePresetControls.tsx`).
+  - Seamless looping CC0 / MUSAN / FSD50K compatible clips in `apps/web/public/audio/noise/`.
+  - Documented in `docs/NOTICE` with per-file license provenance. Labeled clearly as "simulated", active in live mode only.
+- **Mom Test Research Materials (`docs/interviews/`):**
+  - Indonesian interview guide (`interview-guide-id.md`), consent note (`consent-note.md`), recruiting messages (`recruiting-message.md`), raw notes template (`notes-template.md`), and synthesis template (`synthesis-template.md`) tied to PROJECT_PLAN.md §16 and G3 gate criteria (target >= 3 interviews completed by owner). Zero invented results or quotes.
+  - Checklist of pending owner tasks created in `docs/demos/week-06-human-tasks.md` with verified ElevenLabs remaining quota (1,576 characters, resets 2026-11-20T01:09:16Z) and Groq rate caps.
+- **ADR-0015 (`docs/decisions/0015-adaptive-endpointing-and-barge-in.md`):** Recorded architectural decision for adaptive turn detection, barge-in, and echo bleed guard.
+
 ### Changed & Hardened (Minggu 5b — Correction and Hardening)
 - **Live Mode Gate Switch (`LIVE_MODE_ENABLED`):** Added `LIVE_MODE_ENABLED` flag (default `false` everywhere). Server route `/api/token` returns HTTP 403 Forbidden with clear error JSON when disabled. Web UI shows disabled start button with bilingual notice (*"Live voice is off; try the demo replay"*) while offline replay mode remains fully functional.
 - **Cryptographic Room Security & Shortened Token TTL:** Updated `/api/token` to generate cryptographically unguessable 16-hex room names (`crypto.randomBytes(8).toString("hex")`) and tightened token TTL from 10m to 5m (matching the 3-minute max session limit).

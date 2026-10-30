@@ -22,6 +22,7 @@ import { MenuBoard } from "../components/MenuBoard";
 import { BotReplyCard } from "../components/BotReplyCard";
 import { StatusControls } from "../components/StatusControls";
 import { ReplayController } from "../components/ReplayController";
+import { NoisePresetControls, NoisePreset } from "../components/NoisePresetControls";
 import { HandoffBanner } from "../components/HandoffBanner";
 import { WebProtocolEvent } from "../types/protocol";
 
@@ -85,6 +86,10 @@ function SimulatorApp() {
 
   // Mobile navigation tabs
   const [mobileTab, setMobileTab] = useState<"menu" | "transcript" | "cart">("transcript");
+
+  // Client-side noise preset state
+  const [noisePreset, setNoisePreset] = useState<NoisePreset>("clean");
+  const [noiseVolume, setNoiseVolume] = useState<number>(0.4);
 
   // LiveKit connection state
   const [liveToken, setLiveToken] = useState<string | null>(null);
@@ -272,6 +277,15 @@ function SimulatorApp() {
               pendingQuestion={pendingQuestion}
               cartUpdatedCue={cartUpdatedCue}
               onSelectPendingChoice={handleSelectPendingChoice}
+            />
+
+            {/* Client-Side Simulated Noise Presets (Live Mode) */}
+            <NoisePresetControls
+              mode={mode}
+              activePreset={noisePreset}
+              onPresetChange={setNoisePreset}
+              noiseVolume={noiseVolume}
+              onVolumeChange={setNoiseVolume}
             />
 
             {/* Live Mode Controls vs Replay Mode Controls */}
