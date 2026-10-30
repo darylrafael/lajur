@@ -37,6 +37,7 @@ class PipelineTurnResult:
     turn_event: TurnEvent
     turn_latency_ms: float
     rejections: list[str]
+    tts_degraded: bool = False
 
 
 class VoiceOrderingPipeline:
@@ -70,6 +71,11 @@ class VoiceOrderingPipeline:
         self.turn_counter = 0
         self.created_at = time.perf_counter()
         self.cumulative_cost_usd = 0.0
+        self.max_unknown_intents = int(os.getenv("MAX_UNKNOWN_INTENTS_HANDOFF", "3"))
+        self.consecutive_unknown_count = 0
+        self.upsell_offered = False
+        self.upsell_declined = False
+        self.pending_upsell: Any | None = None
 
         # Build menu context cache for LLM parser
         self._item_names = {item.id: item.name_id for item in menu_service.items.values()}
@@ -96,6 +102,10 @@ class VoiceOrderingPipeline:
         self.session = CartSession(self.menu_service)
         self.turn_counter = 0
         self.created_at = time.perf_counter()
+        self.consecutive_unknown_count = 0
+        self.upsell_offered = False
+        self.upsell_declined = False
+        self.pending_upsell = None
 
     def _check_kill_switch(self) -> bool:
         """Check kill switch environment flag."""
@@ -366,11 +376,45 @@ class VoiceOrderingPipeline:
 
         t_state_applied = time.perf_counter()
 
+        # Check repeated unknown / low confidence failures (FR-09 handoff trigger)
+        if last_facts.intent_handled == "unknown":
+            self.consecutive_unknown_count += 1
+            if self.consecutive_unknown_count >= self.max_unknown_intents and self.session.state != "handoff":
+                logger.warning(
+                    "[Handoff Trigger] Consecutive unknown intents (%d >= %d). Triggering crew handoff.",
+                    self.consecutive_unknown_count,
+                    self.max_unknown_intents,
+                )
+                self.session.state = "handoff"
+                self.session.cart.status = "handoff"
+                last_facts.dialog_state = "handoff"
+                last_facts.intent_handled = "handoff"
+        elif self.session.state != "handoff":
+            self.consecutive_unknown_count = 0
+
+        # Check customer decline for upsell (FR-10: never repeated after decline)
+        any_decline = any(raw_it.get("type") == "decline_more" for raw_it in intent_res.intents)
+        if any_decline or any(w in utterance_lower for w in ("tidak usah", "nggak usah", "gak usah", "cukup itu aja", "itu aja", "nggak", "tidak", "gak")):
+            self.upsell_declined = True
+            self.pending_upsell = None
+        elif self.pending_upsell is not None:
+            # Customer accepted pending upsell
+            any_confirm = any(raw_it.get("type") in ("confirm", "answer_choice", "add_item") for raw_it in intent_res.intents)
+            if any_confirm or any(w in utterance_lower for w in ("ya", "iya", "mau", "boleh", "upsize")):
+                target_item = getattr(self.pending_upsell, "target_item", None)
+                if target_item:
+                    from lajur_cart.intents import AddItemIntent
+                    res_upsell = self.session.apply(AddItemIntent(item_id=target_item, quantity=1))
+                    last_facts = res_upsell.speech_facts
+                self.pending_upsell = None
+
         # Stage 3: Reply Generation
         tokens_in = intent_res.tokens_in
         tokens_out = intent_res.tokens_out
 
-        if self.reply_mode == "template":
+        if self.session.state == "handoff":
+            reply_text = "Baik kak, pesanan dialihkan ke kasir ya."
+        elif self.reply_mode == "template":
             reply_text = generate_template_reply(last_facts, self._item_names)
         else:
             # Mode 1: LLM verbalization of SpeechFacts
@@ -387,26 +431,50 @@ class VoiceOrderingPipeline:
 
             self._detect_reply_hallucination(reply_text, last_facts)
 
-        # Stage 4: TTS Synthesis
+        # Contextual Upsell Trigger (FR-10: max 1 per order, non-blocking, driven by menu rules)
+        if not self.upsell_offered and not self.upsell_declined and self.session.state in ("ordering", "awaiting_choice"):
+            for line in self.session.cart.items:
+                if line.item_id in self.menu_service.combos:
+                    combo = self.menu_service.combos[line.item_id]
+                    if combo.upsell_rules:
+                        rule = combo.upsell_rules[0]
+                        self.upsell_offered = True
+                        self.pending_upsell = rule
+                        reply_text = f"{reply_text.rstrip('. ')}. {rule.prompt_id}"
+                        break
+
+        # Stage 4: TTS Synthesis with Graceful Degradation
         t_tts_start = time.perf_counter()
         t_tts_first_byte: float | None = None
         t_first_audio: float | None = None
         collected_chunks: list[bytes] = []
-        stream_fn = cast(Any, getattr(self.tts_adapter, "stream_audio_chunks", None))
-        if audio_frame_consumer is not None and callable(stream_fn):
-            stream_iter = cast(AsyncIterator[bytes], stream_fn(reply_text))
-            async for pcm_frame in stream_iter:
-                now = time.perf_counter()
-                if t_tts_first_byte is None:
-                    t_tts_first_byte = now
-                    t_first_audio = now
-                collected_chunks.append(pcm_frame)
-                await audio_frame_consumer(pcm_frame)
-            audio_bytes = b"".join(collected_chunks)
-        else:
-            audio_bytes = await self.tts_adapter.synthesize_text(reply_text)
+        tts_degraded = False
+
+        try:
+            stream_fn = cast(Any, getattr(self.tts_adapter, "stream_audio_chunks", None))
+            if audio_frame_consumer is not None and callable(stream_fn):
+                stream_iter = cast(AsyncIterator[bytes], stream_fn(reply_text))
+                async for pcm_frame in stream_iter:
+                    now = time.perf_counter()
+                    if t_tts_first_byte is None:
+                        t_tts_first_byte = now
+                        t_first_audio = now
+                    collected_chunks.append(pcm_frame)
+                    await audio_frame_consumer(pcm_frame)
+                audio_bytes = b"".join(collected_chunks)
+            else:
+                audio_bytes = await self.tts_adapter.synthesize_text(reply_text)
+                t_first_audio = time.perf_counter()
+                t_tts_first_byte = t_tts_start + 0.120
+        except Exception as tts_err:
+            logger.warning(
+                "[TTS Degradation] TTS synthesis failed (%s). Continuing in text-only mode.",
+                tts_err,
+            )
+            audio_bytes = b""
+            tts_degraded = True
             t_first_audio = time.perf_counter()
-            t_tts_first_byte = t_tts_start + 0.120
+            t_tts_first_byte = t_first_audio
 
         if t_tts_first_byte is None:
             t_tts_first_byte = time.perf_counter()
@@ -441,7 +509,7 @@ class VoiceOrderingPipeline:
             tokens_in=tokens_in,
             tokens_out=tokens_out,
             llm_model_id=self.llm_adapter.name,
-            tts_model_id=self.tts_adapter.name,
+            tts_model_id="text_only_fallback" if tts_degraded else self.tts_adapter.name,
             prompt_hash=prompt_hash,
             cost_usd=cost,
             mode=self.reply_mode,
@@ -460,4 +528,5 @@ class VoiceOrderingPipeline:
             turn_event=event,
             turn_latency_ms=turn_latency_ms,
             rejections=rejection_msgs,
+            tts_degraded=tts_degraded,
         )

@@ -61,6 +61,7 @@ Thumbs.db
 *.ogg
 *.flac
 *.m4a
+!apps/web/public/audio/noise/*.wav
 !eval/noise/samples/*.txt
 eval/audio/real/*
 !eval/audio/real/.gitkeep

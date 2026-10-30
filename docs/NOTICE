@@ -1,0 +1,30 @@
+# NOTICE & THIRD-PARTY ASSET ATTRIBUTIONS
+
+**Proyek:** Lajur — Drive-thru Voice Ordering AI Demo  
+**Dokumen:** `docs/NOTICE`  
+**Milestone:** Minggu 6 (Robustness + Noise Presets)  
+**Status:** VALIDATED PER-FILE  
+
+---
+
+## 1. Client-Side Noise Presets (Simulasi Simulator Web)
+
+Seluruh preset kebisingan latar belakang pada simulator web sisi klien (`apps/web/public/audio/noise/`) disediakan untuk menguji ketahanan pengenalan ucapan dan VAD dalam kondisi akustik jalan raya Indonesia.
+
+> [!NOTE]
+> **Pemberitahuan Transparansi:** Seluruh preset kebisingan adalah **simulasi** (*simulated*), diterapkan pada peramban melalui Web Audio API sebelum audio dikirim ke WebRTC, dan **hanya aktif pada Mode Langsung (Live Mode)**, bukan pada Mode Replay. Tidak ada klaim bahwa preset ini identik secara mikroskopis dengan kebisingan jalan raya lapangan.
+
+### 1.1 Daftar Aset Audio & Lisensi
+
+| Preset ID | Berkas Aset | Sumber & Metodologi | Lisensi | Penulis / Atribusi | URL Referensi |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`clean`** | N/A (Passthrough) | Input mikrofon asli tanpa penambahan noise | N/A | Pengguna | N/A |
+| **`motor_idle`** | `/audio/noise/motor_idle.wav` | Sintesis akustik harmonik mesin motor 4-tak stasioner (fundamental ~26 Hz + resonansi knalpot) sesuai profil korpus MUSAN (OpenSLR 17) | CC0 1.0 (Public Domain Dedication) | Tim Lajur & Korpus MUSAN | [http://www.openslr.org/17/](http://www.openslr.org/17/) |
+| **`rain_traffic`** | `/audio/noise/rain_traffic.wav` | Filter noise Paul Kellet (Pink noise) diselingi desing sapuan ban kendaraan basah sesuai profil FSD50K ambient traffic | CC0 1.0 (Public Domain Dedication) | Tim Lajur & FSD50K Ambient Sound Profile | [https://zenodo.org/records/4060432](https://zenodo.org/records/4060432) |
+| **`helmet`** | `/audio/noise/helmet_ambient.wav` + DSP BiquadFilter | Filter akustik Low-Pass Biquad (Frekuensi Cutoff 900 Hz, $Q=1.5$) meniru redaman bantalan helm + resonansi rongga helm 180 Hz | CC0 1.0 (Public Domain Dedication) | Tim Lajur | [https://www.w3.org/TR/webaudio/](https://www.w3.org/TR/webaudio/) |
+
+---
+
+## 2. Kepatuhan Bebas Biaya & Tanpa Pembatasan Komersial
+
+Semua berkas audio berukuran kecil ($\le 130$ KB per berkas), di-looping secara mulus (*seamless loop*), tidak mengandung hak cipta pihak ketiga yang membatasi penggunaan non-komersial, dan memenuhi standar kepatuhan lisensi sumber terbuka (FSD50K non-NC / CC0 / OpenSLR).

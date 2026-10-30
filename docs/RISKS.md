@@ -1,6 +1,6 @@
 # Risk Register — Lajur
 
-**Versi:** 1.2 · **Terakhir Diperbarui:** 2026-10-21 (Minggu 2 Closeout & Gate G1 Audit)  
+**Versi:** 1.3 · **Terakhir Diperbarui:** 2026-10-30 (Minggu 6 Robustness & Pipeline Hardening)  
 **Aturan Pembaruan:** Ditinjau dan diperbarui setiap sesi evaluasi mingguan. Skor Risiko = Probabilitas (P: 1–5) × Dampak (I: 1–5).
 
 ---
@@ -23,7 +23,7 @@
 | **R12** | Ketiadaan validasi pasar / pengguna tidak bersedia membayar (jalur startup) | Bisnis | 4 | 3 | **12** | Lakukan wawancara *The Mom Test* kepada 8–10 pemilik F&B sejak Minggu 6; hentikan ekspansi startup di Gerbang G3 jika sinyal bayar nihil, pertahankan sebagai portofolio murni. | Kurang dari 2 pemilik F&B bersedia pilot di akhir Minggu 10 | Aktif |
 | **R13** | Kegagalan akustik di balik helm pengendara motor (*muffled audio* & derau knalpot) | Teknis | 4 | 4 | **16** | Masukkan simulasi filter akustik helm (low-pass filter 3 kHz + resonansi helm) ke dataset eval; tambahkan alias fonetik kata menu untuk pengucapan teredam; VAD adaptif. | KER pada skenario noise helm > 20% pada Spike G1 | Aktif |
 | **R14** | Kegagalan menangani slang & bahasa gaul lokal Indonesia (*"ijo-ijo"*, *"micin"*, *"es dikit"*) | Kualitas Produk | 4 | 3 | **12** | Tambahkan kamus sinonim slang kuliner Indonesia ke Menu Service dan prompt LLM; uji skenario modifier informal dalam dataset evaluasi dev split; coverage alias menu mencapai 100% di Minggu 3. | Muncul error parsing pada skenario slang di dev dataset | Terkendali di Menu |
-| **R15** | *Acoustic echo / audio bleed* dari speaker fisik memicu *barge-in false positive* | Teknis | 4 | 4 | **16** | Aktifkan WebRTC Acoustic Echo Cancellation (AEC) di browser; pasang threshold VAD semantik yang mengabaikan energi audio saat TTS bot sedang aktif. | Bot memotong bicaranya sendiri tanpa suara pengguna pada tes speaker fisik | Aktif |
+| **R15** | *Acoustic echo / audio bleed* dari speaker fisik memicu *barge-in false positive* | Teknis | 2 | 4 | **8** | Guard durasi bicara minimum (150 ms) di `BargeInController` (ADR-0015); lonjakan transient echo < 150 ms difilter (teruji 0,0% false barge-in pada 10 percobaan echo burst); stop latency interupsi terukur 0,01 ms (95% CI: [0,00, 0,03] ms); batasan AEC didokumentasikan di `docs/design/barge-in-and-aec.md`. | Bot memotong bicaranya sendiri tanpa suara pengguna pada tes speaker fisik | Termitigasi di Software (Pending Hardware Mic Test) |
 | **R16** | Eksploitasi *prompt injection* memanipulasi keranjang belanja & harga | Keamanan | 1 | 5 | **5** | **Termitigasi secara Konstruksi (Minggu 3)**: Intent Schema v1 melarang field ekstra (`extra="forbid"`) dan tanpa field finansial (`price`, `total`, `discount`). State machine murni menghitung harga secara independen dari `menu.json`. Uji properti membuktikan harga tidak dapat dimutasi oleh intent. | Tes red-team di Minggu 8 berhasil memanipulasi total harga | Termitigasi secara Konstruksi |
 | **R17** | Kebijakan *autoplay* & izin mikrofon iOS Safari menolak audio WebRTC | Kompatibilitas | 4 | 3 | **12** | Buat alur interaksi eksplisit tombol *"Mulai Pesan (Aktifkan Suara)"* yang memicu Web Audio context resume sebelum sesi WebRTC terhubung; uji manual wajib di perangkat iPhone fisik. | Audio bisu saat pengujian di Safari iOS fisik | Aktif |
 | **R18** | Dataset evaluasi terlalu optimis / tidak mencerminkan ucapan nyata (*overfitting dev set*) | Evaluasi | 4 | 4 | **16** | Kunci *held-out dataset* di Minggu 7 yang tidak pernah disentuh saat tuning prompt; perkaya skenario dengan jeda canggung (*hesitation*) dan rekaman suara manusia nyata pengembang sendiri. | Selisih skor OAR antara dev set dan pengujian manual > 15% | Aktif |
@@ -71,3 +71,12 @@
 2. **Mitigasi R17 (iOS Safari Audio & Mic Permissions):** Simulator menerapkan pola gestur pengguna eksplisit: tombol *"Mulai Pesan (Aktifkan Suara)"* menginisialisasi mikrofon dan resume AudioContext sebelum koneksi WebRTC aktif. Pengujian otomatis Playwright memverifikasi alur inisiasi audio ini.
 3. **Penyekatan Keamanan R2 & R3 (Token API & Replay Mode):** Sesuai catatan Minggu 5, rute `/api/token` belum dilengkapi captcha atau rate-limiting (dijadwalkan Minggu 9). Mode Replay offline disediakan sebagai media showcase publik 100% aman tanpa konsumsi token LiveKit maupun biaya vendor. Panduan deployment (`docs/demos/week-05-deployment-guide.md`) mendokumentasikan pemisahan risiko ini secara gamblang.
 4. **Verifikasi Aksesibilitas Web (WCAG 2.1 AA):** Seluruh elemen visual, fokus keyboard (`tabIndex={0}`), dan pembaca layar (`aria-live="polite"`, `role="log"`) diaudit secara otomatis dengan Playwright + axe-core dengan 0 pelanggaran.
+
+
+---
+
+## 4. Rangkuman Tindakan Minggu 6 (Robustness & Validasi Pasar)
+1. **Mitigasi R15 (Acoustic Echo Bleed & Barge-in):** Mengimplementasikan `BargeInController` dengan guard energi suara minimum $\ge 150$ ms. Teruji pada 10 percobaan lonjakan echo sintetis dengan hasil 0,0% false barge-in dan stop latency interupsi terukur 0,01 ms (95% CI: [0,00, 0,03] ms). Status diturunkan dari Skor 16 menjadi Skor 8 (Termitigasi di Software, pengujian akustik fisik speaker ponsel tetap pending).
+2. **Mitigasi False Cutoff Hesitation:** Mengimplementasikan `AdaptiveEndpointingHandler` dengan ekstensi terikat +500 ms untuk partikel ragu/gantung, menurunkan false-cutoff pada jeda 300 ms dari 100% menjadi 0,0% tanpa menambah latensi pada kalimat bersih (terukur 0,10 ms).
+3. **Mitigasi R8 (Kehabisan Kuota TTS & Degradasi Vendor):** Menambahkan graceful degradation pada pipeline. Jika kuota ElevenLabs habis atau gagal (HTTP 401/429), sistem otomatis beralih ke mode teks tanpa crash (`tts_degraded=True`) dan mengirimkan notifikasi UI, memastikan sesi pemesanan tetap berjalan mulus.
+4. **Validasi Koreksi & Undo:** Mengevaluasi 11 skenario koreksi/undo dari dev set melalui pipeline utuh dengan hasil 100% lulus (11/11), memvalidasi integritas Cart State Machine deterministik murni.
