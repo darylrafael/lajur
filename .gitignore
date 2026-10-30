@@ -53,7 +53,7 @@ Thumbs.db
 
 # Local databases and event logs
 *.sqlite3
-data/
+/data/
 
 # Audio files (ADR-0005: never store audio)
 *.wav
@@ -72,3 +72,13 @@ eval/audio/synthetic/*
 eval/results/spikes/*
 !eval/results/spikes/.gitkeep
 !eval/results/spikes/cost-ledger.csv
+
+# Test & Playwright artifacts
+playwright-report/
+test-results/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# Whitelist Next.js source directories
+!apps/web/src/lib/
+!apps/web/src/data/

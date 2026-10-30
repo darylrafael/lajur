@@ -62,3 +62,12 @@
 2. **Keandalan STT & False Cutoff (R1):** Pengaturan `endpointing=500` menghasilkan **0,0% false cutoff rate** tanpa pemotongan ucapan prematur di tengah kalimat. Akurasi intent mencapai 96,7% (Templat) dan 93,3% (LLM).
 3. **Optimasi Kuota Card-Free ElevenLabs (R7 & R8):** Pengujian penuh 60 turn hanya mengonsumsi **1.080 karakter** berkat peringkasan respons kasir. Sisa kuota aman pada **2.577 karakter** (penggunaan 27,1% dari sisa kuota awal Minggu 4, aman di bawah batas 60%).
 4. **Ketahanan Jaringan Adapter:** Adapter Groq dan Deepgram diperkuat dengan penanganan diskoneksi server (`ServerDisconnectedError` / `ClientError`), backoff 429 otomatis, dan boundary try-except per turn, menjamin eksekusi benchmark tanpa crash tak tertangani.
+
+
+---
+
+## 6. Rangkuman Tindakan Minggu 5 (Web Simulator & Web Protocol v1)
+1. **Mitigasi R4 & UX Latensi (NFR-07):** Panel transkrip langsung (*live partial transcript*) diimplementasikan pada antarmuka web, menampilkan teks sementara saat pengguna berbicara. Keranjang diperbarui seketika saat intent diterapkan (*real-time cart update*), memberi kepastian visual kepada pengguna dan meredam persepsi latensi audio bot (P50 3,6s).
+2. **Mitigasi R17 (iOS Safari Audio & Mic Permissions):** Simulator menerapkan pola gestur pengguna eksplisit: tombol *"Mulai Pesan (Aktifkan Suara)"* menginisialisasi mikrofon dan resume AudioContext sebelum koneksi WebRTC aktif. Pengujian otomatis Playwright memverifikasi alur inisiasi audio ini.
+3. **Penyekatan Keamanan R2 & R3 (Token API & Replay Mode):** Sesuai catatan Minggu 5, rute `/api/token` belum dilengkapi captcha atau rate-limiting (dijadwalkan Minggu 9). Mode Replay offline disediakan sebagai media showcase publik 100% aman tanpa konsumsi token LiveKit maupun biaya vendor. Panduan deployment (`docs/demos/week-05-deployment-guide.md`) mendokumentasikan pemisahan risiko ini secara gamblang.
+4. **Verifikasi Aksesibilitas Web (WCAG 2.1 AA):** Seluruh elemen visual, fokus keyboard (`tabIndex={0}`), dan pembaca layar (`aria-live="polite"`, `role="log"`) diaudit secara otomatis dengan Playwright + axe-core dengan 0 pelanggaran.

@@ -10,6 +10,9 @@ loadEnvConfig(path.resolve(__dirname, "../../"));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    LIVE_MODE_ENABLED: process.env.LIVE_MODE_ENABLED || "false",
+  },
 };
 
 export default nextConfig;

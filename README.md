@@ -14,6 +14,24 @@
 
 Unlike proprietary voice ordering systems that conceal operational metrics or fail outside quiet vehicle cabins and standard English, Lajur publishes open, transparent accuracy and latency benchmarks directly on its public interface.
 
+### Measured Latency (Gate G1-v2b Benchmark — 2026-10-26) [PROPOSED]
+
+Measured on a consumer laptop in Jakarta, Indonesia over residential Wi-Fi, interacting with LiveKit Cloud (Hyderabad, India), Deepgram Nova-3 (California, US), Groq Qwen-2.5-32b (US via Anycast edge), and ElevenLabs Flash v2.5:
+
+- **End-to-End Voice Turn Latency (Valid Turns, n=17):**
+  - **Median (P50):** 3.59 s (95% Bootstrap CI: [2.18 s, 5.86 s])
+  - **95th Percentile (P95):** 7.72 s (95% Bootstrap CI: [5.86 s, 8.21 s])
+  - **Mean:** 4.04 s (95% Bootstrap CI: [3.09 s, 5.07 s])
+- **All Recorded Turns (n=20, includes 3 clock-reference anomalies):**
+  - **P50:** 4.03 s | **P95:** Distorted by harness timer artifact (see `docs/gates/G1-v2b-validity-rule.md`)
+- **Stage Breakdown (Valid Turns P50):**
+  - STT turnaround (`speech_final` with 500ms endpointing): 1.28 s
+  - Intent classification LLM (TTFT): 0.56 s
+  - Cart state machine transition: 0.0005 s (0.5 ms)
+  - TTS TTFB (ElevenLabs Flash): 0.16 s
+  - Client playout detection / network residual: 0.95 s
+- **Gate G1 Verdict:** The 1.2 s PRD target and the 1.8 s owner fallback target are **NOT DEMONSTRATED** on this distributed cloud topology. Per project rules, targets are acknowledged as failed and are not adjusted upward. Optimization is deferred to post-MVP hosting co-location.
+
 ### Key Architecture Invariants
 1. **Cascade Streaming Pipeline**: STT &rarr; LLM &rarr; TTS. Every phase is individually benchmarked and replaceable via provider adapters.
 2. **Deterministic Cart State Machine**: Pure, isolated state machine outside the LLM. The LLM never mutates the cart directly and never invents items.

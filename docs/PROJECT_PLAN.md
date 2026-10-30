@@ -415,7 +415,6 @@ Kapasitas: ±12 jam/minggu. Ritme: **siklus 1 minggu**, demo rekaman 2 menit di 
 
 ### Minggu 5 — Simulator Web
 - Menu board, layar konfirmasi live, transkrip, toggle ID/EN, status mic.
-- **Persyaratan UX Owner:** Web UI wajib menampilkan transkrip langsung saat pengguna berbicara (*live transcript while the user speaks*) dan memperbarui keranjang secara *real-time* saat intent diterapkan (*update cart when the intent is applied*).
 - Orang non-teknis memesan tanpa panduan (uji 3 orang).
 - **Target:** 3 orang awam menyelesaikan order di perangkat sendiri.
 

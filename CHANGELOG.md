@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed & Hardened (Minggu 5b — Correction and Hardening)
+- **Live Mode Gate Switch (`LIVE_MODE_ENABLED`):** Added `LIVE_MODE_ENABLED` flag (default `false` everywhere). Server route `/api/token` returns HTTP 403 Forbidden with clear error JSON when disabled. Web UI shows disabled start button with bilingual notice (*"Live voice is off; try the demo replay"*) while offline replay mode remains fully functional.
+- **Cryptographic Room Security & Shortened Token TTL:** Updated `/api/token` to generate cryptographically unguessable 16-hex room names (`crypto.randomBytes(8).toString("hex")`) and tightened token TTL from 10m to 5m (matching the 3-minute max session limit).
+- **Protocol Contract Test:** Added `test_live_event_serialization_order_and_schema` to `test_web_protocol.py` validating strict causal ordering (`partial` -> `final` -> `intent_applied` -> `bot_reply_text`) against `web-protocol.schema.json` using offline fakes without vendor calls.
+- **Manual Accessibility Checklist:** Added `docs/demos/week-05-manual-a11y-checklist.md` covering keyboard-only, screen-reader, 200% zoom, and reduced motion checks for human verification (labeled as optional unverified checklist).
+- **Deployment & Usability Protocols Refinement:**
+  - Rewrote `docs/demos/week-05-deployment-guide.md` separating Mode A (Public Showcase, 100% safe, replay only) and Mode B (Usability-Test Window, live mode temporary, quota details) with 10-line Vercel Deployment Protection instructions.
+  - Added 10-line local test guide `docs/demos/week-05-live-check.md` with remaining ElevenLabs character quota (1,576 characters).
+  - Clarified ADR-0005 privacy compliance in ADR-0014 and design docs (SQLite stores zero transcripts and zero audio; browser localStorage stores only language preference).
+  - Corrected verbatim quotation of `PROJECT_PLAN.md §13` across documentation, separating owner UX requirements.
+
+### Added (Minggu 5 — Web Simulator & Web Protocol v1)
+- **Web Protocol v1 (`docs/design/web-protocol.md` & `packages/cart/web-protocol.schema.json`):** Strict JSON schema and TypeScript types (`apps/web/src/types/protocol.ts`) for real-time WebRTC data-channel communication between agent worker and frontend. Includes 9 structured event types (`partial_transcript`, `final_transcript`, `intent_applied`, `pending_question`, `handoff`, `bot_reply_text`, `bot_speaking_start`, `bot_speaking_end`, `session_limits`, `error`).
+- **ADR-0014: Web Protocol Design (`docs/decisions/0014-web-protocol.md`):** Recorded architectural decision for protocol schemas, field constraints, and ADR-0005 ephemeral compliance.
+- **Agent Protocol Integration (`services/agent/src/lajur_agent/`):** Implemented protocol event serialization in `protocol.py`, wired Deepgram interim transcript callbacks in `adapters/deepgram.py`, and updated `worker.py` to publish real-time events over `lajur-control` data channel.
+- **Web Simulator Application (`apps/web/`):** Full-featured, responsive, mobile-first Next.js 14 web application featuring:
+  - Menu board with categorized tabs (Burger, Ayam, Minuman, Sampingan, Paket Hemat), item cards, IDR pricing, and out-of-stock badges.
+  - Cart confirmation panel with line items, modifier lists, combo slot badges, integer rupiah totals, interactive pending questions, and real-time update badges.
+  - Live transcript panel displaying interim partial streaming text and final turn history (`role="log"`, `aria-live="polite"`).
+  - Cashier bot reply card with animated waveform audio visualizer.
+  - Session controls: mic toggle, manual user audio start, start over, end session, turns cap indicator (12 turns), and 3-minute session countdown.
+  - Human crew handoff modal banner for escalations.
+  - Language switcher (Bahasa Indonesia & English) and dark drive-thru HUD aesthetic.
+- **Offline Replay Mode:** Zero-vendor standalone demonstration mode running 5 gold replay scenarios (`simple`, `combo`, `correction`, `out_of_stock`, `handoff`) generated directly from `packages/cart.state_machine.CartSession`.
+- **Automated E2E & Accessibility Test Suite (`apps/web/tests/`):** Playwright test suite covering 5 critical user journey smoke tests and 2 automated WCAG 2.1 AA accessibility audits with `@axe-core/playwright`. All passed with zero violations.
+- **CI Workflow Integration (`.github/workflows/ci.yml`):** Added ESLint and automated Playwright E2E/A11y testing to the `web-application` CI job.
+- **Testing & Deployment Guides:**
+  - `docs/demos/week-05-usability-protocol.md`: Usability testing protocol for 3 non-technical participants, task scripts, informed consent, and results sheet.
+  - `docs/demos/week-05-deployment-guide.md`: Vercel preview deployment instructions, security division (Replay safe vs Live token unprotected), and dashboard steps.
+
+
 ### Added (Minggu 4 — Voice Pipeline Tracer Bullet & Gate G1 Validation)
 - **LiveKit Voice Agent Worker (`services/agent/src/lajur_agent/`):** Full end-to-end voice ordering cascade orchestrator (`pipeline.py`) running WebRTC Audio In $\to$ Deepgram Nova-3 STT $\to$ Groq Qwen-27b Intent Parser $\to$ Cart State Machine (`packages/cart`) $\to$ Cashier Reply Generator $\to$ ElevenLabs Flash v2.5 streaming TTS $\to$ WebRTC Audio Out + Data Channel sync.
 - **Dual Cashier Reply Modes:** Implemented toggleable Mode 1 (LLM verbalization from `SpeechFacts`, max 150 tokens) and Mode 2 (Deterministic template from `SpeechFacts`, 0 tokens, <0.1 ms).

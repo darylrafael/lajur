@@ -78,6 +78,7 @@ class PersistentDeepgramStream:
         # Turn callbacks and state
         self._on_first_partial: Callable[[float], None] | None = None
         self._on_speech_final: Callable[[str, float], None] | None = None
+        self._on_partial: Callable[[str], None] | None = None
         self._accumulated_parts: list[str] = []
         self.t_first_partial: float | None = None
         self.t_speech_final: float | None = None
@@ -145,10 +146,12 @@ class PersistentDeepgramStream:
         self,
         on_first_partial: Callable[[float], None] | None = None,
         on_speech_final: Callable[[str, float], None] | None = None,
+        on_partial: Callable[[str], None] | None = None,
     ) -> asyncio.Event:
         """Prepare stream for a new dialog turn."""
         self._on_first_partial = on_first_partial
         self._on_speech_final = on_speech_final
+        self._on_partial = on_partial
         self._accumulated_parts.clear()
         self.t_first_partial = None
         self.t_speech_final = None
@@ -191,7 +194,9 @@ class PersistentDeepgramStream:
                         # Capture partial / interim transcript
                         transcript_part = ""
                         try:
-                            transcript_part = data["channel"]["alternatives"][0]["transcript"].strip()
+                            transcript_part = data["channel"]["alternatives"][0][
+                                "transcript"
+                            ].strip()
                         except (KeyError, IndexError):
                             pass
 
@@ -201,6 +206,9 @@ class PersistentDeepgramStream:
                                 self.t_first_partial = now
                                 if self._on_first_partial:
                                     self._on_first_partial(now)
+
+                            if self._on_partial:
+                                self._on_partial(transcript_part)
 
                             if is_final:
                                 self._accumulated_parts.append(transcript_part)
@@ -264,7 +272,9 @@ class DeepgramSTTAdapter(STTAdapter):
         self._language = language
         self._smart_format = smart_format
         self._endpointing = endpointing
-        self._keyterms = keyterms if keyterms is not None else load_default_menu_keyterms(max_terms=100)
+        self._keyterms = (
+            keyterms if keyterms is not None else load_default_menu_keyterms(max_terms=100)
+        )
         self._session = session
         self._owns_session = session is None
         self._rest_url = "https://api.deepgram.com/v1/listen"
@@ -288,10 +298,12 @@ class DeepgramSTTAdapter(STTAdapter):
             ("smart_format", "true" if self._smart_format else "false"),
         ]
         if sample_rate:
-            params.extend([
-                ("encoding", "linear16"),
-                ("sample_rate", str(sample_rate)),
-            ])
+            params.extend(
+                [
+                    ("encoding", "linear16"),
+                    ("sample_rate", str(sample_rate)),
+                ]
+            )
         if self._endpointing is not None:
             params.append(("endpointing", str(self._endpointing)))
 

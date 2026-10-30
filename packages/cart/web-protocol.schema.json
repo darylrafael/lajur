@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LajurWebProtocolEvent",
+  "description": "JSON schema for Lajur Web Simulator data-channel events (Protocol v1).",
+  "type": "object",
+  "required": ["version", "type"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "v1"
+    },
+    "timestamp_ms": {
+      "type": "number",
+      "description": "Relative millisecond timestamp of the event"
+    }
+  },
+  "discriminator": {
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "title": "PartialTranscriptEvent",
+      "type": "object",
+      "required": ["version", "type", "text", "is_final"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "partial_transcript" },
+        "text": { "type": "string" },
+        "is_final": { "type": "boolean", "const": false },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "FinalTranscriptEvent",
+      "type": "object",
+      "required": ["version", "type", "text", "is_final"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "final_transcript" },
+        "text": { "type": "string" },
+        "is_final": { "type": "boolean", "const": true },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "IntentAppliedEvent",
+      "type": "object",
+      "required": ["version", "type", "state", "cart", "speech_facts"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "intent_applied" },
+        "state": {
+          "type": "string",
+          "enum": ["ordering", "awaiting_choice", "confirming", "done", "handoff"]
+        },
+        "state_from": {
+          "type": "string",
+          "enum": ["ordering", "awaiting_choice", "confirming", "done", "handoff"]
+        },
+        "cart": {
+          "type": "object",
+          "required": ["items", "total_price", "total_item_count", "status"],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["line_id", "item_id", "quantity", "size", "price", "modifiers", "slots"],
+                "properties": {
+                  "line_id": { "type": "string" },
+                  "item_id": { "type": "string" },
+                  "name_id": { "type": "string" },
+                  "name_en": { "type": "string" },
+                  "quantity": { "type": "integer", "minimum": 1 },
+                  "size": { "type": "string", "enum": ["regular", "medium", "large"] },
+                  "unit_price": { "type": "integer" },
+                  "price": { "type": "integer" },
+                  "modifiers": { "type": "array", "items": { "type": "string" } },
+                  "slots": { "type": "object", "additionalProperties": { "type": "string" } },
+                  "upsell_rules": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            },
+            "total_price": { "type": "integer", "minimum": 0 },
+            "total_item_count": { "type": "integer", "minimum": 0 },
+            "status": {
+              "type": "string",
+              "enum": ["in_progress", "confirmed", "rejected", "empty", "handoff"]
+            }
+          }
+        },
+        "speech_facts": {
+          "type": "object",
+          "required": ["intent_handled", "cart_item_count", "cart_total_price", "dialog_state"],
+          "properties": {
+            "intent_handled": { "type": "string" },
+            "items_added": { "type": "array", "items": { "type": "object" } },
+            "items_removed": { "type": "array", "items": { "type": "object" } },
+            "items_modified": { "type": "array", "items": { "type": "object" } },
+            "items_replaced": { "type": "array", "items": { "type": "object" } },
+            "rejections": { "type": "array", "items": { "type": "object" } },
+            "cart_item_count": { "type": "integer" },
+            "cart_total_price": { "type": "integer" },
+            "dialog_state": { "type": "string" },
+            "requires_confirmation": { "type": "boolean" }
+          }
+        },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "BotReplyTextEvent",
+      "type": "object",
+      "required": ["version", "type", "text"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "bot_reply_text" },
+        "text": { "type": "string" },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "BotSpeakingStartEvent",
+      "type": "object",
+      "required": ["version", "type"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "bot_speaking_start" },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "BotSpeakingEndEvent",
+      "type": "object",
+      "required": ["version", "type"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "bot_speaking_end" },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "PendingQuestionEvent",
+      "type": "object",
+      "required": ["version", "type", "kind", "prompt", "allowed_choices"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "pending_question" },
+        "kind": { "type": "string", "enum": ["combo_slot", "required_modifier", "ambiguity"] },
+        "prompt": { "type": "string" },
+        "target_line_id": { "type": ["string", "null"] },
+        "slot_id": { "type": ["string", "null"] },
+        "allowed_choices": { "type": "array", "items": { "type": "string" } },
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name_id", "name_en"],
+            "properties": {
+              "id": { "type": "string" },
+              "name_id": { "type": "string" },
+              "name_en": { "type": "string" },
+              "price_delta": { "type": "integer" }
+            }
+          }
+        },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "HandoffEvent",
+      "type": "object",
+      "required": ["version", "type", "reason", "crew_message"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "handoff" },
+        "reason": { "type": "string" },
+        "crew_message": { "type": "string" },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "ErrorEvent",
+      "type": "object",
+      "required": ["version", "type", "code", "message", "recoverable"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "error" },
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "recoverable": { "type": "boolean" },
+        "timestamp_ms": { "type": "number" }
+      }
+    },
+    {
+      "title": "SessionLimitsEvent",
+      "type": "object",
+      "required": ["version", "type", "turns_used", "max_turns", "time_elapsed_seconds", "time_limit_seconds"],
+      "properties": {
+        "version": { "type": "string", "const": "v1" },
+        "type": { "type": "string", "const": "session_limits" },
+        "turns_used": { "type": "integer" },
+        "max_turns": { "type": "integer" },
+        "time_elapsed_seconds": { "type": "number" },
+        "time_limit_seconds": { "type": "number" },
+        "timestamp_ms": { "type": "number" }
+      }
+    }
+  ]
+}
