@@ -1,0 +1,13 @@
+diff --git a/docs/PROJECT_PLAN.md b/docs/PROJECT_PLAN.md
+index d3681c8..a2edfab 100644
+--- a/docs/PROJECT_PLAN.md
++++ b/docs/PROJECT_PLAN.md
+@@ -418,8 +418,6 @@ Kapasitas: ±12 jam/minggu. Ritme: **siklus 1 minggu**, demo rekaman 2 menit di
+ - Orang non-teknis memesan tanpa panduan (uji 3 orang).
+ - **Target:** 3 orang awam menyelesaikan order di perangkat sendiri.
+ 
+-*(Catatan Persyaratan Tambahan Pemilik Proyek / Owner Requirement: Web UI wajib menampilkan transkrip langsung saat pengguna berbicara dan memperbarui keranjang secara real-time saat intent diterapkan).*
+-
+ ### Minggu 6 — Robustness + Validasi Pasar Dimulai
+ - VAD/turn detection adaptif, barge-in, undo/koreksi, handoff kru, upsell.
+ - Preset noise (4) di sisi klien.
