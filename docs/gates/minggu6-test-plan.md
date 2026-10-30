@@ -125,3 +125,29 @@ Sesuai kesepakatan delegasi pemilik proyek (*owner-delegated defaults*):
 1. Seluruh kode pengujian dijalankan tepat 1 kali (*single run*).
 2. Tidak ada penyesuaian parameter (*hyperparameter / threshold tuning*) setelah melihat data hasil eksekusi uji.
 3. Seluruh hasil angka dilaporkan apa adanya dalam format laporan standar, disertai *confidence intervals* dan catatan kegagalan (jika ada).
+---
+
+## 5. Audit Kronologi Git & Klarifikasi Pelaksanaan Pengujian
+
+### 5.1 Urutan Komit Git (Git Log Audit)
+- **Komit 1 (Pra-Registrasi Rencana Uji):**
+  - **Commit SHA:** `f198ce33c881aef5e0b35ee7c592208c1564bd1b`
+  - **Tanggal/Waktu:** Fri Oct 30 14:20:32 2026 +0700
+  - **Berkas yang dikomit (1 berkas saja):**
+    - `docs/gates/minggu6-test-plan.md` (127 baris)
+  - **Status:** Rencana uji ini telah dikomit ke git sebelum berkas implementasi dibuat.
+- **Komit 2 (Implementasi, Unit Test, & Hasil Benchmark):**
+  - **Commit SHA:** `cc534f3b9c73188b020fd35061b5b6168dd1ba8a`
+  - **Tanggal/Waktu:** Fri Oct 30 20:05:53 2026 +0700
+  - **Berkas yang dikomit (30 berkas):**
+    - Kode fitur: `turn_detection.py`, `barge_in.py`, `pipeline.py`, `worker.py`, `NoisePresetControls.tsx`, `page.tsx`
+    - Aset & panduan: `docs/NOTICE`, 3 berkas audio noise, ADR-0015, materi `docs/interviews/`, `docs/demos/week-06-human-tasks.md`
+    - Pengujian & Hasil: `services/agent/tests/*`, `eval/scripts/evaluate_minggu6_robustness.py`, `eval/results/minggu6_robustness_results.json`
+
+### 5.2 Catatan Integritas & Sifat Data Hasil Uji
+1. **Penyatuan Komit Hasil:** Berkas hasil `eval/results/minggu6_robustness_results.json` dikomit bersamaan dengan berkas implementasi pada komit `cc534f3`, bukan pada komit terpisah setelah implementasi.
+2. **Karakter Pengujian (Simulasi Model / Unit-Level):**
+   - Skrip `evaluate_minggu6_robustness.py` mengeksekusi simulasi logika string berbasis model dan timer Python asyncio buatan (*fakes*), bukan streaming audio akustik riil via Edge-TTS maupun Deepgram live.
+   - Angka false-cutoff statis (100%) terjadi secara konstruksi (*true by construction*) karena jeda simulasi ($\ge 300$ ms) diatur lebih besar atau sama dengan ambang statis 300 ms.
+   - Hasil evaluasi koreksi (11/11) menguji transisi state machine menggunakan gold intent sintetis buatan agen, bukan kemampuan model bahasa LLM memproses koreksi multi-turn terhadap snapshot keranjang secara langsung.
+   - Angka-angka ini diklasifikasikan secara jujur sebagai **simulasi berbasis model / unit-level**, bukan tolok ukur akustik ujung-ke-ujung (*end-to-end acoustic benchmark*).

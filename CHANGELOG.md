@@ -14,14 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Adaptive Endpointing & Turn Detection (`services/agent/src/lajur_agent/turn_detection.py`):**
   - Heuristic classifier identifying mid-thought hesitation particles, dangling conjunctions, and dangling verbs.
   - Configurable bounded extension window (+500 ms) while Deepgram base endpointing remains unchanged at 300 ms.
-  - Benchmark result: False-cutoff rate on 300 ms pause dropped from 100.0% to 0.0%. Mean added delay on clean non-hesitation turns measured at 0.10 ms (95% CI: [0.03, 0.23] ms; zero added delay confirmed).
+  - Benchmark result (model-based simulation): False-cutoff rate on 300 ms pause dropped from 100.0% (static baseline true by construction) to 0.0% for detected hesitation phrases. The 0.10 ms figure reflects heuristic CPU evaluation time; added wait on hesitation turns is bounded at +500 ms, with a false-extension rate on non-hesitation dataset turns of 0.72% (1/139 turns).
 - **Barge-in & Echo-Bleed Guard (`services/agent/src/lajur_agent/barge_in.py`):**
   - Immediate audio output cancellation and in-flight generation task abort on user speech.
-  - Minimum speech duration guard (150 ms) mitigating Risk R15 (echo-bleed false barge-in rate measured at 0.0% on transient bursts).
-  - Stop latency measured at 0.01 ms (95% CI: [0.00, 0.03] ms). Cart consistency verified 100% intact without half-applied intents.
+  - Minimum speech duration guard (150 ms) filters transient bursts < 150 ms (0.0% false barge-in by construction on isolated test bursts; sustained acoustic echo from bot speech into mic remains active risk R15 at score 16).
+  - Controller stop decision time measured at 0.01 ms (95% CI: [0.00, 0.03] ms) in tests with fakes; queued audio in LiveKit and browser playout buffers was not measured. Cart consistency verified 100% intact without half-applied intents.
   - Architecture and browser AEC limitations documented in `docs/design/barge-in-and-aec.md` citing W3C standards and mobile hardware caveats.
 - **Corrections & Undo Full Pipeline Evaluation (`test_corrections_pipeline.py`):**
-  - Evaluated all 11 pre-registered correction and undo scenarios (`scen_071`–`scen_080`, `scen_134`) through the full agent pipeline with fakes. 100% passed (11/11). Explicitly noted that gold labels in `gold_intents_v2.jsonl` are agent-authored and unverified.
+  - Evaluated all 11 pre-registered correction and undo scenarios (`scen_071`–`scen_080`, `scen_134`) by replaying agent-authored gold intents through the state machine with fakes (11/11 passed, 100%). Does not test the LLM's handling of corrections with the cart snapshot.
 - **FR-09 Crew Handoff, FR-10 Contextual Upsell, and Graceful Degradation:**
   - FR-09: Handoff triggered on explicit customer request (`HandoffIntent`), repeated failures (>= 3 consecutive unknown intents), or timeout/max turns. Cart preserved; emits `handoff` event with crew message.
   - FR-10: Contextual upsell driven by combo `upsell_rules` (max 1 offer per order, never repeated after customer decline, non-blocking).

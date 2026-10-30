@@ -90,3 +90,17 @@ Measured on a consumer laptop in Jakarta, Indonesia over residential Wi-Fi, inte
   - Client playout detection / network residual: 0.95 s
 - **Gate G1 Verdict:** The 1.2 s PRD target and the 1.8 s owner fallback target are **NOT DEMONSTRATED** on this distributed cloud topology. Per project rules, targets are acknowledged as failed and are not adjusted upward. Optimization is deferred to post-MVP hosting co-location.
 ```
+
+
+---
+
+## 7. Catatan Konfigurasi Endpointing Pasca-G1 (Pembaruan Minggu 6 — 2026-10-30)
+
+- **Konfigurasi Saat Pengukuran G1 (Minggu 4 / G1-v2b):**  
+  Pada benchmark resmi Gerbang G1, Deepgram Nova-3 dikonfigurasi dengan parameter `endpointing=500` ms (lihat `eval/scripts/spikes/benchmark_week04_g1_v2.py` baris 316 dan default adapter pada `services/agent/src/lajur_agent/adapters/deepgram.py` baris 264). Seluruh angka latensi turn resmi Gerbang G1 (P50 3,59 s, P95 7,72 s) diperoleh menggunakan konfigurasi 500 ms ini.
+- **Konfigurasi Live Pipeline Minggu 6:**  
+  Pada Minggu 6 (`feat/minggu-6-robustness`), worker live (`services/agent/src/lajur_agent/worker.py` baris 103 dan baris 141) menggunakan konfigurasi `endpointing=300` ms yang digabungkan dengan `AdaptiveEndpointingHandler(base_endpointing_ms=300.0)`.
+- **Rasional Perubahan:**  
+  Penurunan nilai dasar endpointing ke 300 ms dimaksudkan untuk memangkas jeda deteksi akhir bicara pada kalimat normal, sementara perlindungan terhadap jeda ragu (*mid-thought hesitation*) ditangani di tingkat aplikasi melalui perpanjangan adaptif terikat (+500 ms) saat terdeteksi partikel/kata gantung.
+- **Batasan Integritas:**  
+  Seluruh angka resmi Gerbang G1 tetap berlaku HANYA untuk konfigurasi lama (`endpointing=500` ms). Konfigurasi baru 300 ms dengan adaptive handler belum pernah diukur ulang secara end-to-end melalui benchmark latensi live, dan angka G1 tidak boleh diklaim mewakili kinerja konfigurasi baru.
